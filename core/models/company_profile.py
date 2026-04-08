@@ -10,3 +10,10 @@ class Company_Profile(models.Model):
     contact_phone = models.CharField(max_length=20)
     trade_name = models.CharField(max_length=50)
     company = models.OneToOneField(Company, on_delete=models.PROTECT)
+
+    class Meta:
+        verbose_name = 'Perfil de Empresa'
+        verbose_name_plural = 'Perfis de Empresa'
+
+    def __str__(self):
+        return self.trade_name
