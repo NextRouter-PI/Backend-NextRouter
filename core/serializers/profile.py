@@ -1,11 +1,11 @@
-from rest_framework import serializers
+from rest_framework.serializers import ModelSerializer
 
 from core.models import Profile
 
 from .accessibility import AccessibilitySerializer
 
 
-class ProfileSerializer(serializers.ModelSerializer):
+class ProfileSerializer(ModelSerializer):
     accessibility = AccessibilitySerializer(read_only=True)
 
     class Meta:
