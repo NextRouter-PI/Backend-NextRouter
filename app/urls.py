@@ -15,6 +15,7 @@ from core.views import (
     Company_ProfileViewSet,
     CompanyViewSet,
     ProfileViewSet,
+    System_AdminViewSet,
     UserViewSet,
 )
 
@@ -27,6 +28,7 @@ router.register(r'perfis_empresa', Company_ProfileViewSet, basename='perfis de e
 router.register(r'acessibilidades', AccessibilityViewSet, basename='acessibilidades')
 router.register(r'permissoes_admin_empresa', Company_Admin_PermissionViewSet, basename='permissoes de admin de empresa')
 router.register(r'admins_empresa', Company_AdminViewSet, basename='admins de empresa')
+router.register(r'admins_sistema', System_AdminViewSet, basename='admins de sistema')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
