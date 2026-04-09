@@ -11,6 +11,7 @@ from rest_framework.routers import DefaultRouter
 from core.views import (
     AccessibilityViewSet,
     Company_Admin_PermissionViewSet,
+    Company_AdminViewSet,
     Company_ProfileViewSet,
     CompanyViewSet,
     ProfileViewSet,
@@ -25,6 +26,7 @@ router.register(r'empresas', CompanyViewSet, basename='empresas')
 router.register(r'perfis_empresa', Company_ProfileViewSet, basename='perfis de empresa')
 router.register(r'acessibilidades', AccessibilityViewSet, basename='acessibilidades')
 router.register(r'permissoes_admin_empresa', Company_Admin_PermissionViewSet, basename='permissoes de admin de empresa')
+router.register(r'admins_empresa', Company_AdminViewSet, basename='admins de empresa')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
