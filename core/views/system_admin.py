@@ -1,4 +1,4 @@
-from rest_framework.views import ModelViewSet
+from rest_framework.viewsets import ModelViewSet
 
 from core.models import System_Admin
 from core.serializers import System_AdminSerializer
