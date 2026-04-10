@@ -13,6 +13,7 @@ from core.views import (
     Company_Admin_PermissionViewSet,
     Company_AdminViewSet,
     Company_ProfileViewSet,
+    Company_Registration_RequestViewSet,
     CompanyViewSet,
     ProfileViewSet,
     System_AdminViewSet,
@@ -29,6 +30,10 @@ router.register(r'acessibilidades', AccessibilityViewSet, basename='acessibilida
 router.register(r'permissoes_admin_empresa', Company_Admin_PermissionViewSet, basename='permissoes de admin de empresa')
 router.register(r'admins_empresa', Company_AdminViewSet, basename='admins de empresa')
 router.register(r'admins_sistema', System_AdminViewSet, basename='admins de sistema')
+router.register(
+    r'solicitacoes_cadastro_empresa',
+    Company_Registration_RequestViewSet,
+    basename='solicitacoes de cadastro de empresa')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

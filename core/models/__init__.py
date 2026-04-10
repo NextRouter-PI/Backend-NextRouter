@@ -6,3 +6,4 @@ from .company_profile import Company_Profile
 from .company_admin_permission import Company_Admin_Permission
 from .company_admin import Company_Admin
 from .system_admin import System_Admin
+from .company_registration_request import Company_Registration_Request
