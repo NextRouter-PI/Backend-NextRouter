@@ -13,3 +13,4 @@ from .driver import Driver
 from .passenger import Passenger
 from .route_group import Route_Group
 from .route import Route
+from .confirmed_passenger import Confirmed_Passenger

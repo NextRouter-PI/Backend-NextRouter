@@ -13,3 +13,4 @@ from .driver import DriverViewSet
 from .passenger import PassengerViewSet
 from .route_group import Route_GroupViewSet
 from .route import RouteViewSet
+from .confirmed_passenger import Confirmed_PassengerViewSet
