@@ -12,3 +12,4 @@ from .register_link import Register_LinkSerializer
 from .driver import DriverSerializer
 from .passenger import PassengerSerializer
 from .route_group import Route_GroupSerializer
+from .route import RouteSerializer

@@ -12,3 +12,4 @@ from .register_link import Register_LinkViewSet
 from .driver import DriverViewSet
 from .passenger import PassengerViewSet
 from .route_group import Route_GroupViewSet
+from .route import RouteViewSet
