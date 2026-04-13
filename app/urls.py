@@ -17,6 +17,7 @@ from core.views import (
     Confirmed_PassengerViewSet,
     Contract_RequestViewSet,
     DriverViewSet,
+    Lost_ItemViewSet,
     PassengerViewSet,
     ProfileViewSet,
     Register_LinkViewSet,
@@ -48,6 +49,7 @@ router.register(r'passageiros', PassengerViewSet, basename='passageiros')
 router.register(r'grupos_de_rotas', Route_GroupViewSet, basename='grupos de rotas')
 router.register(r'rotas', RouteViewSet, basename='rotas')
 router.register(r'passageiros_confirmados', Confirmed_PassengerViewSet, basename='passageiros confirmados')
+router.register(r'itens_perdidos', Lost_ItemViewSet, basename='itens perdidos')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
