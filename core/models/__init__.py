@@ -4,3 +4,16 @@ from .accessibility import Accessibility
 from .company import Company
 from .company_profile import Company_Profile
 from .company_admin_permission import Company_Admin_Permission
+from .company_admin import Company_Admin
+from .system_admin import System_Admin
+from .company_registration_request import Company_Registration_Request
+from  .contract_request import Contract_Request
+from .register_link import Register_Link
+from .driver import Driver
+from .passenger import Passenger
+from .route_group import Route_Group
+from .route import Route
+from .confirmed_passenger import Confirmed_Passenger
+from .lost_item import Lost_Item
+from .driver_job_opening import Driver_Job_Opening
+from .account_recovery_code import Account_Recovery_Code
