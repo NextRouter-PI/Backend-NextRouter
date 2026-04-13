@@ -7,8 +7,8 @@ class Confirmed_Passenger(models.Model):
     route = models.ForeignKey('Route', on_delete=models.PROTECT)
 
     class Meta:
-        verbose_name = 'Passageiro_Confirmado'
-        verbose_name_plural = 'Passageiros Confirmados'
+        verbose_name = 'Confirmar Pasajero'
+        verbose_name_plural = 'Confirmar Pasajeros'
 
     def __str__(self):
         return f'{self.passenger} - {self.route}'
