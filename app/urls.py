@@ -9,6 +9,7 @@ from rest_framework.routers import DefaultRouter
 
 from core.views import (
     AccessibilityViewSet,
+    Account_Recovery_CodeViewSet,
     Company_Admin_PermissionViewSet,
     Company_AdminViewSet,
     Company_ProfileViewSet,
@@ -16,6 +17,7 @@ from core.views import (
     CompanyViewSet,
     Confirmed_PassengerViewSet,
     Contract_RequestViewSet,
+    Driver_Job_OpeningViewSet,
     DriverViewSet,
     Lost_ItemViewSet,
     PassengerViewSet,
@@ -50,6 +52,8 @@ router.register(r'grupos_de_rotas', Route_GroupViewSet, basename='grupos de rota
 router.register(r'rotas', RouteViewSet, basename='rotas')
 router.register(r'passageiros_confirmados', Confirmed_PassengerViewSet, basename='passageiros confirmados')
 router.register(r'itens_perdidos', Lost_ItemViewSet, basename='itens perdidos')
+router.register(r'vagas_de_trabalho_motorista', Driver_Job_OpeningViewSet, basename='vagas de trabalho para motorista')
+router.register(r'codigos_recuperacao_conta', Account_Recovery_CodeViewSet, basename='codigos de recuperacao de conta')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

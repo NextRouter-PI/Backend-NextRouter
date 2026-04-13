@@ -15,3 +15,5 @@ from .route_group import Route_GroupViewSet
 from .route import RouteViewSet
 from .confirmed_passenger import Confirmed_PassengerViewSet
 from .lost_item import Lost_ItemViewSet
+from .driver_job_opening import Driver_Job_OpeningViewSet
+from .account_recovery_code import Account_Recovery_CodeViewSet
