@@ -1,4 +1,3 @@
-
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import (
@@ -16,6 +15,8 @@ from core.views import (
     Company_Registration_RequestViewSet,
     CompanyViewSet,
     Contract_RequestViewSet,
+    DriverViewSet,
+    PassengerViewSet,
     ProfileViewSet,
     Register_LinkViewSet,
     System_AdminViewSet,
@@ -35,15 +36,12 @@ router.register(r'admins_sistema', System_AdminViewSet, basename='admins de sist
 router.register(
     r'solicitacoes_cadastro_empresa',
     Company_Registration_RequestViewSet,
-    basename='solicitacoes de cadastro de empresa')
-router.register(
-    r'solicitacoes_contrato',
-    Contract_RequestViewSet,
-    basename='solicitacoes de contrato')
-router.register(
-    r'links_cadastro',
-    Register_LinkViewSet,
-    basename='links de cadastro')
+    basename='solicitacoes de cadastro de empresa',
+)
+router.register(r'solicitacoes_contrato', Contract_RequestViewSet, basename='solicitacoes de contrato')
+router.register(r'links_cadastro', Register_LinkViewSet, basename='links de cadastro')
+router.register(r'motoristas', DriverViewSet, basename='motoristas')
+router.register(r'passageiros', PassengerViewSet, basename='passageiros')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

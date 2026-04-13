@@ -9,3 +9,5 @@ from .system_admin import System_AdminViewSet
 from .company_registration_request import Company_Registration_RequestViewSet
 from .contract_request import Contract_RequestViewSet
 from .register_link import Register_LinkViewSet
+from .driver import DriverViewSet
+from .passenger import PassengerViewSet
