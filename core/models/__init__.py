@@ -8,3 +8,4 @@ from .company_admin import Company_Admin
 from .system_admin import System_Admin
 from .company_registration_request import Company_Registration_Request
 from  .contract_request import Contract_Request
+from .register_link import Register_Link

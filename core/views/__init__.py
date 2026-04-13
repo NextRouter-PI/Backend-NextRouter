@@ -8,3 +8,4 @@ from .company_admin import Company_AdminViewSet
 from .system_admin import System_AdminViewSet
 from .company_registration_request import Company_Registration_RequestViewSet
 from .contract_request import Contract_RequestViewSet
+from .register_link import Register_LinkViewSet

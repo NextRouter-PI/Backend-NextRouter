@@ -8,3 +8,4 @@ from .company_admin import Company_AdminSerializer
 from .system_admin import System_AdminSerializer
 from .company_registration_request import Company_Registration_RequestSerializer
 from .contract_request import Contract_RequestSerializer
+from .register_link import Register_LinkSerializer
