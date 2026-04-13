@@ -19,6 +19,7 @@ from core.views import (
     PassengerViewSet,
     ProfileViewSet,
     Register_LinkViewSet,
+    Route_GroupViewSet,
     System_AdminViewSet,
     UserViewSet,
 )
@@ -42,6 +43,7 @@ router.register(r'solicitacoes_contrato', Contract_RequestViewSet, basename='sol
 router.register(r'links_cadastro', Register_LinkViewSet, basename='links de cadastro')
 router.register(r'motoristas', DriverViewSet, basename='motoristas')
 router.register(r'passageiros', PassengerViewSet, basename='passageiros')
+router.register(r'grupos_de_rotas', Route_GroupViewSet, basename='grupos de rotas')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

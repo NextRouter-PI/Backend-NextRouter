@@ -8,6 +8,7 @@ class Passenger(models.Model):
     passenger_cpf = models.CharField(max_length=14)
     profile = models.ForeignKey('Profile', on_delete=models.CASCADE)
     password_hash = models.CharField(max_length=255)
+    group = models.ForeignKey('Route_Group', on_delete=models.SET_NULL, null=True)
 
     class Meta:
         verbose_name = 'Passageiro'

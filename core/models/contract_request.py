@@ -11,6 +11,7 @@ class Contract_Request(models.Model):
     final_status = models.CharField(max_length=20)
     company_admin_finished_request = models.ForeignKey('Company_Admin', on_delete=models.PROTECT, null=True)
     person_cpf = models.CharField(max_length=14)
+    group = models.ForeignKey('Route_Group', on_delete=models.SET_NULL, null=True)
 
     class Meta:
         verbose_name = 'Solicitação de Contrato'
