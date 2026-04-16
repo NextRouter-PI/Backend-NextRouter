@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "Live Preview",
+			"workspacePath": "/home/paulo-artur-pereira/Documentos/router/Backend-NextRouter",
+			"problemMatcher": [],
+			"label": "Live Preview: Executar Servidor",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	]
+}
