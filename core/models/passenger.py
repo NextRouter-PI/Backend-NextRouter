@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from .company import Company
 from .user import User
 
 
@@ -13,6 +14,15 @@ class Passenger(models.Model):
         on_delete=models.PROTECT,
         related_name="passenger_profile",
         verbose_name=_("Usuário")
+    )
+
+    empresa = models.ForeignKey(
+        Company,
+        on_delete=models.PROTECT,
+        related_name="passageiros",
+        verbose_name=_("Empresa"),
+        blank=True,
+        null=True
     )
 
     cpf = models.CharField(

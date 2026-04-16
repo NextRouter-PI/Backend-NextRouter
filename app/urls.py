@@ -1,11 +1,12 @@
+# projeto/urls.py
+
 from django.contrib import admin
 from django.urls import include, path
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularRedocView,
-    SpectacularSwaggerView,
-)
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import (
+    TokenBlacklistView,
+    TokenRefreshView,
+)
 
 from core.views import (
     CompanyViewSet,
@@ -16,25 +17,88 @@ from core.views import (
 
 router = DefaultRouter()
 
-router.register(r'usuarios', UserViewSet, basename='usuarios')
-router.register(r'empresas', CompanyViewSet, basename='empresas')
-router.register(r'motoristas', DriverViewSet, basename='motoristas')
-router.register(r'passageiros', PassengerViewSet, basename='passageiros')
+router.register(
+    r"usuarios",
+    UserViewSet,
+    basename="usuarios"
+)
+
+router.register(
+    r"empresas",
+    CompanyViewSet,
+    basename="empresas"
+)
+
+router.register(
+    r"motoristas",
+    DriverViewSet,
+    basename="motoristas"
+)
+
+router.register(
+    r"passageiros",
+    PassengerViewSet,
+    basename="passageiros"
+)
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    # OpenAPI 3
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+
+    # ADMIN
     path(
-        'api/swagger/',
-        SpectacularSwaggerView.as_view(url_name='schema'),
-        name='swagger-ui',
+        "admin/",
+        admin.site.urls
     ),
+
+    # =========================
+    # AUTH
+    # =========================
+
+    # LOGIN
     path(
-        'api/redoc/',
-        SpectacularRedocView.as_view(url_name='schema'),
-        name='redoc',
+        "api/auth/login/",
+        UserViewSet.as_view({
+            "post": "login"
+        }),
+        name="login"
     ),
-    # API
-    path('api/', include(router.urls)),
+
+    # REGISTER
+    path(
+        "api/auth/register/",
+        UserViewSet.as_view({
+            "post": "register"
+        }),
+        name="register"
+    ),
+
+    # USUARIO LOGADO
+    path(
+        "api/auth/me/",
+        UserViewSet.as_view({
+            "get": "me"
+        }),
+        name="me"
+    ),
+
+    # REFRESH TOKEN
+    path(
+        "api/auth/refresh/",
+        TokenRefreshView.as_view(),
+        name="refresh"
+    ),
+
+    # LOGOUT
+    path(
+        "api/auth/logout/",
+        TokenBlacklistView.as_view(),
+        name="logout"
+    ),
+
+    # =========================
+    # CRUD API
+    # =========================
+    path(
+        "api/",
+        include(router.urls)
+    ),
 ]
