@@ -1,5 +1,3 @@
-# projeto/urls.py
-
 from django.contrib import admin
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
@@ -43,17 +41,11 @@ router.register(
 
 urlpatterns = [
 
-    # ADMIN
     path(
         "admin/",
         admin.site.urls
     ),
 
-    # =========================
-    # AUTH
-    # =========================
-
-    # LOGIN
     path(
         "api/auth/login/",
         UserViewSet.as_view({
@@ -62,16 +54,22 @@ urlpatterns = [
         name="login"
     ),
 
-    # REGISTER
     path(
-        "api/auth/register/",
+        "api/auth/register/passageiro/",
         UserViewSet.as_view({
-            "post": "register"
+            "post": "register_passenger"
         }),
-        name="register"
+        name="register_passenger"
     ),
 
-    # USUARIO LOGADO
+    path(
+        "api/auth/register/motorista/",
+        UserViewSet.as_view({
+            "post": "register_driver"
+        }),
+        name="register_driver"
+    ),
+
     path(
         "api/auth/me/",
         UserViewSet.as_view({
@@ -80,23 +78,26 @@ urlpatterns = [
         name="me"
     ),
 
-    # REFRESH TOKEN
+    path(
+        "api/auth/status-motorista/",
+        UserViewSet.as_view({
+            "get": "status_motorista"
+        }),
+        name="status_motorista"
+    ),
+
     path(
         "api/auth/refresh/",
         TokenRefreshView.as_view(),
         name="refresh"
     ),
 
-    # LOGOUT
     path(
         "api/auth/logout/",
         TokenBlacklistView.as_view(),
         name="logout"
     ),
 
-    # =========================
-    # CRUD API
-    # =========================
     path(
         "api/",
         include(router.urls)
