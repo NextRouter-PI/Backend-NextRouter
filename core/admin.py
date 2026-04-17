@@ -9,64 +9,189 @@ from django.utils.translation import gettext_lazy as _
 from core import models
 
 
+@admin.register(models.User)
 class UserAdmin(BaseUserAdmin):
-    """Define the admin pages for users."""
+    """Admin principal de usuários."""
 
-    ordering = ['id']
-    list_display = ['email', 'name']
-    fieldsets = (
-        (None, {'fields': ('email', 'password')}),
-        (_('Personal Info'), {'fields': ('name', 'passage_id')}),
-        (
-            _('Permissions'),
-            {
-                'fields': (
-                    'is_active',
-                    'is_staff',
-                    'is_superuser',
-                )
-            },
-        ),
-        (_('Important dates'), {'fields': ('last_login',)}),
-        (_('Groups'), {'fields': ('groups',)}),
-        (_('User Permissions'), {'fields': ('user_permissions',)}),
+    ordering = ["id"]
+
+    list_display = (
+        "id",
+        "email",
+        "nome",
+        "tipo",
+        "is_active",
+        "is_staff",
+        "created_at",
     )
-    readonly_fields = ['last_login']
+
+    search_fields = (
+        "email",
+        "nome",
+        "telefone",
+    )
+
+    list_filter = (
+        "tipo",
+        "is_active",
+        "is_staff",
+        "is_superuser",
+    )
+
+    readonly_fields = (
+        "last_login",
+        "created_at",
+    )
+
+    fieldsets = (
+        (None, {
+            "fields": (
+                "email",
+                "password",
+            )
+        }),
+
+        (_("Informações Pessoais"), {
+            "fields": (
+                "nome",
+                "telefone",
+                "foto",
+                "tipo",
+            )
+        }),
+
+        (_("Permissões"), {
+            "fields": (
+                "is_active",
+                "is_staff",
+                "is_superuser",
+                "groups",
+                "user_permissions",
+            )
+        }),
+
+        (_("Datas Importantes"), {
+            "fields": (
+                "last_login",
+                "created_at",
+            )
+        }),
+    )
+
     add_fieldsets = (
         (
             None,
             {
-                'classes': ('wide',),
-                'fields': (
-                    'email',
-                    'password1',
-                    'password2',
-                    'name',
-                    'is_active',
-                    'is_staff',
-                    'is_superuser',
+                "classes": ("wide",),
+                "fields": (
+                    "email",
+                    "password1",
+                    "password2",
+                    "nome",
+                    "telefone",
+                    "tipo",
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
                 ),
             },
         ),
     )
 
 
-admin.site.register(models.User, UserAdmin)
-admin.site.register(models.Profile)
-admin.site.register(models.Accessibility)
-admin.site.register(models.Company)
-admin.site.register(models.Company_Profile)
-admin.site.register(models.Company_Admin_Permission)
-admin.site.register(models.Company_Admin)
-admin.site.register(models.System_Admin)
-admin.site.register(models.Company_Registration_Request)
-admin.site.register(models.Contract_Request)
-admin.site.register(models.Register_Link)
-admin.site.register(models.Driver)
-admin.site.register(models.Passenger)
-admin.site.register(models.Route_Group)
-admin.site.register(models.Route)
-admin.site.register(models.Confirmed_Passenger)
-admin.site.register(models.Lost_Item)
-admin.site.register(models.Driver_Job_Opening)
-admin.site.register(models.Account_Recovery_Code)
+@admin.register(models.Passenger)
+class PassengerAdmin(admin.ModelAdmin):
+    """Admin de passageiros."""
+
+    ordering = ["-created_at"]
+
+    list_display = (
+        "id",
+        "user",
+        "cpf",
+        "cidade",
+        "estado",
+        "created_at",
+    )
+
+    search_fields = (
+        "cpf",
+        "user__email",
+        "user__nome",
+        "cidade",
+    )
+
+    list_filter = (
+        "cidade",
+        "estado",
+        "genero",
+    )
+
+    readonly_fields = (
+        "created_at",
+    )
+
+
+@admin.register(models.Driver)
+class DriverAdmin(admin.ModelAdmin):
+    """Admin de motoristas."""
+
+    ordering = ["-created_at"]
+
+    list_display = (
+        "id",
+        "user",
+        "cpf",
+        "cnh",
+        "aprovado",
+        "created_at",
+    )
+
+    search_fields = (
+        "cpf",
+        "cnh",
+        "user__email",
+        "user__nome",
+    )
+
+    list_filter = (
+        "aprovado",
+    )
+
+    readonly_fields = (
+        "created_at",
+    )
+
+
+@admin.register(models.Company)
+class CompanyAdmin(admin.ModelAdmin):
+    """Admin de empresas."""
+
+    ordering = ["-created_at"]
+
+    list_display = (
+        "id",
+        "razao_social",
+        "nome_fantasia",
+        "cnpj",
+        "cidade",
+        "ativo",
+        "created_at",
+    )
+
+    search_fields = (
+        "razao_social",
+        "nome_fantasia",
+        "cnpj",
+        "user__email",
+    )
+
+    list_filter = (
+        "ativo",
+        "cidade",
+        "estado",
+    )
+
+    readonly_fields = (
+        "created_at",
+    )
