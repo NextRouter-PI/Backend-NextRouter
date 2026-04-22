@@ -1,9 +1,16 @@
+from rest_framework.generics import CreateAPIView
+from rest_framework.permissions import AllowAny
 from rest_framework.viewsets import ModelViewSet
 
-from core.models import Passenger
-from core.serializers import PassengerSerializer
+from core.models import Passageiro
+from core.serializers import PassageiroSerializer, RegistroPassageiroSerializer
 
 
-class PassengerViewSet(ModelViewSet):
-    queryset = Passenger.objects.all()
-    serializer_class = PassengerSerializer
+class PassageiroViewSet(ModelViewSet):
+    queryset = Passageiro.objects.all().order_by('id')
+    serializer_class = PassageiroSerializer
+
+
+class RegistroPassageiroView(CreateAPIView):
+    serializer_class = RegistroPassageiroSerializer
+    permission_classes = [AllowAny]

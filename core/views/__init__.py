@@ -1,4 +1,4 @@
-from .user import UserViewSet
-from .passenger import PassengerViewSet
-from .driver import DriverViewSet
-from .company import CompanyViewSet
+from .user import UserViewSet, UserRegistrationView
+from .passenger import PassageiroViewSet, RegistroPassageiroView
+from .driver import MotoristaViewSet, RegistroMotoristaView
+from .company import RegistroEmpresaView, EmpresaViewSet

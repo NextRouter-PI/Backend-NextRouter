@@ -9,189 +9,106 @@ from django.utils.translation import gettext_lazy as _
 from core import models
 
 
-@admin.register(models.User)
 class UserAdmin(BaseUserAdmin):
-    """Admin principal de usuários."""
+    """Define the admin pages for users."""
 
-    ordering = ["id"]
+    ordering = ['id']
 
-    list_display = (
-        "id",
-        "email",
-        "nome",
-        "tipo",
-        "is_active",
-        "is_staff",
-        "created_at",
-    )
+    # colunas da lista
+    list_display = [
+        'id',
+        'email',
+        'name',
+        'type',
+        'is_active',
+        'is_staff',
+        'is_superuser',
+    ]
 
-    search_fields = (
-        "email",
-        "nome",
-        "telefone",
-    )
+    # 🔥 FILTROS LATERAIS
+    list_filter = [
+        'type',
+        'is_active',
+        'is_staff',
+        'is_superuser',
+    ]
 
-    list_filter = (
-        "tipo",
-        "is_active",
-        "is_staff",
-        "is_superuser",
-    )
-
-    readonly_fields = (
-        "last_login",
-        "created_at",
-    )
+    # busca no topo
+    search_fields = [
+        'email',
+        'name',
+    ]
 
     fieldsets = (
-        (None, {
-            "fields": (
-                "email",
-                "password",
+        (None, {'fields': ('email', 'password')}),
+
+        (_('Personal Info'), {
+            'fields': (
+                'name',
+                'type',
             )
         }),
 
-        (_("Informações Pessoais"), {
-            "fields": (
-                "nome",
-                "telefone",
-                "foto",
-                "tipo",
+        (_('Permissions'), {
+            'fields': (
+                'is_active',
+                'is_staff',
+                'is_superuser',
             )
         }),
 
-        (_("Permissões"), {
-            "fields": (
-                "is_active",
-                "is_staff",
-                "is_superuser",
-                "groups",
-                "user_permissions",
-            )
+        (_('Important dates'), {
+            'fields': ('last_login',)
         }),
 
-        (_("Datas Importantes"), {
-            "fields": (
-                "last_login",
-                "created_at",
-            )
+        (_('Groups'), {
+            'fields': ('groups',)
+        }),
+
+        (_('User Permissions'), {
+            'fields': ('user_permissions',)
         }),
     )
+
+    readonly_fields = ['last_login']
 
     add_fieldsets = (
         (
             None,
             {
-                "classes": ("wide",),
-                "fields": (
-                    "email",
-                    "password1",
-                    "password2",
-                    "nome",
-                    "telefone",
-                    "tipo",
-                    "is_active",
-                    "is_staff",
-                    "is_superuser",
+                'classes': ('wide',),
+
+                'fields': (
+                    'email',
+                    'password1',
+                    'password2',
+                    'name',
+                    'type',
+                    'is_active',
+                    'is_staff',
+                    'is_superuser',
                 ),
             },
         ),
     )
 
 
-@admin.register(models.Passenger)
-class PassengerAdmin(admin.ModelAdmin):
-    """Admin de passageiros."""
-
-    ordering = ["-created_at"]
-
-    list_display = (
-        "id",
-        "user",
-        "cpf",
-        "cidade",
-        "estado",
-        "created_at",
-    )
-
-    search_fields = (
-        "cpf",
-        "user__email",
-        "user__nome",
-        "cidade",
-    )
-
-    list_filter = (
-        "cidade",
-        "estado",
-        "genero",
-    )
-
-    readonly_fields = (
-        "created_at",
-    )
+class PassageiroAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user']
+    search_fields = ['user__email', 'user__name']
 
 
-@admin.register(models.Driver)
-class DriverAdmin(admin.ModelAdmin):
-    """Admin de motoristas."""
-
-    ordering = ["-created_at"]
-
-    list_display = (
-        "id",
-        "user",
-        "cpf",
-        "cnh",
-        "aprovado",
-        "created_at",
-    )
-
-    search_fields = (
-        "cpf",
-        "cnh",
-        "user__email",
-        "user__nome",
-    )
-
-    list_filter = (
-        "aprovado",
-    )
-
-    readonly_fields = (
-        "created_at",
-    )
+class MotoristaAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user']
+    search_fields = ['user__email', 'user__name']
 
 
-@admin.register(models.Company)
-class CompanyAdmin(admin.ModelAdmin):
-    """Admin de empresas."""
+class EmpresaAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user']
+    search_fields = ['user__email', 'user__name']
 
-    ordering = ["-created_at"]
 
-    list_display = (
-        "id",
-        "razao_social",
-        "nome_fantasia",
-        "cnpj",
-        "cidade",
-        "ativo",
-        "created_at",
-    )
-
-    search_fields = (
-        "razao_social",
-        "nome_fantasia",
-        "cnpj",
-        "user__email",
-    )
-
-    list_filter = (
-        "ativo",
-        "cidade",
-        "estado",
-    )
-
-    readonly_fields = (
-        "created_at",
-    )
+admin.site.register(models.User, UserAdmin)
+admin.site.register(models.Passageiro, PassageiroAdmin)
+admin.site.register(models.Motorista, MotoristaAdmin)
+admin.site.register(models.Empresa, EmpresaAdmin)

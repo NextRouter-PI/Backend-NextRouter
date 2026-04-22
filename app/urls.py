@@ -1,105 +1,92 @@
 from django.contrib import admin
 from django.urls import include, path
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import (
-    TokenBlacklistView,
+    TokenObtainPairView,
     TokenRefreshView,
+    TokenVerifyView,
 )
 
 from core.views import (
-    CompanyViewSet,
-    DriverViewSet,
-    PassengerViewSet,
+    EmpresaViewSet,
+    MotoristaViewSet,
+    PassageiroViewSet,
+    RegistroEmpresaView,
+    RegistroMotoristaView,
+    RegistroPassageiroView,
+    UserRegistrationView,
     UserViewSet,
 )
 
 router = DefaultRouter()
-
-router.register(
-    r"usuarios",
-    UserViewSet,
-    basename="usuarios"
-)
-
-router.register(
-    r"empresas",
-    CompanyViewSet,
-    basename="empresas"
-)
-
-router.register(
-    r"motoristas",
-    DriverViewSet,
-    basename="motoristas"
-)
-
-router.register(
-    r"passageiros",
-    PassengerViewSet,
-    basename="passageiros"
-)
+router.register(r'usuarios', UserViewSet, basename='usuarios')
+router.register(r'passageiros', PassageiroViewSet, basename='passageiros')
+router.register(r'motoristas', MotoristaViewSet, basename='motoristas')
+router.register(r'empresas', EmpresaViewSet, basename='empresas')
 
 urlpatterns = [
+    path('admin/', admin.site.urls),
+
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
 
     path(
-        "admin/",
-        admin.site.urls
+        'api/doc/',
+        SpectacularSwaggerView.as_view(url_name='schema'),
+        name='swagger-ui',
     ),
 
     path(
-        "api/auth/login/",
-        UserViewSet.as_view({
-            "post": "login"
-        }),
-        name="login"
+        'api/redoc/',
+        SpectacularRedocView.as_view(url_name='schema'),
+        name='redoc',
     ),
 
     path(
-        "api/auth/register/passageiro/",
-        UserViewSet.as_view({
-            "post": "register_passenger"
-        }),
-        name="register_passenger"
+        'api/token/',
+        TokenObtainPairView.as_view(),
+        name='token_obtain_pair'
     ),
 
     path(
-        "api/auth/register/motorista/",
-        UserViewSet.as_view({
-            "post": "register_driver"
-        }),
-        name="register_driver"
-    ),
-
-    path(
-        "api/auth/me/",
-        UserViewSet.as_view({
-            "get": "me"
-        }),
-        name="me"
-    ),
-
-    path(
-        "api/auth/status-motorista/",
-        UserViewSet.as_view({
-            "get": "status_motorista"
-        }),
-        name="status_motorista"
-    ),
-
-    path(
-        "api/auth/refresh/",
+        'api/token/refresh/',
         TokenRefreshView.as_view(),
-        name="refresh"
+        name='token_refresh'
     ),
 
     path(
-        "api/auth/logout/",
-        TokenBlacklistView.as_view(),
-        name="logout"
+        'api/token/verify/',
+        TokenVerifyView.as_view(),
+        name='token_verify'
     ),
 
     path(
-        "api/",
-        include(router.urls)
+        'api/registro/',
+        UserRegistrationView.as_view(),
+        name='user_registration'
     ),
+
+    path(
+        'api/registro/passageiro/',
+        RegistroPassageiroView.as_view(),
+        name='registro_passageiro'
+    ),
+
+    path(
+        'api/registro/motorista/',
+        RegistroMotoristaView.as_view(),
+        name='registro_motorista'
+    ),
+
+    path(
+        'api/registro/empresa/',
+        RegistroEmpresaView.as_view(),
+        name='registro_empresa'
+    ),
+
+    path('api/', include(router.urls)),
 ]
