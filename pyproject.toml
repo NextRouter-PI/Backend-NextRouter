@@ -31,11 +31,7 @@ requires-python = ">=3.10,<3.11"
 license = { text = "MIT" }
 
 [dependency-groups]
-dev = [
-  "pylint>=3.0.2",
-  "ipython>=8.26.0",
-  "ruff>=0.11.2",
-]
+dev = ["pylint>=3.0.2", "ipython>=8.26.0", "ruff>=0.11.2"]
 
 [tool.pdm.scripts]
 pre_dev = "python ./scripts/set_my_ip.py"
@@ -43,7 +39,7 @@ dev = "python manage.py runserver 0.0.0.0:19003"
 createsuperuser = "python manage.py createsuperuser"
 pre_migrate = "python manage.py makemigrations"
 migrate = "python manage.py migrate"
-post_migrate = "python manage.py graph_models -S -g -o core.png core"
+post_migrate = "python manage.py graph_models --disable-sort-fields -S -g -o core.png core uploader"
 shell = "python manage.py shell"
 shellp = "python manage.py shell_plus"
 test = "python manage.py test"
