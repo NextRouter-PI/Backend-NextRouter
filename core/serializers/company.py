@@ -1,87 +1,50 @@
-from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
-from core.models import Empresa, User
+from core.models.company import Company
+from uploader.models import Document
+from uploader.serializers import DocumentUploadSerializer
+
+from .user import User, UserRegistrationSerializer
 
 
-class EmpresaSerializer(ModelSerializer):
+class CompanySerializer(ModelSerializer):
     class Meta:
-        model = Empresa
-        fields = "__all__"
+        model = Company
+        fields = '__all__'
 
 
-class RegistroEmpresaSerializer(ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8)
-
-    razao_social = serializers.CharField(required=False)
-    cnpj = serializers.CharField(required=False)
-    inscricao_estadual = serializers.CharField(required=False)
-    responsavel_nome = serializers.CharField(required=False)
-    responsavel_cpf = serializers.CharField(required=False)
-    telefone_comercial = serializers.CharField(required=False)
-    endereco = serializers.CharField(required=False)
-    cidade = serializers.CharField(required=False)
-    estado = serializers.CharField(required=False)
-    cep = serializers.CharField(required=False)
-    valor_mensal = serializers.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        required=False
-    )
+class CompanyRegistrationSerializer(ModelSerializer):
+    articles_of_association_document = DocumentUploadSerializer(source='aoad_doc', write_only=True)
+    state_operating_license_document = DocumentUploadSerializer(source='sold_doc', write_only=True)
+    certificate_of_good_stading_documen = DocumentUploadSerializer(source='cogsd_doc', write_only=True)
+    user_data = UserRegistrationSerializer(source='user', write_only=True)
 
     class Meta:
-        model = User
+        model = Company
         fields = [
-            "id",
-            "email",
-            "name",
-            "password",
-            "razao_social",
-            "cnpj",
-            "inscricao_estadual",
-            "responsavel_nome",
-            "responsavel_cpf",
-            "telefone_comercial",
-            "endereco",
-            "cidade",
-            "estado",
-            "cep",
-            "valor_mensal",
+            'user_data',
+            'cnpj',
+            'contact_phone',
+            'contact_email',
+            'articles_of_association_document',
+            'state_operating_license_document',
+            'certificate_of_good_stading_documen',
         ]
 
     def create(self, validated_data):
-        razao_social = validated_data.pop("razao_social", None)
-        cnpj = validated_data.pop("cnpj", None)
-        inscricao_estadual = validated_data.pop("inscricao_estadual", None)
-        responsavel_nome = validated_data.pop("responsavel_nome", None)
-        responsavel_cpf = validated_data.pop("responsavel_cpf", None)
-        telefone_comercial = validated_data.pop("telefone_comercial", None)
-        endereco = validated_data.pop("endereco", None)
-        cidade = validated_data.pop("cidade", None)
-        estado = validated_data.pop("estado", None)
-        cep = validated_data.pop("cep", None)
-        valor_mensal = validated_data.pop("valor_mensal", None)
-
-        user = User.objects.create_user(
-            email=validated_data["email"],
-            password=validated_data["password"],
-            name=validated_data.get("name"),
-            type="Empresa",
-        )
-
-        Empresa.objects.create(
+        user_data = validated_data.pop('user')
+        articles_of_association_document = validated_data.pop('aoad_doc')
+        state_operating_license_document = validated_data.pop('sold_doc')
+        certificate_of_good_stading_document = validated_data.pop('cogsd_doc')
+        user = User.objects.create_user(**user_data)
+        aoad = Document.objects.create(**articles_of_association_document)
+        sold = Document.objects.create(**state_operating_license_document)
+        cogsd = Document.objects.create(**certificate_of_good_stading_document)
+        company = Company.objects.create(
             user=user,
-            razao_social=razao_social,
-            cnpj=cnpj,
-            inscricao_estadual=inscricao_estadual,
-            responsavel_nome=responsavel_nome,
-            responsavel_cpf=responsavel_cpf,
-            telefone_comercial=telefone_comercial,
-            endereco=endereco,
-            cidade=cidade,
-            estado=estado,
-            cep=cep,
-            valor_mensal=valor_mensal,
+            articles_of_association_document=aoad,
+            state_operating_license_document=sold,
+            certificate_of_good_stading_document=cogsd,
+            **validated_data,
         )
-
-        return user
+        return company
