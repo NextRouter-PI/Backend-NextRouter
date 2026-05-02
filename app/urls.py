@@ -15,22 +15,22 @@ from rest_framework_simplejwt.views import (
 )
 
 from core.views import (
-    EmpresaViewSet,
-    MotoristaViewSet,
-    PassageiroViewSet,
-    RegistroEmpresaView,
-    RegistroMotoristaView,
-    RegistroPassageiroView,
-    UserRegistrationView,
+    CompanyGroupRouteViewSet,
+    CompanyRegistrationViewSet,
+    CompanyViewSet,
+    DriverViewSet,
+    PassengerViewSet,
+    UserRegistrationViewSet,
     UserViewSet,
 )
 from uploader.router import router as uploader_router
 
 router = DefaultRouter()
-router.register(r'usuarios', UserViewSet, basename='usuarios')
-router.register(r'passageiros', PassageiroViewSet, basename='passageiros')
-router.register(r'motoristas', MotoristaViewSet, basename='motoristas')
-router.register(r'empresas', EmpresaViewSet, basename='empresas')
+router.register(r'users', UserViewSet, basename='users')
+router.register(r'passengers', PassengerViewSet, basename='passengers')
+router.register(r'drivers', DriverViewSet, basename='drivers')
+router.register(r'companies', CompanyViewSet, basename='companies')
+router.register(r'companies-route-groups', CompanyGroupRouteViewSet, basename='companies route groups')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -48,11 +48,9 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-    path('api/registro/', UserRegistrationView.as_view(), name='user_registration'),
-    path('api/registro/passageiro/', RegistroPassageiroView.as_view(), name='registro_passageiro'),
-    path('api/registro/motorista/', RegistroMotoristaView.as_view(), name='registro_motorista'),
-    path('api/registro/empresa/', RegistroEmpresaView.as_view(), name='registro_empresa'),
     path('api/', include(router.urls)),
+    path('api/registration-user', UserRegistrationViewSet.as_view(), name='registration-user'),
+    path('api/registration-company', CompanyRegistrationViewSet.as_view(), name='registration-company'),
     path('api/media/', include(uploader_router.urls)),
 ]
 

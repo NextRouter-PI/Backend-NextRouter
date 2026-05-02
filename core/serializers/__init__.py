@@ -1,4 +1,5 @@
-from .user import UserSerializer, UserRegistrationSerializer
-from .passenger import PassageiroSerializer, RegistroPassageiroSerializer
-from .driver import MotoristaSerializer, RegistroMotoristaSerializer
-from .company import EmpresaSerializer, RegistroEmpresaSerializer
+from core.serializers.user import UserSerializer, UserRegistrationSerializer
+from core.serializers.passenger import PassengerSerializer
+from core.serializers.driver import DriverSerializer
+from core.serializers.company import CompanyRegistrationSerializer, CompanySerializer
+from core.serializers.company_route_group import CompanyRouteGroupSerializer
