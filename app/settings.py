@@ -109,6 +109,10 @@ USE_TZ = True
 # Configurações de arquivos estáticos
 STATIC_URL = 'static/'
 
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
 # Configurações de arquivos de mídia (App Uploader)
 MEDIA_ENDPOINT = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
