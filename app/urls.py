@@ -8,11 +8,6 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-    TokenVerifyView,
-)
 
 from core.views import (
     CompanyGroupRouteViewSet,
@@ -20,6 +15,11 @@ from core.views import (
     DriverViewSet,
     PassengerViewSet,
     UserViewSet,
+)
+from core.views.auth import (
+    CustomLogoutView,
+    CustomTokenObtainPairView,
+    CustomTokenRefreshView,
 )
 from uploader.router import router as uploader_router
 
@@ -43,9 +43,9 @@ urlpatterns = [
         SpectacularRedocView.as_view(url_name='schema'),
         name='redoc',
     ),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/logout/', CustomLogoutView.as_view(), name='token_logout'),
     path('api/', include(router.urls)),
     path('api/media/', include(uploader_router.urls)),
 ]
