@@ -32,7 +32,7 @@ class Image(models.Model):
     uploaded_on = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
-        return f"{self.description} - {self.attachment_key}"
+        return f"{self.description}"
 
     @property
     def url(self) -> str:

@@ -4,26 +4,24 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
 from core.models import User
+from uploader.models import Image
+from uploader.serializers import ImageSerializer, ImageUploadSerializer
 
 
-class UserSerializer(ModelSerializer):
+class UserListAndRetriveSerializer(ModelSerializer):
+    profile_picture_data = ImageSerializer(source='profile_picture')
+
     class Meta:
         model = User
-        fields = ['id', 'email', 'name', 'is_active', 'is_staff', 'is_superuser', 'groups']
+        fields = ['id', 'name', 'profile_picture_data', 'cep']
 
 
-class UserRegistrationSerializer(ModelSerializer):
+class UserCreateSerializer(ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
-    cep = serializers.CharField(write_only=True, required=False)
-    phone = serializers.CharField(write_only=True, required=False)
-    profile_picture = serializers.CharField(write_only=True, required=False)
-
-    class Meta:
-        model = User
-        fields = ['email', 'name', 'password', 'cep', 'phone', 'profile_picture']
-
-    def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+    cep = serializers.CharField(required=False)
+    phone = serializers.CharField(required=False)
+    cpf = serializers.CharField(required=True)
+    profile_picture = ImageUploadSerializer('profile_picture', required=False)
 
     def validate_password(self, value):
         try:
@@ -31,3 +29,27 @@ class UserRegistrationSerializer(ModelSerializer):
         except DjangoValidationError as e:
             raise serializers.ValidationError(list(e.messages))
         return value
+
+    def create(self, validated_data):
+        profile_picture_data = validated_data.pop('profile_picture', None)
+        user_name = validated_data.get('name', '')
+        user_cpf = validated_data.get('cpf', '')
+
+        pic_instance = None
+
+        if profile_picture_data:
+            profile_picture_data['description'] = f'Foto de {user_name} ({user_cpf})'
+
+            pic_instance = Image.objects.create(**profile_picture_data)
+
+        return User.objects.create_user(**validated_data, profile_picture=pic_instance)
+
+    class Meta:
+        model = User
+        fields = ['email', 'name', 'password', 'cep', 'phone', 'profile_picture', 'cpf']
+
+
+class UserPatchSerializer(UserCreateSerializer):
+    class Meta:
+        model = User
+        fields = ['email', 'name', 'cep', 'phone', 'profile_picture']

@@ -3,12 +3,14 @@ import re
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.forms import UserChangeForm
 from django.utils.translation import gettext_lazy as _
 
 from core import models
 
 
-class UserAdminForm(forms.ModelForm):
+# Formulário de Administração customizado baseado no Formulário de Administração padrão do Django
+class UserAdminForm(UserChangeForm):
     cep = forms.CharField(
         label='CEP',
         max_length=9,
@@ -45,6 +47,7 @@ class UserAdminForm(forms.ModelForm):
         return data
 
 
+# Tela de administração customizada de usuário do Django
 class UserAdmin(BaseUserAdmin):
     form = UserAdminForm
     ordering = ['id']
@@ -69,7 +72,7 @@ class UserAdmin(BaseUserAdmin):
         (None, {'fields': ('email', 'password')}),
         (
             _('Informações pessoais'),
-            {'fields': ('name', 'profile_picture', 'cep', 'phone')},
+            {'fields': ('name', 'profile_picture', 'cep', 'phone', 'cpf')},
         ),
         (
             _('Status'),
@@ -110,6 +113,7 @@ class UserAdmin(BaseUserAdmin):
                     'phone',
                     'cep',
                     'profile_picture',
+                    'cpf',
                 ),
             },
         ),
