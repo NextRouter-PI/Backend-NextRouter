@@ -14,7 +14,7 @@ class UserManager(BaseUserManager):
 
     def create_user(self, email, password=None, **extra_fields):
         if not email:
-            raise ValueError('Users must have an email address.')
+            raise ValueError('Usuário devem ter um email.')
 
         user = self.model(email=self.normalize_email(email), **extra_fields)
         user.set_password(password)
@@ -44,23 +44,25 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     phone = models.CharField(max_length=11, blank=True, null=True, verbose_name=_('Telefone'))
     cep = models.CharField(max_length=9, blank=True, null=True, verbose_name=_('CEP'))
-    profile_picture = models.ForeignKey(
+    profile_picture = models.OneToOneField(
         Image,
         null=True,
         verbose_name='Foto de perfil',
         blank=True,
         on_delete=models.SET_NULL,
     )
-    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True, verbose_name=_('Data de criação'))
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True, verbose_name=_('Data   de criação'))
+
+    cpf = models.CharField(max_length=11, blank=False, null=False, verbose_name=_('CPF'))
 
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
+    def __str__(self):
+        return f'{self.name.title()}'
+
     class Meta:
         verbose_name = 'Usuário'
         verbose_name_plural = 'Usuários'
-
-    def __str__(self):
-        return f'{self.name.title()}'

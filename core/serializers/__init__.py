@@ -1,5 +1,5 @@
-from core.serializers.user import UserSerializer, UserRegistrationSerializer
-from core.serializers.passenger import PassengerSerializer
+from core.serializers.user import UserCreateSerializer, UserListAndRetriveSerializer, UserPatchSerializer
+from core.serializers.passenger import PassengerCreateSerializer, PassengerListAndRetrieveSerializer, PassengerPatchSerializer
 from core.serializers.driver import DriverSerializer
-from core.serializers.company import CompanyRegistrationSerializer, CompanySerializer
+from core.serializers.company import CompanyCreateSerializer, CompanyListAndRetrieveSerializer, CompanyPatchSerializer
 from core.serializers.company_route_group import CompanyRouteGroupSerializer

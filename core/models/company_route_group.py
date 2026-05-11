@@ -5,8 +5,7 @@ from core.models.company import Company
 
 
 class CompanyRouteGroup(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.PROTECT, null=False, blank=False)
-
+    company = models.ForeignKey(Company, on_delete=models.PROTECT, null=False, blank=False, verbose_name=_('Empresa'))
     name = models.CharField(max_length=100, null=False, blank=False, verbose_name=_('nome da rota'))
     commom_address = models.CharField(
         max_length=9,
@@ -16,9 +15,9 @@ class CompanyRouteGroup(models.Model):
         help_text=_('CEP do endereço'),
     )
 
+    def __str__(self):
+        return f'{self.name.title()}'
+
     class Meta:
         verbose_name = 'Grupo de Rota da Empresa'
         verbose_name_plural = 'Grupos de Rotas das Empresas'
-
-    def __str__(self):
-        return f'Rota {str(self.name.capitalize())}'

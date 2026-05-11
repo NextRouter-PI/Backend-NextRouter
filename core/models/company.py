@@ -36,9 +36,9 @@ class Company(models.Model):
         default=False, verbose_name=_('Empresa aprovada no sistema'), null=False, blank=False
     )
 
+    def __str__(self):
+        return f'{self.user.name.title()}'
+
     class Meta:
         verbose_name = 'Empresa'
         verbose_name_plural = 'Empresas'
-
-    def __str__(self):
-        return f'{self.user.name.title()}'

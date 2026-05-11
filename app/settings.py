@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Define o modo de execução da aplicação
-MODE = 'DEVELOPMENT'  # os.getenv('MODE')
+MODE = os.getenv('MODE')
 
 # Constrói o caminho base do projeto, usado para definir caminhos relativos
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -140,9 +140,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configurações do DRF e drf-spectacular (OpenAPI/Swagger)
 SPECTACULAR_SETTINGS = {
-    'TITLE': '<PROJETO> API',
-    'DESCRIPTION': 'API para o projeto <descreva aqui seu projeto>.',
-    'VERSION': '1.0.0',
+    'TITLE': 'NEXTROUTER API',
+    'DESCRIPTION': 'API para o projeto nextrouter.',
+    'VERSION': '0.0.0',
 }
 
 # Modelo de usuário personalizado

@@ -16,11 +16,9 @@ from rest_framework_simplejwt.views import (
 
 from core.views import (
     CompanyGroupRouteViewSet,
-    CompanyRegistrationViewSet,
     CompanyViewSet,
     DriverViewSet,
     PassengerViewSet,
-    UserRegistrationViewSet,
     UserViewSet,
 )
 from uploader.router import router as uploader_router
@@ -49,8 +47,6 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('api/', include(router.urls)),
-    path('api/registration-user', UserRegistrationViewSet.as_view(), name='registration-user'),
-    path('api/registration-company', CompanyRegistrationViewSet.as_view(), name='registration-company'),
     path('api/media/', include(uploader_router.urls)),
 ]
 
