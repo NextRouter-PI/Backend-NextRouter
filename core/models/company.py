@@ -36,6 +36,12 @@ class Company(models.Model):
         default=False, verbose_name=_('Empresa aprovada no sistema'), null=False, blank=False
     )
 
+    trade_name = models.CharField(null=False, verbose_name=_('Nome Fantasia'))
+
+    legal_name = models.CharField(null=False, verbose_name=_('Razão Social'))
+
+    state_registration = models.CharField(null=False, verbose_name=_('Inscrição Estadual'))
+
     def __str__(self):
         return f'{self.user.name.title()}'
 
