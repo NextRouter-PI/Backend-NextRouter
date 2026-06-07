@@ -46,7 +46,7 @@ class UserCreateSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'name', 'password', 'cep', 'phone', 'profile_picture', 'cpf']
+        fields = ['email', 'name', 'password', 'cep', 'phone', 'profile_picture', 'cpf', 'birthday']
 
 
 class UserPatchSerializer(UserCreateSerializer):

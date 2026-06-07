@@ -72,7 +72,7 @@ class UserAdmin(BaseUserAdmin):
         (None, {'fields': ('email', 'password')}),
         (
             _('Informações pessoais'),
-            {'fields': ('name', 'profile_picture', 'cep', 'phone', 'cpf')},
+            {'fields': ('name', 'profile_picture', 'cep', 'phone', 'cpf', 'birthday')},
         ),
         (
             _('Status'),
@@ -129,14 +129,22 @@ class UserAdmin(BaseUserAdmin):
 
 
 class PassengerAdmin(admin.ModelAdmin):
-    list_display = ['id', 'get_user_name', 'get_group_name_company']
-    search_fields = ['user__name', 'user__email', 'group_route__company__user__name']
+    list_display = [
+        'id',
+        'get_user_name',  # 'get_group_name_company'
+    ]
+    search_fields = [
+        'user__name',
+        'user__email',
+        # 'group_route__company__user__name'
+    ]
     actions = None
 
     @admin.display(description='Nome', ordering='user__name')
     def get_user_name(self, obj):
         return obj.user.name.title() if obj.user else 'Sem usuário'
 
+    """
     @admin.display(description='Rota (Empresa)', ordering='user__name')
     def get_group_name_company(self, obj):
         return (
@@ -144,6 +152,7 @@ class PassengerAdmin(admin.ModelAdmin):
             if obj.user
             else 'Sem usuário'
         )
+    """
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
@@ -162,11 +171,9 @@ class DriverAdmin(admin.ModelAdmin):
 
     @admin.display(description='Rota (Empresa)', ordering='user__name')
     def get_group_name_company(self, obj):
-        return (
-            f'{obj.group_route.name.title()} ({obj.group_route.company.user.name.title()})'
-            if obj.user
-            else 'Sem usuário'
-        )
+        if obj.group_route:
+            return obj.group_route.name
+        return 'Sem rota'
 
     def get_readonly_fields(self, request, obj=None):
         if obj:

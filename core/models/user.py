@@ -55,6 +55,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     cpf = models.CharField(max_length=11, blank=False, null=False, verbose_name=_('CPF'))
 
+    birthday = models.DateField(null=True, blank=True, verbose_name=_('Data de nascimento'))
+
     objects = UserManager()
 
     USERNAME_FIELD = 'email'

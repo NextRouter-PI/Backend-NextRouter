@@ -22,16 +22,16 @@ class CompanyViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return CompanyCreateSerializer
-        elif self.action == 'patch':
+        elif self.action == 'partial_update':
             return CompanyPatchSerializer
         return CompanyListAndRetrieveSerializer
 
     def get_queryset(self):
         user = self.request.user
         if user.is_staff or user.is_superuser:
-            return Company.objects.all()
+            return Company.objects.all().order_by('id')
         if self.action == 'list':
-            return Company.objects.filter(is_approved=True)
+            return Company.objects.filter(is_approved=True).order_by('id')
         if user.is_authenticated:
-            return Company.objects.filter(Q(is_approved=True) | Q(user=user))
-        return Company.objects.filter(is_approved=True)
+            return Company.objects.filter(Q(is_approved=True) | Q(user=user)).order_by('id')
+        return Company.objects.filter(is_approved=True).order_by('id')
