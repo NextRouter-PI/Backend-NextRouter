@@ -42,7 +42,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name=_('Usuário é da equipe'),
         help_text=_('Indica que este usuário pode acessar o Admin.'),
     )
-    phone = models.CharField(max_length=11, blank=True, null=True, verbose_name=_('Telefone'))
+    phone = models.CharField(max_length=15, blank=True, null=True, verbose_name=_('Telefone'))
     cep = models.CharField(max_length=9, blank=True, null=True, verbose_name=_('CEP'))
     profile_picture = models.OneToOneField(
         Image,
@@ -53,7 +53,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True, verbose_name=_('Data   de criação'))
 
-    cpf = models.CharField(max_length=11, blank=False, null=False, verbose_name=_('CPF'))
+    cpf = models.CharField(max_length=14, blank=False, null=False, verbose_name=_('CPF'))
 
     birthday = models.DateField(null=True, blank=True, verbose_name=_('Data de nascimento'))
 
