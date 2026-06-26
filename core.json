@@ -1,0 +1,86 @@
+[
+{
+  "model": "core.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$JO0Nk4nV2WhC6lNLEcgiIN$pbittxbByE7bh4cKyzG9viOaMcIocDRiLFzCcJC9n1s=",
+    "last_login": "2026-06-07T16:42:33.391Z",
+    "is_superuser": true,
+    "email": "a@a.com",
+    "name": "nextrouter",
+    "is_active": true,
+    "is_staff": true,
+    "phone": "99999999999",
+    "cep": "99999999",
+    "profile_picture": null,
+    "created_at": "2026-05-02T02:24:00.162Z",
+    "cpf": "99999999999",
+    "birthday": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "core.user",
+  "pk": 27,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$wTubry0qABeBtCE1jMDqqe$GdvjKvbGIHiAaG3nG2FbH52UykCNH0GO9Ptpe7PgH4I=",
+    "last_login": null,
+    "is_superuser": false,
+    "email": "o@l.com",
+    "name": "IAn",
+    "is_active": true,
+    "is_staff": false,
+    "phone": null,
+    "cep": "89209-467",
+    "profile_picture": null,
+    "created_at": "2026-06-07T13:48:07.641Z",
+    "cpf": "141.523.599-60",
+    "birthday": "2008-01-01",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "core.user",
+  "pk": 28,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$J6llwH5Ipc27muEtItaMOb$Sg7LohfjABJ9NNGH4LujTsJ19cO3qJ4ivAlP5zo+ESQ=",
+    "last_login": null,
+    "is_superuser": false,
+    "email": "j@j.com",
+    "name": "Passageiro",
+    "is_active": true,
+    "is_staff": false,
+    "phone": null,
+    "cep": "89209-467",
+    "profile_picture": null,
+    "created_at": "2026-06-07T14:50:55.481Z",
+    "cpf": "141.523.599-60",
+    "birthday": "2008-01-09",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "core.user",
+  "pk": 29,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$dg3QupJYfpaMgkoM8MD7tg$KZ4rZcOZnpQTDgOY7EaowPADe+nav692SNmJTw7pFU8=",
+    "last_login": null,
+    "is_superuser": false,
+    "email": "f@f.com",
+    "name": "IAn",
+    "is_active": true,
+    "is_staff": false,
+    "phone": null,
+    "cep": "89209-467",
+    "profile_picture": null,
+    "created_at": "2026-06-07T14:58:06.271Z",
+    "cpf": "141.523.599-60",
+    "birthday": "2008-01-09",
+    "groups": [],
+    "user_permissions": []
+  }
+}
+]
