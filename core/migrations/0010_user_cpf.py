@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='cpf',
-            field=models.CharField(default=django.utils.timezone.now, max_length=11, verbose_name='CPF'),
+            field=models.CharField(max_length=11, verbose_name='CPF'),
             preserve_default=False,
         ),
     ]
