@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='companyroutegroup',
             name='commom_address',
-            field=models.CharField(default=django.utils.timezone.now, help_text='CEP do endereço', max_length=9, verbose_name='Endereço em comum dentre os passageiros'),
+            field=models.CharField(help_text='CEP do endereço', max_length=9, verbose_name='Endereço em comum dentre os passageiros'),
             preserve_default=False,
         ),
         migrations.AlterField(
