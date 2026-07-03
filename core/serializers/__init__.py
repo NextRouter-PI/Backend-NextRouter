@@ -3,3 +3,4 @@ from core.serializers.passenger import PassengerCreateSerializer, PassengerListA
 from core.serializers.driver import DriverCreateSerializer, DriverListAndRetrieveSerializer, DriverPatchSerializer
 from core.serializers.company import CompanyCreateSerializer, CompanyListAndRetrieveSerializer, CompanyPatchSerializer
 from core.serializers.company_route_group import CompanyRouteGroupSerializer
+from core.serializers.confirm_passenger_route import ConfirmPassengerRouteListAndRetrieveSerializer

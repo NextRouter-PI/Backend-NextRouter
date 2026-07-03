@@ -15,6 +15,7 @@ from core.views import (
     DriverViewSet,
     PassengerViewSet,
     UserViewSet,
+    ConfirmPassengerRouteViewSet
 )
 from core.views.auth import (
     CustomLogoutView,
@@ -29,6 +30,7 @@ router.register(r'passengers', PassengerViewSet, basename='passengers')
 router.register(r'drivers', DriverViewSet, basename='drivers')
 router.register(r'companies', CompanyViewSet, basename='companies')
 router.register(r'companies-route-groups', CompanyGroupRouteViewSet, basename='companies route groups')
+router.register(r'confirm-passenger-route', ConfirmPassengerRouteViewSet, basename='confirm passenger route')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
