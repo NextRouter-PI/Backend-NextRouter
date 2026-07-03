@@ -17,7 +17,7 @@ dependencies = [
   'passage-identity>=2.5.1',
   'Pillow>=10.3.0',
   'pre-commit>=3.5.0',
-  'psycopg2-binary>=2.9.9',
+  "psycopg2-binary>=2.9.12",
   'pydotplus>=2.0.2',
   'python-dotenv>=1.0.0',
   'python-magic-bin>=0.4.14; sys_platform == "win32"',
