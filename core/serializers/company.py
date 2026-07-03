@@ -18,6 +18,25 @@ class CompanyListAndRetrieveSerializer(ModelSerializer):
         fields = ['company_id', 'trade_name', 'profile_picture', 'cep']
 
 
+class CompanyMeSerializer(ModelSerializer):
+    email = serializers.EmailField(source='user.email')
+    name = serializers.CharField(source='user.name')
+    phone = serializers.CharField(source='user.phone')
+    cpf = serializers.CharField(source='user.cpf')
+    birthday = serializers.DateField(source='user.birthday')
+    profile_picture = serializers.ImageField(source='user.profile_picture')
+    cep = serializers.CharField(source='user.cep')
+
+    class Meta:
+        model = Company
+        fields = [
+            'id', 'email', 'name', 'phone', 'cpf', 'birthday',
+            'profile_picture', 'cep',
+            'trade_name', 'legal_name', 'cnpj', 'state_registration',
+            'contact_phone', 'contact_email', 'is_approved',
+        ]
+
+
 class CompanyCreateSerializer(ModelSerializer):
     articles_of_association_document = DocumentUploadSerializer()
     state_operating_license_document = DocumentUploadSerializer()

@@ -1,10 +1,17 @@
 from django.db.models import Q
+from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from app.permissions import IsCompanyOwner
 from core.models.company import Company
-from core.serializers.company import CompanyCreateSerializer, CompanyListAndRetrieveSerializer, CompanyPatchSerializer
+from core.serializers.company import (
+    CompanyCreateSerializer,
+    CompanyListAndRetrieveSerializer,
+    CompanyMeSerializer,
+    CompanyPatchSerializer,
+)
 
 
 class CompanyViewSet(ModelViewSet):
@@ -35,3 +42,9 @@ class CompanyViewSet(ModelViewSet):
         if user.is_authenticated:
             return Company.objects.filter(Q(is_approved=True) | Q(user=user)).order_by('id')
         return Company.objects.filter(is_approved=True).order_by('id')
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def me(self, request):
+        company = Company.objects.get(user=request.user)
+        serializer = CompanyMeSerializer(company)
+        return Response(serializer.data)
