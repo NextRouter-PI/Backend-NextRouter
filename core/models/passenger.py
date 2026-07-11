@@ -6,9 +6,22 @@ from core.models.user import User
 
 
 class Passenger(models.Model):
-    user = models.OneToOneField(User, on_delete=models.PROTECT, verbose_name=_('Usuário'))
-    group_route = models.OneToOneField(
-        CompanyRouteGroup, on_delete=models.PROTECT, verbose_name=_('Grupo de Rota'), null=True, blank=True
+    user = models.OneToOneField(
+        User,
+        on_delete=models.PROTECT,
+        verbose_name=_('Passageiro (Usuário)'),
+        related_name='passenger',
+        unique=True,
+        null=False,
+        blank=False,
+    )
+    group_route = models.ForeignKey(
+        CompanyRouteGroup,
+        on_delete=models.PROTECT,
+        verbose_name=_('Grupo de Rota'),
+        null=True,
+        blank=True,
+        related_name='passengers',
     )
     is_approved = models.BooleanField(default=False, null=False, verbose_name=_('Aprovado na empresa'))
 
@@ -18,3 +31,4 @@ class Passenger(models.Model):
     class Meta:
         verbose_name = 'Passageiro'
         verbose_name_plural = 'Passageiros'
+        db_table = 'core.passenger'

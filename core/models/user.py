@@ -6,6 +6,7 @@ from django.contrib.auth.models import (
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from core.validators.cpf import validate_cpf
 from uploader.models import Image
 
 
@@ -35,7 +36,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=255, unique=True)
     name = models.CharField(max_length=255, blank=False, null=False, verbose_name=_('Nome'))
     is_active = models.BooleanField(
-        default=True, verbose_name=_('Usuário está ativo'), help_text=_('Indica que este usuário está ativo.')
+        default=True,
+        verbose_name=_('Usuário está ativo'),
+        help_text=_('Indica que este usuário está ativo.'),
     )
     is_staff = models.BooleanField(
         default=False,
@@ -51,9 +54,15 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         on_delete=models.SET_NULL,
     )
-    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True, verbose_name=_('Data   de criação'))
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True, verbose_name=_('Data de criação'))
 
-    cpf = models.CharField(max_length=11, blank=False, null=False, verbose_name=_('CPF'))
+    cpf = models.CharField(
+        max_length=11,
+        blank=False,
+        null=False,
+        verbose_name=_('CPF'),
+        validators=[validate_cpf],
+    )
 
     birthday = models.DateField(null=True, blank=True, verbose_name=_('Data de nascimento'))
 
@@ -68,3 +77,4 @@ class User(AbstractBaseUser, PermissionsMixin):
     class Meta:
         verbose_name = 'Usuário'
         verbose_name_plural = 'Usuários'
+        db_table = 'core.user'

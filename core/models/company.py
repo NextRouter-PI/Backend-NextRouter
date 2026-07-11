@@ -1,22 +1,44 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from core.models.user import User
+from core.validators.email import validate_email
 from uploader.models import Document
-
-from .user import User
 
 
 class Company(models.Model):
     user = models.OneToOneField(
-        User, on_delete=models.PROTECT, verbose_name=_('Empresa (Usuário)'), null=False, blank=False
+        User,
+        on_delete=models.PROTECT,
+        verbose_name=_('Empresa (Usuário)'),
+        null=False,
+        blank=False,
+        unique=True,
+        related_name='company',
     )
+
     contact_phone = models.CharField(
-        max_length=11, verbose_name=_('Telefone de contato/Telefone comercial'), null=True, blank=True
+        max_length=11,
+        verbose_name=_('Telefone de contato/Telefone comercial'),
+        null=True,
+        blank=True,
     )
-    contact_email = models.EmailField(max_length=255, verbose_name=_('Email de contato'), null=True, blank=True)
+
+    contact_email = models.EmailField(
+        max_length=255,
+        verbose_name=_('Email de contato'),
+        null=True,
+        blank=True,
+        validators=[validate_email],
+    )
+
     cnpj = models.CharField(max_length=14, unique=True, verbose_name=_('CNPJ'))
     articles_of_association_document = models.OneToOneField(
-        Document, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('Documento de Contrato Social')
+        Document,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name='+',
+        verbose_name=_('Documento de Contrato Social'),
     )
     state_operating_license_document = models.OneToOneField(
         Document,
@@ -33,7 +55,10 @@ class Company(models.Model):
         verbose_name=_('Documento de Certidões Negativas'),
     )
     is_approved = models.BooleanField(
-        default=False, verbose_name=_('Empresa aprovada no sistema'), null=False, blank=False
+        default=False,
+        verbose_name=_('Empresa aprovada no sistema'),
+        null=False,
+        blank=False,
     )
 
     trade_name = models.CharField(null=False, verbose_name=_('Nome Fantasia'))
@@ -48,3 +73,4 @@ class Company(models.Model):
     class Meta:
         verbose_name = 'Empresa'
         verbose_name_plural = 'Empresas'
+        db_table = 'core.company'

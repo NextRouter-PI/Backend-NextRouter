@@ -7,13 +7,15 @@ from core.models import User
 from uploader.models import Image
 from uploader.serializers import ImageSerializer, ImageUploadSerializer
 
+CEP_LENGTH = 9
+
 
 class UserListAndRetriveSerializer(ModelSerializer):
-    profile_picture_data = ImageSerializer(source="profile_picture")
+    profile_picture_data = ImageSerializer(source='profile_picture')
 
     class Meta:
         model = User
-        fields = ["id", "name", "profile_picture_data", "cep"]
+        fields = ['id', 'name', 'profile_picture_data', 'cep']
 
 
 class UserCreateSerializer(ModelSerializer):
@@ -21,7 +23,7 @@ class UserCreateSerializer(ModelSerializer):
     cep = serializers.CharField(required=False, max_length=9)
     phone = serializers.CharField(required=False)
     cpf = serializers.CharField(required=True)
-    profile_picture = ImageUploadSerializer("profile_picture", required=False)
+    profile_picture = ImageUploadSerializer('profile_picture', required=False)
 
     def validate_password(self, value):
         try:
@@ -32,22 +34,19 @@ class UserCreateSerializer(ModelSerializer):
 
     def validate_cep(self, value):
         if value:
-            # Remove espaços antes e depois e garante que não passe de 9
             value = value.strip()
-            if len(value) > 9:
-                raise serializers.ValidationError(
-                    "O CEP não pode ter mais de 9 caracteres."
-                )
+            if len(value) > CEP_LENGTH:
+                raise serializers.ValidationError('O CEP não pode ter mais de 9 caracteres.')
         return value
 
     def create(self, validated_data):
-        profile_picture_data = validated_data.pop("profile_picture", None)
-        user_name = validated_data.get("name", "")
-        user_cpf = validated_data.get("cpf", "")
+        profile_picture_data = validated_data.pop('profile_picture', None)
+        user_name = validated_data.get('name', '')
+        user_cpf = validated_data.get('cpf', '')
         pic_instance = None
 
         if profile_picture_data:
-            profile_picture_data["description"] = f"Foto de {user_name} ({user_cpf})"
+            profile_picture_data['description'] = f'Foto de {user_name} ({user_cpf})'
 
             pic_instance = Image.objects.create(**profile_picture_data)
 
@@ -56,18 +55,18 @@ class UserCreateSerializer(ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "email",
-            "name",
-            "password",
-            "cep",
-            "phone",
-            "profile_picture",
-            "cpf",
-            "birthday",
+            'email',
+            'name',
+            'password',
+            'cep',
+            'phone',
+            'profile_picture',
+            'cpf',
+            'birthday',
         ]
 
 
 class UserPatchSerializer(UserCreateSerializer):
     class Meta:
         model = User
-        fields = ["email", "name", "cep", "phone", "profile_picture"]
+        fields = ['email', 'name', 'cep', 'phone', 'profile_picture']

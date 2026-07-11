@@ -1,4 +1,4 @@
-from rest_framework.permissions import SAFE_METHODS, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
 from app.permissions import IsCompany, IsCompanyOwner
