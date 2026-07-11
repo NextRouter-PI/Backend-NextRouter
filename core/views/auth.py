@@ -1,5 +1,3 @@
-# core/auth_views.py
-
 from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
@@ -8,12 +6,14 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+OK_STATUS = 200
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
 
-        if response.status_code == 200:
+        if response.status_code == OK_STATUS:
             refresh_token = response.data.get('refresh')
 
             del response.data['refresh']

@@ -5,8 +5,15 @@ from core.models.company import Company
 
 
 class CompanyRouteGroup(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.PROTECT, null=False, blank=False, verbose_name=_('Empresa'))
-    name = models.CharField(max_length=100, null=False, blank=False, verbose_name=_('nome da rota'))
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.PROTECT,
+        null=False,
+        blank=False,
+        verbose_name=_('Empresa'),
+        related_name='route_groups',
+    )
+    name = models.CharField(max_length=100, null=False, blank=False, verbose_name=_('Nome da rota'))
     commom_address = models.CharField(
         max_length=9,
         blank=False,
@@ -21,3 +28,5 @@ class CompanyRouteGroup(models.Model):
     class Meta:
         verbose_name = 'Grupo de Rota da Empresa'
         verbose_name_plural = 'Grupos de Rotas das Empresas'
+        db_table = 'core.company_route_group'
+        constraints = [models.UniqueConstraint(fields=['company', 'name'], name='unique_company_route_name')]

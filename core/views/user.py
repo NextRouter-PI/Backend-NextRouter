@@ -32,7 +32,7 @@ class UserViewSet(ModelViewSet):
         elif Company.objects.filter(user=user).exists():
             user_type = 'company'
         else:
-            user_type = 'admin'  # Fallback caso seja um superusuario que não está em nenhuma tabela
+            user_type = 'admin'
 
         data['type'] = user_type
 
