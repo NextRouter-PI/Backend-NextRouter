@@ -359,7 +359,7 @@ class LostItemAdmin(admin.ModelAdmin):
 
 
 ###
-class RouteAdmin(admin.ModelAdmin):
+class TravelAdmin(admin.ModelAdmin):
     fields = [
         'driver_id',
         'company_id',
@@ -369,11 +369,29 @@ class RouteAdmin(admin.ModelAdmin):
     ]
 
 
+###
+class PathAdmin(admin.ModelAdmin):
+    fields = [
+        'name',
+        'group_id',
+    ]
+
+
+###
+class VehicleAdmin(admin.ModelAdmin):
+    fields = [
+        'garage',
+        'group_id',
+    ]
+
+
 admin.site.register(models.User, UserAdmin)
 admin.site.register(models.Passenger, PassengerAdmin)
 admin.site.register(models.Driver, DriverAdmin)
 admin.site.register(models.Company, CompanyAdmin)
 admin.site.register(models.CompanyRouteGroup, CompanyRouteGroupAdmin)
 admin.site.register(models.ConfirmPassengerRoute, ConfirmPassengerRouteAdmin)
-admin.site.register(models.Route, RouteAdmin)
+admin.site.register(models.Travel, TravelAdmin)
 admin.site.register(models.LostItem, LostItemAdmin)
+admin.site.register(models.Path, PathAdmin)
+admin.site.register(models.Vehicle, VehicleAdmin)

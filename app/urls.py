@@ -16,7 +16,9 @@ from core.views import (
     DriverViewSet,
     LostItemViewSet,
     PassengerViewSet,
+    PathViewSet,
     UserViewSet,
+    VehicleViewSet,
 )
 from core.views.auth import (
     CustomLogoutView,
@@ -26,17 +28,19 @@ from core.views.auth import (
 from uploader.router import router as uploader_router
 
 router = DefaultRouter()
-router.register(r'users', UserViewSet, basename='users')
+# router.register(r'users', UserViewSet, basename='users')
 router.register(r'passengers', PassengerViewSet, basename='passengers')
 router.register(r'drivers', DriverViewSet, basename='drivers')
 router.register(r'companies', CompanyViewSet, basename='companies')
 router.register(r'companies-route-groups', CompanyGroupRouteViewSet, basename='companies route groups')
 router.register(r'confirm-passenger-route', ConfirmPassengerRouteViewSet, basename='confirm passenger route')
 router.register(r'lost-items', LostItemViewSet, basename='lost items')
+router.register(r'paths', PathViewSet, basename='paths')
+router.register(r'vehicles', VehicleViewSet, basename='vehicles')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path(
         'api/doc/',
         SpectacularSwaggerView.as_view(url_name='schema'),
@@ -51,7 +55,7 @@ urlpatterns = [
     path('api/token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/logout/', CustomLogoutView.as_view(), name='token_logout'),
     path('api/', include(router.urls)),
-    path('api/media/', include(uploader_router.urls)),
+    # path('api/media/', include(uploader_router.urls)),
 ]
 
 urlpatterns += static(settings.MEDIA_ENDPOINT, document_root=settings.MEDIA_ROOT)

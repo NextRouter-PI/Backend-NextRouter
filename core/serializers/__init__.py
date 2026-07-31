@@ -2,6 +2,8 @@ from core.serializers.user import (
     UserCreateSerializer,
     UserListAndRetriveSerializer,
     UserPatchSerializer,
+    BaseProfilePatchSerializer,
+    BaseProfileCreateSerializer
 )
 from core.serializers.passenger import (
     PassengerCreateSerializer,
@@ -23,4 +25,6 @@ from core.serializers.confirm_passenger_route import (
     ConfirmPassengerRouteCreateSerializer,
     ConfirmPassengerRouteListAndRetrieveSerializer,
 )
-from core.serializers.lost_item import LostItemSerializer
+from core.serializers.lost_item import LostItemCreateSerializer
+from core.serializers.path import PathSerializer
+from core.serializers.vehicle import VehicleSerializer

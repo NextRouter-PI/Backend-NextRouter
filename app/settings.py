@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+import dj_database_url
 from dotenv import load_dotenv
 
 # Carrega as variáveis de ambiente do arquivo .env
@@ -39,7 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.gis',
+    # 'django.contrib.gis',
     'cloudinary_storage',
     'cloudinary',
     'corsheaders',
@@ -85,19 +86,19 @@ WSGI_APPLICATION = 'app.wsgi.application'
 
 # Banco de dados
 DATABASES = {
-    # 'default': dj_database_url.config(
-    # default='sqlite:///db.sqlite3',
-    # conn_max_age=600,
-    # conn_health_checks=True,
-    # )
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'nextrouter',
-        'USER': 'ian',
-        'PASSWORD': 'teste.123',
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default='sqlite:///db.sqlite3',
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+    # 'default': {
+    # 'ENGINE': 'django.contrib.gis.db.backends.postgis',
+    # 'NAME': 'nextrouter',
+    # 'USER': 'ian',
+    # 'PASSWORD': 'teste.123',
+    # 'HOST': '127.0.0.1',
+    # 'PORT': '5432',
+    # }
 }
 
 # Validação de senhas
@@ -133,6 +134,7 @@ STATICFILES_DIRS = [
 MEDIA_ENDPOINT = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 FILE_UPLOAD_PERMISSIONS = 0o640
+# FILE_UPLOAD_MAX_MEMORY_SIZE =
 
 # Configurações específicas para desenvolvimento, migração e produção
 if MODE == 'DEVELOPMENT':

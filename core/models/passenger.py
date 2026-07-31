@@ -15,6 +15,7 @@ class Passenger(models.Model):
         null=False,
         blank=False,
     )
+
     group_route = models.ForeignKey(
         CompanyRouteGroup,
         on_delete=models.PROTECT,
@@ -23,6 +24,7 @@ class Passenger(models.Model):
         blank=True,
         related_name='passengers',
     )
+
     is_approved = models.BooleanField(default=False, null=False, verbose_name=_('Aprovado na empresa'))
 
     def __str__(self):
@@ -31,4 +33,4 @@ class Passenger(models.Model):
     class Meta:
         verbose_name = 'Passageiro'
         verbose_name_plural = 'Passageiros'
-        db_table = 'core.passenger'
+        db_table = 'accounts_passenger'

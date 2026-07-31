@@ -1,13 +1,13 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from core.models.route import Route
+from core.models.travel import Travel
 from core.models.user import User
 
 
 class ConfirmPassengerRoute(models.Model):
     route_id = models.ForeignKey(
-        Route,
+        Travel,
         on_delete=models.PROTECT,
         null=False,
         blank=False,
