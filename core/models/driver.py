@@ -16,6 +16,7 @@ class Driver(models.Model):
         null=False,
         blank=False,
     )
+
     group_route = models.ForeignKey(
         CompanyRouteGroup,
         blank=True,
@@ -24,6 +25,7 @@ class Driver(models.Model):
         verbose_name=_('Grupo de Rota'),
         related_name='drivers',
     )
+
     is_approved = models.BooleanField(default=False, null=False, verbose_name=_('Aprovado na empresa'))
 
     cnh = models.OneToOneField(
@@ -43,4 +45,4 @@ class Driver(models.Model):
     class Meta:
         verbose_name = 'Motorista'
         verbose_name_plural = 'Motoristas'
-        db_table = 'core.driver'
+        db_table = 'accounts_driver'

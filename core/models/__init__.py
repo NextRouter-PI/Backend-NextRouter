@@ -3,7 +3,9 @@ from core.models.passenger import Passenger
 from core.models.driver import Driver
 from core.models.company import Company
 from core.models.company_route_group import CompanyRouteGroup
-from core.models.route import Route
+from core.models.travel import Travel
 from core.models.confirm_passenger_route import ConfirmPassengerRoute
 from core.models.lost_item import LostItem
 from core.models.company_route_schedule import CompanyRouteSchedule
+from core.models.path import Path
+from core.models.vehicle import Vehicle

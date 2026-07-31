@@ -2,8 +2,9 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from core.models.user import User
+from core.validators.cnpj import validate_cnpj
 from core.validators.email import validate_email
-from uploader.models import Document
+from uploader.models.document import Document
 
 
 class Company(models.Model):
@@ -32,7 +33,8 @@ class Company(models.Model):
         validators=[validate_email],
     )
 
-    cnpj = models.CharField(max_length=14, unique=True, verbose_name=_('CNPJ'))
+    cnpj = models.CharField(max_length=14, unique=True, verbose_name=_('CNPJ'), validators=[validate_cnpj])
+
     articles_of_association_document = models.OneToOneField(
         Document,
         null=True,
@@ -40,6 +42,7 @@ class Company(models.Model):
         related_name='+',
         verbose_name=_('Documento de Contrato Social'),
     )
+
     state_operating_license_document = models.OneToOneField(
         Document,
         null=True,
@@ -47,6 +50,7 @@ class Company(models.Model):
         related_name='+',
         verbose_name=_('Documento de Licensa de Operação Estadual'),
     )
+
     certificate_of_good_stading_document = models.OneToOneField(
         Document,
         null=True,
@@ -54,6 +58,7 @@ class Company(models.Model):
         related_name='+',
         verbose_name=_('Documento de Certidões Negativas'),
     )
+
     is_approved = models.BooleanField(
         default=False,
         verbose_name=_('Empresa aprovada no sistema'),
@@ -73,4 +78,4 @@ class Company(models.Model):
     class Meta:
         verbose_name = 'Empresa'
         verbose_name_plural = 'Empresas'
-        db_table = 'core.company'
+        db_table = 'accounts_company'

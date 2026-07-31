@@ -10,3 +10,5 @@ from core.views.auth import (
 )
 from core.views.confirm_passenger_route import ConfirmPassengerRouteViewSet
 from core.views.lost_item import LostItemViewSet
+from core.views.path import PathViewSet
+from core.views.vehicle import VehicleViewSet

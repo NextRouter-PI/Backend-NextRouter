@@ -11,7 +11,7 @@ from core.serializers.passenger import (
 
 
 class PassengerViewSet(ModelViewSet):
-    http_method_names = ['get', 'post', 'patch', 'options', 'delete']
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_permissions(self):
         if self.action == 'create':
@@ -27,15 +27,15 @@ class PassengerViewSet(ModelViewSet):
             return PassengerPatchSerializer
         elif self.action == 'list':
             return PassengerListAndRetrieveSerializer
-        return PassengerListAndRetrieveSerializer
+        else:
+            return PassengerListAndRetrieveSerializer
 
     def get_queryset(self):
         user = self.request.user
 
-        if not user or user.is_anonymous:
-            return Passenger.objects.none()
-
+        # Permite que administradores do sistema e super-usuários possam listar todos os passageiros...
         if user.is_staff or user.is_superuser:
             return Passenger.objects.all().order_by('id')
-
-        return Passenger.objects.filter(Q(user=user) | Q(group_route__company__user=user)).distinct().order_by('id')
+        # Não permite que o usuário veja passageiros que não sejam ele, ou passageiros afiliados a sua empresa...
+        else:
+            return Passenger.objects.filter(Q(user=user) | Q(group_route__company__user=user)).distinct().order_by('id')

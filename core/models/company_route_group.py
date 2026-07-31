@@ -13,7 +13,9 @@ class CompanyRouteGroup(models.Model):
         verbose_name=_('Empresa'),
         related_name='route_groups',
     )
-    name = models.CharField(max_length=100, null=False, blank=False, verbose_name=_('Nome da rota'))
+
+    name = models.CharField(max_length=100, null=False, blank=False, verbose_name=_('Nome do Grupo'))
+
     commom_address = models.CharField(
         max_length=9,
         blank=False,
