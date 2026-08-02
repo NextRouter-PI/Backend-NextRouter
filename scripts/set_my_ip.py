@@ -36,8 +36,6 @@ def update_env_file(ip):
                     file.write(line)
             file.write(f'MY_IP={ip}\n')
 
-        return
-
     print(f'IP atualizado no arquivo .env: MY_IP={ip}')
 
 
