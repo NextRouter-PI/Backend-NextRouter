@@ -1,73 +1,91 @@
 from rest_framework import permissions
 
-from core.models.company import Company
-from core.models.company_route_group import CompanyRouteGroup
-from core.models.passenger import Passenger
+from authenticator.models.company import Company
 
 
-class IsCompanyOwner(permissions.BasePermission, permissions.exceptions.PermissionDenied):
-    def has_object_permission(self, request, view, obj):
-        return obj == Company.objects.filter(user=request.user).first()
+class IsCompanyOwner(permissions.BasePermission):
+    """
+    Verifica se a empresa sendo acessada pertence ao usuário logado.
+    """
 
-
-class IsCompany(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return Company.objects.filter(user=request.user, is_approved=True).exists()
-
-
-class IsPassengerOwnerOrRouteCompanyOrDriver(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if isinstance(obj, Company):
             return obj.user == request.user
 
-        if hasattr(obj, 'company') and obj.company:
-            return obj.company.user == request.user
-
-        return False
+        return getattr(obj, 'company', None) and obj.company.user == request.user
 
 
-class IsGroupOwner(permissions.BasePermission):
+class IsCompany(permissions.BasePermission):
+    """
+    Verifica se o usuário possui perfil de empresa APROVADO.
+    """
+
     def has_permission(self, request, view):
-        if request.method == 'POST':
-            group_id = request.data.get('group_id')
-            if not group_id:
-                return False
-            return CompanyRouteGroup.objects.filter(id=group_id, company__user=request.user).exists()
-        return True
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+        return Company.objects.filter(user=request.user, is_approved=True).exists()
+
+
+class IsUserOwner(permissions.BasePermission):
+    """
+    Permite apenas que o usuário gerencie sua própria conta.
+    """
 
     def has_object_permission(self, request, view, obj):
+        return obj.user == request.user
+
+
+class IsConfirmationOwner(permissions.BasePermission):
+    """
+    Garante que apenas o usuário vinculado à confirmação possa alterá-la.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.user == request.user
+
+
+class IsItemOwner(permissions.BasePermission):
+    """
+    Garante que apenas o usuário que relatou o item perdido possa modificá-lo.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.user == request.user
+
+
+class IsVehicleOwner(permissions.BasePermission):
+    """
+    Garante que a empresa acessando o veículo é a dona do grupo ao qual ele pertence.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
         return obj.group.company.user == request.user
 
 
-class IsPassengerOwner(permissions.BasePermission, permissions.exceptions.PermissionDenied):
+class IsScheduleOwner(permissions.BasePermission):
+    """
+    Garante que a empresa acessando o horário é a dona do grupo de rota associado.
+    """
+
     def has_object_permission(self, request, view, obj):
-        if isinstance(obj, Passenger):
-            return obj.user == request.user
-
-        if hasattr(obj, 'passenger') and obj.passenger:
-            return obj.passenger.user == request.user
-
-        if hasattr(obj, 'user'):
-            return obj.user == request.user
-
-        return False
-
-
-class IsPassenger(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return Passenger.objects.filter(user=request.user, is_approved=True).exists()
-
-
-class IsPassengerOwnerForUpdateOrRouteStaffForRead(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        if request.method in {'PATCH'}:
-            return obj.user == request.user
-
         if request.method in permissions.SAFE_METHODS:
-            is_owner = obj.user == request.user
-            is_company = hasattr(obj.route, 'company') and obj.route.company.user == request.user
-            is_driver = hasattr(obj.route, 'driver') and obj.route.driver.user == request.user
+            return True
+        return obj.route_group.company.user == request.user
 
-            return is_owner or is_company or is_driver
 
-        return False
+class IsPathOwner(permissions.BasePermission):
+    """
+    Garante que a empresa acessando a rota é a dona do grupo ao qual a rota pertence.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.group.company.user == request.user
