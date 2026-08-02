@@ -1,29 +1,33 @@
+# Código adaptado de: https://www.devthru.com/guides/validation/cnpj/python
+
+import re
+
 from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
 
 CNPJ_LENGTH = 14
+REMAINDER = 2
 
-# TODO - Revisar código
 
-def validate_cnpj(value):
-    cnpj = ''.join(filter(str.isdigit, str(value)))
+def validate_cnpj(cnpj: str):
+    cnpj = re.sub(r'[^0-9]', '', cnpj)
 
-    if len(cnpj) != CNPJ_LENGTH:
-        raise ValidationError(_('O CNPJ deve conter exatamente 14 dígitos numéricos.'), code='invalid_cnpj_format')
+    if len(cnpj) != CNPJ_LENGTH or len(set(cnpj)) == 1:
+        raise ValidationError('CNPJ inválido.')
 
-    if cnpj == cnpj[0] * CNPJ_LENGTH:
-        raise ValidationError(_('%(value)s não é um CNPJ válido.'), params={'value': value}, code='invalid_cnpj')
+    weights = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    sum_val = sum(int(cnpj[i]) * weights[i] for i in range(12))
+    remainder = sum_val % 11
+    digit_1 = 0 if remainder < REMAINDER else 11 - remainder
 
-    def calcular_digito(cnpj, pesos):
-        soma = sum(int(cnpj[i]) * pesos[i] for i in range(len(pesos)))
-        resto = soma % 11
-        return 0 if resto < 2 else 11 - resto
+    if int(cnpj[12]) != digit_1:
+        raise ValidationError('CNPJ inválido.')
 
-    pesos_1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-    pesos_2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    weights = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    sum_val = sum(int(cnpj[i]) * weights[i] for i in range(13))
+    remainder = sum_val % 11
+    digit_2 = 0 if remainder < REMAINDER else 11 - remainder
 
-    digito_1 = calcular_digito(cnpj, pesos_1)
-    digito_2 = calcular_digito(cnpj, pesos_2)
-
-    if int(cnpj[12]) != digito_1 or int(cnpj[13]) != digito_2:
-        raise ValidationError(_('%(value)s não é um CNPJ válido.'), params={'value': value}, code='invalid_cnpj')
+    if not int(cnpj[13]) == digit_2:
+        raise ValidationError('CNPJ inválido.')
+    else:
+        pass
