@@ -2,7 +2,11 @@
 name = "nextrouter"
 version = "1.0.0"
 description = ""
-authors = [{ name = "Marco André Mendes", email = "marcoandre@gmail.com" }]
+authors = [
+  { name = "Marco André Mendes", email = "marcoandre@gmail.com" },
+  { name = "Ian Matheus Veiga", email = "ianmatheusv54@gmail.com" },
+  { name = "Paulo Artur Pereira", email = "pauloartur23@gmail.com" },
+]
 dependencies = [
   "dj-database-url>=3.1.2",
   "django-cloudinary-storage>=0.3.0",
@@ -14,11 +18,7 @@ dependencies = [
   "drf-spectacular>=0.30.0",
   "gunicorn>=26.0.0",
   # 'mysqlclient>=2.2.4',
-  "passage-identity>=3.0.2",
-  "Pillow>=12.3.0",
-  "pre-commit>=4.6.0",
   "psycopg2-binary>=2.9.12",
-  "pydotplus>=2.0.2",
   "python-dotenv>=1.2.2",
   "python-magic-bin>=0.4.14; sys_platform == \"win32\"",
   "python-magic>=0.4.27; sys_platform == \"linux\"",
@@ -26,24 +26,26 @@ dependencies = [
   "uvicorn>=0.51.0",
   "whitenoise[brotli]>=6.12.0",
   "djangorestframework-simplejwt>=5.5.1",
+  "pyparsing>=3.3.2",
+  "pydot>=4.0.1",
+  "pillow>=12.3.0",
 ]
 
 license = { text = "MIT" }
 
 [dependency-groups]
-dev = [
-    "pylint>=4.0.6",
-    "ipython>=9.15.0",
-    "ruff>=0.15.21",
-]
+dev = ["pylint>=4.0.6", "ipython>=9.15.0", "ruff>=0.15.21"]
 
 [tool.pdm.scripts]
-pre_dev = "python ./scripts/set_my_ip.py"
+pre_dev = { composite = [
+  "python ./scripts/setup_env.py",
+  "python ./scripts/set_my_ip.py",
+] }
 dev = "python manage.py runserver 0.0.0.0:19003"
 createsuperuser = "python manage.py createsuperuser"
 pre_migrate = "python manage.py makemigrations"
 migrate = "python manage.py migrate"
-post_migrate = "python manage.py graph_models --disable-sort-fields -S -g -o core.png authenticator uploader router"
+post_migrate = "python manage.py graph_models --pydot --arrow-shape normal --color-code-deletions --hide-edge-labels --disable-sort-fields -S -g -o core.png authenticator uploader router"
 shell = "python manage.py shell"
 shellp = "python manage.py shell_plus"
 test = "python manage.py test"
