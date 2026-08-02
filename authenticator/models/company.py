@@ -3,7 +3,6 @@ from django.utils.translation import gettext_lazy as _
 
 from authenticator.models.user import User
 from authenticator.validators.cnpj import validate_cnpj
-from authenticator.validators.email import validate_email
 from uploader.models.document import Document
 
 
@@ -33,7 +32,6 @@ class Company(models.Model):
         verbose_name=_('Email de contato'),
         null=True,
         blank=True,
-        validators=[validate_email],
     )
 
     # Documentos

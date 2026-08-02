@@ -3,7 +3,6 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
-from django.contrib.auth.password_validation import validate_password
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -17,9 +16,6 @@ class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('Usuário devem ter um email.')
-
-        if password:
-            validate_password(password)
 
         user = self.model(email=self.normalize_email(email), **extra_fields)
         user.set_password(password)

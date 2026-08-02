@@ -1,9 +1,11 @@
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
 from authenticator.models.email_token import EmailToken
 from authenticator.models.user import User
+from authenticator.validators.cpf import validate_cpf
 from uploader.models import Image
 from uploader.serializers import ImageSerializer, ImageUploadSerializer
 
@@ -35,9 +37,11 @@ class UserListAndRetriveSerializer(ModelSerializer):
 
 
 class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
-    password = serializers.CharField(write_only=True, min_length=8)
+    password = serializers.CharField(write_only=True, required=True)
     profile_picture = ImageUploadSerializer('profile_picture', required=False)
-    code = serializers.CharField(write_only=True, required=True, max_length=6)
+    code = serializers.CharField(write_only=True, required=True)
+    email = serializers.EmailField(required=True)
+    cpf = serializers.CharField(required=True, validators=[validate_cpf])
 
     class Meta:
         model = User
@@ -63,6 +67,14 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
         self.context['token_instance'] = token
         return attrs
 
+    # Validando por aqui afim de não precisar importar cada validador do Django,
+    # e inserir no validators=[] do campo password no serializer.
+    def validate_password(self, value):
+        validate_password(value)
+        return value
+
+        return value
+
     def create(self, validated_data):
         validated_data.pop('code', None)
         profile_picture_data = validated_data.pop('profile_picture', None)
@@ -86,20 +98,23 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
 
 
 class UserPatchSerializer(UserCreateSerializer):
-    password = serializers.CharField(write_only=True, min_length=8, required=False)
-    code = serializers.CharField(write_only=True, max_length=6, required=False)
+    password = serializers.CharField(write_only=True, required=False)
+    code = serializers.CharField(write_only=True, required=False)
     current_password = serializers.CharField(write_only=True, required=False)
-    email = serializers.EmailField(required=False, validators=[])
+    email = serializers.EmailField(required=False)
+    cpf = serializers.CharField(required=False, validators=[validate_cpf])
 
     class Meta:
         model = User
-        fields = ['email', 'password', 'current_password', 'code', 'name', 'cep', 'phone', 'profile_picture']
+        fields = ['code', 'email', 'password', 'current_password', 'name', 'cep', 'phone', 'profile_picture']
 
     def validate(self, attrs):
         initial_data = getattr(self, 'initial_data', {}) or {}
 
         if 'cpf' in initial_data:
-            raise serializers.ValidationError({'cpf': 'Você não tem permissão para alterar o campo CPF.'})
+            raise serializers.ValidationError({
+                'cpf': 'Você não tem permissão para alterar o campo CPF. Contate o suporte.'
+            })
 
         user = self.instance
         new_email = attrs.get('email')
