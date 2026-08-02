@@ -1,4 +1,5 @@
 from django.db import transaction
+from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
 from authenticator.models.company import Company
@@ -7,6 +8,7 @@ from authenticator.serializers.user import (
     BaseProfilePatchSerializer,
     UserListAndRetriveSerializer,
 )
+from authenticator.validators.cnpj import validate_cnpj
 from uploader.models.document import Document
 from uploader.serializers.document import DocumentUploadSerializer
 
@@ -23,6 +25,7 @@ class CompanyCreateSerializer(BaseProfileCreateSerializer):
     articles_of_association_document = DocumentUploadSerializer()
     state_operating_license_document = DocumentUploadSerializer()
     certificate_of_good_stading_document = DocumentUploadSerializer()
+    cnpj = serializers.CharField(validators=[validate_cnpj], required=True)
 
     class Meta:
         model = Company
