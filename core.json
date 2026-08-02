@@ -1,0 +1,131 @@
+[
+  {
+    "model": "authenticator.user",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$720000$3UASVRfnCnaeFfvZSnQH1Q$tDhaD0/jqYC4S6w54ocZwyEXfBDgwifcQ8oEQ2FQSB0=",
+      "last_login": "2024-08-27T12:00:00Z",
+      "is_superuser": true,
+      "email": "empresa@teste.com",
+      "name": "Administrador Empresa",
+      "is_active": true,
+      "is_staff": true,
+      "phone": "47999999999",
+      "cep": "89200000",
+      "profile_picture": null,
+      "created_at": "2024-01-01T10:00:00Z",
+      "cpf": "11111111111",
+      "birthday": "1990-01-01"
+    }
+  },
+  {
+    "model": "authenticator.user",
+    "pk": 2,
+    "fields": {
+      "password": "pbkdf2_sha256$720000$3UASVRfnCnaeFfvZSnQH1Q$tDhaD0/jqYC4S6w54ocZwyEXfBDgwifcQ8oEQ2FQSB0=",
+      "last_login": null,
+      "is_superuser": false,
+      "email": "motorista@teste.com",
+      "name": "João Motorista",
+      "is_active": true,
+      "is_staff": false,
+      "phone": "47988888888",
+      "cep": "89200111",
+      "profile_picture": null,
+      "created_at": "2024-01-02T10:00:00Z",
+      "cpf": "22222222222",
+      "birthday": "1985-05-15"
+    }
+  },
+  {
+    "model": "authenticator.user",
+    "pk": 3,
+    "fields": {
+      "password": "pbkdf2_sha256$720000$3UASVRfnCnaeFfvZSnQH1Q$tDhaD0/jqYC4S6w54ocZwyEXfBDgwifcQ8oEQ2FQSB0=",
+      "last_login": null,
+      "is_superuser": false,
+      "email": "passageiro@teste.com",
+      "name": "Maria Passageira",
+      "is_active": true,
+      "is_staff": false,
+      "phone": "47977777777",
+      "cep": "89200222",
+      "profile_picture": null,
+      "created_at": "2024-01-03T10:00:00Z",
+      "cpf": "33333333333",
+      "birthday": "2000-10-20"
+    }
+  },
+  {
+    "model": "authenticator.company",
+    "pk": 1,
+    "fields": {
+      "user": 1,
+      "trade_name": "Vans Joinville",
+      "legal_name": "Transportes Joinville LTDA",
+      "cnpj": "12345678000199",
+      "state_registration": "123456789",
+      "contact_phone": "4733333333",
+      "contact_email": "contato@vansjoinville.com",
+      "articles_of_association_document": null,
+      "state_operating_license_document": null,
+      "certificate_of_good_stading_document": null,
+      "is_approved": true
+    }
+  },
+  {
+    "model": "authenticator.companyroutegroup",
+    "pk": 1,
+    "fields": {
+      "company": 1,
+      "name": "Rota Universitária Norte",
+      "common_cep": "89219000"
+    }
+  },
+  {
+    "model": "authenticator.driver",
+    "pk": 1,
+    "fields": {
+      "user": 2,
+      "group_route": 1,
+      "is_approved": true,
+      "cnh": null
+    }
+  },
+  {
+    "model": "authenticator.passenger",
+    "pk": 1,
+    "fields": {
+      "user": 3,
+      "group_route": 1,
+      "is_approved": true
+    }
+  },
+  {
+    "model": "router.vehicle",
+    "pk": 1,
+    "fields": {
+      "group": 1,
+      "garage_cep": "89219100",
+      "plate": "ABC1234"
+    }
+  },
+  {
+    "model": "router.path",
+    "pk": 1,
+    "fields": {
+      "group": 1,
+      "name": "Caminho UDESC/UFSC",
+      "points": "{\"type\": \"FeatureCollection\", \"features\": []}"
+    }
+  },
+  {
+    "model": "router.companyrouteschedule",
+    "pk": 1,
+    "fields": {
+      "route_group": 1,
+      "go_hour": "07:00:00",
+      "return_hour": "12:00:00"
+    }
+  }
+]
