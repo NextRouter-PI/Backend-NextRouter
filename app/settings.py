@@ -16,8 +16,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Segurança e configuração básica
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure')
-DEBUG = os.getenv('DEBUG', 'False')
-ALLOWED_HOSTS = ['*']
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:8000',
@@ -48,8 +48,9 @@ INSTALLED_APPS = [
     'django_filters',
     'drf_spectacular',
     'rest_framework',
-    'core',
+    'authenticator',
     'uploader',
+    'router',
 ]
 
 MIDDLEWARE = [
@@ -91,14 +92,6 @@ DATABASES = {
         conn_max_age=600,
         conn_health_checks=True,
     )
-    # 'default': {
-    # 'ENGINE': 'django.contrib.gis.db.backends.postgis',
-    # 'NAME': 'nextrouter',
-    # 'USER': 'ian',
-    # 'PASSWORD': 'teste.123',
-    # 'HOST': '127.0.0.1',
-    # 'PORT': '5432',
-    # }
 }
 
 # Validação de senhas
@@ -134,7 +127,7 @@ STATICFILES_DIRS = [
 MEDIA_ENDPOINT = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 FILE_UPLOAD_PERMISSIONS = 0o640
-# FILE_UPLOAD_MAX_MEMORY_SIZE =
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880
 
 # Configurações específicas para desenvolvimento, migração e produção
 if MODE == 'DEVELOPMENT':
@@ -164,7 +157,7 @@ SPECTACULAR_SETTINGS = {
 }
 
 # Modelo de usuário personalizado
-AUTH_USER_MODEL = 'core.User'
+AUTH_USER_MODEL = 'authenticator.User'
 
 # Configurações do Django REST Framework
 REST_FRAMEWORK = {
@@ -183,3 +176,11 @@ SIMPLE_JWT = {
 
 # Exibe as configurações principais para verificação
 print(f'{MODE = } \n{MEDIA_URL = } \n{DATABASES = }')
+
+
+# Envio de email
+EMAIL_HOST = os.getenv('EMAIL_HOST')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False') == 'True'
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))  # ruff: ignore[invalid-envvar-default]
