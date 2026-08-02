@@ -50,7 +50,7 @@ class UserAdmin(BaseUserAdmin):
         return obj.name.title() if obj.name else '-'
 
     class Media:
-        js = ('core/js/cep_mask.js', 'core/js/phone_mask.js', 'core/js/name_mask.js')
+        js = ('core/js/cep_mask.js', 'core/js/phone_mask.js', 'core/js/name_mask.js', 'core/js/cpf_mask.js')
 
 
 @admin.register(models.Passenger)
