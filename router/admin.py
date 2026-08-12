@@ -98,7 +98,7 @@ class TravelAdmin(admin.ModelAdmin):
 
     list_filter = ('started_at',)
 
-    date_hierarchy = ('started_at',)
+    date_hierarchy = 'started_at'
 
 
 @admin.register(models.Path)

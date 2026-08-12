@@ -36,7 +36,7 @@ class Passenger(models.Model):
         verbose_name = _('Passageiro')
         verbose_name_plural = _('Passageiros')
         db_table = 'accounts_passenger'
-        ordering = 'user__name'
+        ordering = ('user__name',)
 
     def __str__(self):
         return self.user.name.title() if self.user else _('Passageiro sem usuário')
