@@ -34,7 +34,9 @@ dependencies = [
 license = { text = "MIT" }
 
 [dependency-groups]
-dev = ["pylint>=4.0.6", "ipython>=9.15.0", "ruff>=0.15.21"]
+dev = [
+    "ruff>=0.15.21",
+]
 
 [tool.pdm.scripts]
 pre_dev = { composite = [
