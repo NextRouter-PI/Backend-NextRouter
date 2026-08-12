@@ -6,7 +6,10 @@ from authenticator.models.email_token import EmailToken
 class EmailTokenCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailToken
-        fields = ['email', 'token_type']
+        fields = (
+            'email',
+            'token_type',
+        )
 
 
 class EmailTokenVerifySerializer(serializers.ModelSerializer):
@@ -14,4 +17,8 @@ class EmailTokenVerifySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EmailToken
-        fields = ['email', 'code', 'token_type']
+        fields = (
+            'email',
+            'code',
+            'token_type',
+        )

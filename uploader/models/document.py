@@ -38,4 +38,4 @@ class Document(models.Model):
 
     @property
     def url(self) -> str:
-        return self.file.url  # pylint: disable=no-member
+        return self.file.url

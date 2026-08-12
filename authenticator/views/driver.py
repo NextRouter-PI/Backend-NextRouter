@@ -12,7 +12,7 @@ from authenticator.serializers.driver import (
 
 
 class DriverViewSet(ModelViewSet):
-    http_method_names = ['get', 'post', 'patch', 'delete']
+    http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_permissions(self):
         if self.action == 'create':

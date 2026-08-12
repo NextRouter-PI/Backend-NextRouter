@@ -25,7 +25,7 @@ def update_env_file(ip):
         with open('.env', 'w', encoding='utf-8') as new_file:
             new_file.write(f'MY_IP={ip}\n')
     else:
-        with open('.env', 'r', encoding='utf-8') as file:
+        with open('.env', encoding='utf-8') as file:
             lines = file.readlines()
 
         with open('.env', 'w', encoding='utf-8') as file:

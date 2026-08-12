@@ -30,5 +30,3 @@ def validate_cpf(cpf: str):
 
     if not digit_2 == int(cpf[10]):
         raise ValidationError('CPF inválido.')
-    else:
-        pass

@@ -19,13 +19,27 @@ class EmailToken(models.Model):
         blank=True,
     )
 
-    token_hash = models.CharField(max_length=255, null=True, blank=True)
+    token_hash = models.CharField(
+        max_length=255,
+        blank=True,
+    )
 
-    email = models.EmailField(_('Email'), max_length=255, db_index=True)
+    email = models.EmailField(
+        _('Email'),
+        max_length=255,
+        db_index=True,
+    )
 
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Data de criação'))
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('Data de criação'),
+    )
 
-    consumed = models.BooleanField(default=False, verbose_name=_('Consumido'), db_index=True)
+    consumed = models.BooleanField(
+        default=False,
+        verbose_name=_('Consumido'),
+        db_index=True,
+    )
 
     token_type = models.CharField(
         max_length=20, choices=TokenType.choices, default=TokenType.NEW_USER, verbose_name=_('Tipo de Token')
@@ -35,7 +49,7 @@ class EmailToken(models.Model):
         verbose_name = _('Email Token')
         verbose_name_plural = _('Email Tokens')
         db_table = 'authenticator_email_token'
-        ordering = ['-created_at']
+        ordering = ('-created_at',)
 
     def __str__(self):
         return f'{self.email} - {self.token_type}'

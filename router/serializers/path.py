@@ -7,7 +7,12 @@ from router.models.path import Path
 class PathSerializer(serializers.ModelSerializer):
     class Meta:
         model = Path
-        fields = ['id', 'points', 'name', 'group']
+        fields = (
+            'id',
+            'points',
+            'name',
+            'group',
+        )
 
     def validate_group(self, value):
         user = self.context['request'].user

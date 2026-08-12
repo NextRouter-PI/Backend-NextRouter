@@ -5,14 +5,15 @@ from uploader.models import Document, Image
 
 @admin.register(Image)
 class UploaderImageAdmin(admin.ModelAdmin):
-    search_fields = ['user__name']
+    search_fields = ('user__name',)
     actions = None
-    readonly_fields = [
+    readonly_fields = (
         'get_user',
         'attachment_key',
         'public_id',
         'uploaded_on',
-    ]
+    )
+
     fieldsets = (
         (
             ('Identificação da imagem'),
@@ -36,10 +37,10 @@ class UploaderImageAdmin(admin.ModelAdmin):
         (('Datas'), {'fields': ('uploaded_on',)}),
     )
 
-    list_display = [
+    list_display = (
         'get_user',
         'file',
-    ]
+    )
 
     @admin.display(description='Usuário', ordering='user__name')
     def get_user(self, obj):

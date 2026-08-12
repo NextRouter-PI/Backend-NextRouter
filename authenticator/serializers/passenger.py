@@ -14,13 +14,18 @@ class PassengerListAndRetrieveSerializer(ModelSerializer):
 
     class Meta:
         model = Passenger
-        fields = ['id', 'user_data', 'is_approved', 'group_route']
+        fields = (
+            'id',
+            'user_data',
+            'is_approved',
+            'group_route',
+        )
 
 
 class PassengerCreateSerializer(BaseProfileCreateSerializer):
     class Meta:
         model = Passenger
-        fields = ['user_data']
+        fields = ('user_data',)
 
     @transaction.atomic
     def create(self, validated_data):
@@ -32,4 +37,4 @@ class PassengerCreateSerializer(BaseProfileCreateSerializer):
 class PassengerPatchSerializer(BaseProfilePatchSerializer):
     class Meta:
         model = Passenger
-        fields = ['user_data']
+        fields = ('user_data',)

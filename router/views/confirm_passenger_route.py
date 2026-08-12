@@ -11,7 +11,10 @@ from router.serializers.confirm_passenger_route import (
 
 
 class ConfirmPassengerRouteViewSet(ModelViewSet):
-    http_method_names = ['get', 'patch']
+    http_method_names = (
+        'get',
+        'patch',
+    )
 
     def get_permissions(self):
         if self.action in {'list', 'retrieve'}:
@@ -26,12 +29,17 @@ class ConfirmPassengerRouteViewSet(ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        queryset = ConfirmPassengerRoute.objects.select_related('travel', 'user')
+        queryset = ConfirmPassengerRoute.objects.select_related(
+            'travel',
+            'user',
+        )
 
         if user.is_staff or user.is_superuser:
             return queryset.all()
 
-        return queryset.filter(Q(user=user) | Q(travel__company__user=user) | Q(travel__driver__user=user)).distinct()
+        return queryset.filter(
+            Q(user=user) | Q(travel__company__user=user) | Q(travel__driver__user=user),
+        ).distinct()
 
     def get_serializer_class(self):
         if self.action in {'partial_update', 'update'}:

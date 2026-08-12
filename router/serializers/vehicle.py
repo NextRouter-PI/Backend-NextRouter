@@ -7,7 +7,12 @@ from router.models.vehicle import Vehicle
 class VehicleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vehicle
-        fields = ['id', 'group', 'garage_cep', 'plate']
+        fields = (
+            'id',
+            'group',
+            'garage_cep',
+            'plate',
+        )
 
     def validate_group(self, value):
         user = self.context['request'].user

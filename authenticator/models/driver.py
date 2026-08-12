@@ -24,7 +24,11 @@ class Driver(models.Model):
         related_name='drivers',
     )
 
-    is_approved = models.BooleanField(default=False, verbose_name=_('Aprovado na empresa'), db_index=True)
+    is_approved = models.BooleanField(
+        default=False,
+        verbose_name=_('Aprovado na empresa'),
+        db_index=True,
+    )
 
     cnh = models.OneToOneField(
         Document,
@@ -35,15 +39,15 @@ class Driver(models.Model):
         verbose_name=_('CNH'),
     )
 
+    class Meta:
+        verbose_name = _('Motorista')
+        verbose_name_plural = _('Motoristas')
+        db_table = 'accounts_driver'
+        ordering = ('user__name',)
+
     def __str__(self):
         if self.group_route and self.group_route.company:
             company_name = self.group_route.company.user.name.title()
             route_name = self.group_route.name.title()
             return f'{self.user.name.title()} (Rota {route_name} de {company_name})'
         return f'{self.user.name.title()} (Sem rota atribuída)'
-
-    class Meta:
-        verbose_name = _('Motorista')
-        verbose_name_plural = _('Motoristas')
-        db_table = 'accounts_driver'
-        ordering = ['user__name']

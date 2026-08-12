@@ -12,4 +12,7 @@ class LostItemListAndRetrieveSerializer(serializers.ModelSerializer):
 class LostItemCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = LostItem
-        fields = ['item_description', 'travel']
+        fields = (
+            'item_description',
+            'travel',
+        )

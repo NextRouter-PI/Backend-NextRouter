@@ -12,15 +12,24 @@ class Vehicle(models.Model):
         related_name='vehicles',
     )
 
-    garage_cep = models.CharField(max_length=9, blank=True, null=True, verbose_name=_('CEP da garagem'))
+    garage_cep = models.CharField(
+        max_length=9,
+        blank=True,
+        verbose_name=_('CEP da garagem'),
+    )
 
-    plate = models.CharField(max_length=10, verbose_name=_('Placa'), unique=True, help_text=_('Placa do veículo'))
+    plate = models.CharField(
+        max_length=10,
+        verbose_name=_('Placa'),
+        unique=True,
+        help_text=_('Placa do veículo'),
+    )
 
     class Meta:
         verbose_name = _('Veículo')
         verbose_name_plural = _('Veículos')
         db_table = 'router_vehicles'
-        ordering = ['group__name']
+        ordering = ('group__name',)
 
     def __str__(self):
         return f'Veículo de placa {self.plate} - {self.group.company.user.name.title()}'

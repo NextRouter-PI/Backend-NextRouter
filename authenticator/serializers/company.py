@@ -18,7 +18,12 @@ class CompanyListAndRetrieveSerializer(ModelSerializer):
 
     class Meta:
         model = Company
-        fields = ['user_data', 'trade_name', 'contact_phone', 'contact_email']
+        fields = (
+            'user_data',
+            'trade_name',
+            'contact_phone',
+            'contact_email',
+        )
 
 
 class CompanyCreateSerializer(BaseProfileCreateSerializer):
@@ -29,7 +34,7 @@ class CompanyCreateSerializer(BaseProfileCreateSerializer):
 
     class Meta:
         model = Company
-        fields = [
+        fields = (
             'user_data',
             'cnpj',
             'contact_phone',
@@ -40,7 +45,7 @@ class CompanyCreateSerializer(BaseProfileCreateSerializer):
             'trade_name',
             'legal_name',
             'state_registration',
-        ]
+        )
 
     @transaction.atomic
     def create(self, validated_data):
@@ -65,14 +70,14 @@ class CompanyPatchSerializer(BaseProfilePatchSerializer):
 
     class Meta:
         model = Company
-        fields = [
+        fields = (
             'user_data',
             'contact_phone',
             'contact_email',
             'articles_of_association_document',
             'state_operating_license_document',
             'certificate_of_good_stading_document',
-        ]
+        )
 
     def update(self, instance, validated_data):
         document_fields = [

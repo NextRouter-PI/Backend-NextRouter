@@ -7,7 +7,12 @@ from router.models.company_route_schedule import CompanyRouteSchedule
 class CompanyRouteScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = CompanyRouteSchedule
-        fields = ['id', 'route_group', 'go_hour', 'return_hour']
+        fields = (
+            'id',
+            'route_group',
+            'go_hour',
+            'return_hour',
+        )
 
     def validate_route_group(self, value):
         user = self.context['request'].user

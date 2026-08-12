@@ -15,15 +15,31 @@ CEP_LENGTH = 9
 class TokenValidatorMixin:
     def validate_token(self, email, code, token_type):
         if not email:
-            raise serializers.ValidationError({'email': 'O e-mail é obrigatório para validar o código.'})
+            raise serializers.ValidationError(
+                {'email': 'O e-mail é obrigatório para validar o código.'},
+            )
 
-        token = EmailToken.objects.filter(email=email, token_type=token_type).order_by('-created_at').first()
+        token = (
+            EmailToken.objects
+            .filter(email=email, token_type=token_type)
+            .order_by(
+                '-created_at',
+            )
+            .first(),
+        )
 
-        if not token or not check_password(code, token.token_hash):
-            raise serializers.ValidationError({'code': 'Código inválido ou inexistente.'})
+        if not token or not check_password(
+            code,
+            token.token_hash,
+        ):
+            raise serializers.ValidationError(
+                {'code': 'Código inválido ou inexistente.'},
+            )
 
         if token.consumed:
-            raise serializers.ValidationError({'code': 'Este código já foi utilizado.'})
+            raise serializers.ValidationError(
+                {'code': 'Este código já foi utilizado.'},
+            )
 
         return token
 
@@ -33,7 +49,12 @@ class UserListAndRetriveSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'name', 'profile_picture_data', 'cep']
+        fields = (
+            'id',
+            'name',
+            'profile_picture_data',
+            'cep',
+        )
 
 
 class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
@@ -45,7 +66,7 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
 
     class Meta:
         model = User
-        fields = [
+        fields = (
             'code',
             'email',
             'name',
@@ -55,7 +76,7 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
             'profile_picture',
             'cpf',
             'birthday',
-        ]
+        )
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -106,7 +127,16 @@ class UserPatchSerializer(UserCreateSerializer):
 
     class Meta:
         model = User
-        fields = ['code', 'email', 'password', 'current_password', 'name', 'cep', 'phone', 'profile_picture']
+        fields = (
+            'code',
+            'email',
+            'password',
+            'current_password',
+            'name',
+            'cep',
+            'phone',
+            'profile_picture',
+        )
 
     def validate(self, attrs):
         initial_data = getattr(self, 'initial_data', {}) or {}
@@ -183,7 +213,11 @@ class BaseProfileCreateSerializer(serializers.ModelSerializer):
 class BaseProfilePatchSerializer(ModelSerializer):
     user_data = UserPatchSerializer(source='user', required=False)
 
-    FORBIDDEN_FIELDS = ['is_approved', 'group_route', 'user']
+    FORBIDDEN_FIELDS = (
+        'is_approved',
+        'group_route',
+        'user',
+    )
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
