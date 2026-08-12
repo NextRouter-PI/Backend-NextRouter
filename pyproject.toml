@@ -64,8 +64,20 @@ extend-exclude = ['migrations', '__init__.py', 'manage.py']
 
 [tool.ruff.lint]
 preview = true
-select = ['I', 'F', 'E', 'W', 'PL', 'PT']
-ignore = ["PLR6301"]
+select = [
+    "F",     
+    "E", "W",
+    "I",  
+    "UP", 
+    "B",  
+    "C4", 
+    "DJ", 
+    "SIM",
+    "RUF",    
+]
+ignore = [
+    "no-self-use"
+]
 
 [tool.ruff.format]
 preview = true
