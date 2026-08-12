@@ -15,26 +15,40 @@ class Company(models.Model):
         unique=True,
     )
 
-    trade_name = models.CharField(max_length=255, verbose_name=_('Nome Fantasia'))
-    legal_name = models.CharField(max_length=255, verbose_name=_('Razão Social'))
-    cnpj = models.CharField(max_length=14, unique=True, verbose_name=_('CNPJ'), validators=[validate_cnpj])
-    state_registration = models.CharField(max_length=20, verbose_name=_('Inscrição Estadual'))
+    trade_name = models.CharField(
+        max_length=255,
+        verbose_name=_('Nome Fantasia'),
+    )
+
+    legal_name = models.CharField(
+        max_length=255,
+        verbose_name=_('Razão Social'),
+    )
+
+    cnpj = models.CharField(
+        max_length=14,
+        unique=True,
+        verbose_name=_('CNPJ'),
+        validators=[validate_cnpj],
+    )
+
+    state_registration = models.CharField(
+        max_length=20,
+        verbose_name=_('Inscrição Estadual'),
+    )
 
     contact_phone = models.CharField(
         max_length=11,
         verbose_name=_('Telefone de contato'),
-        null=True,
         blank=True,
     )
 
     contact_email = models.EmailField(
         max_length=255,
         verbose_name=_('Email de contato'),
-        null=True,
         blank=True,
     )
 
-    # Documentos
     articles_of_association_document = models.OneToOneField(
         Document,
         null=True,
@@ -68,11 +82,11 @@ class Company(models.Model):
         db_index=True,
     )
 
-    def __str__(self):
-        return self.trade_name.title()
-
     class Meta:
         verbose_name = _('Empresa')
         verbose_name_plural = _('Empresas')
         db_table = 'accounts_company'
-        ordering = ['trade_name']
+        ordering = ('trade_name',)
+
+    def __str__(self):
+        return self.trade_name.title()

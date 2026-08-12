@@ -16,7 +16,11 @@ class DriverListAndRetrieveSerializer(ModelSerializer):
 
     class Meta:
         model = Driver
-        fields = ['user_data', 'is_approved', 'cnh']
+        fields = (
+            'user_data',
+            'is_approved',
+            'cnh',
+        )
 
 
 class DriverCreateSerializer(BaseProfileCreateSerializer):
@@ -24,7 +28,10 @@ class DriverCreateSerializer(BaseProfileCreateSerializer):
 
     class Meta:
         model = Driver
-        fields = ['user_data', 'cnh']
+        fields = (
+            'user_data',
+            'cnh',
+        )
 
     @transaction.atomic
     def create(self, validated_data):
@@ -40,4 +47,4 @@ class DriverCreateSerializer(BaseProfileCreateSerializer):
 class DriverPatchSerializer(BaseProfilePatchSerializer):
     class Meta:
         model = Driver
-        fields = ['user_data']
+        fields = ('user_data',)

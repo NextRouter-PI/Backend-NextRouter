@@ -20,16 +20,22 @@ class ConfirmPassengerRoute(models.Model):
         related_name='passenger_confirms',
     )
 
-    confirm = models.BooleanField(default=False, verbose_name=_('Confirmado'))
+    confirm = models.BooleanField(
+        default=False,
+        verbose_name=_('Confirmado'),
+    )
 
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Data da confirmação'))
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('Data da confirmação'),
+    )
 
     class Meta:
         verbose_name = _('Confirmação de passageiro')
         verbose_name_plural = _('Confirmações de passageiros')
         db_table = 'router_confirm_passenger_route'
-        constraints = [models.UniqueConstraint(fields=['travel', 'user'], name='unique_user_travel_confirmation')]
-        ordering = ['-created_at']
+        constraints = (models.UniqueConstraint(fields=['travel', 'user'], name='unique_user_travel_confirmation'),)
+        ordering = ('-created_at',)
 
     def __str__(self):
         return f'Confirmação de {self.user_id.name.title()} na {self.route_id}'

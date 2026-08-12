@@ -33,9 +33,17 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(max_length=255, unique=True)
+    email = models.EmailField(
+        max_length=255,
+        unique=True,
+    )
 
-    name = models.CharField(max_length=255, blank=False, null=False, verbose_name=_('Nome'))
+    name = models.CharField(
+        max_length=255,
+        blank=False,
+        null=False,
+        verbose_name=_('Nome'),
+    )
 
     is_active = models.BooleanField(
         default=True,
@@ -47,9 +55,17 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name=_('Usuário é da equipe'),
     )
 
-    phone = models.CharField(max_length=11, blank=True, null=True, verbose_name=_('Telefone'))
+    phone = models.CharField(
+        max_length=11,
+        blank=True,
+        verbose_name=_('Telefone'),
+    )
 
-    cep = models.CharField(max_length=9, blank=True, null=True, verbose_name=_('CEP'))
+    cep = models.CharField(
+        max_length=9,
+        blank=True,
+        verbose_name=_('CEP'),
+    )
 
     profile_picture = models.OneToOneField(
         Image,
@@ -59,7 +75,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         on_delete=models.SET_NULL,
     )
 
-    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True, verbose_name=_('Data de criação'))
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        null=True,
+        blank=True,
+        verbose_name=_('Data de criação'),
+    )
 
     cpf = models.CharField(
         max_length=11,
@@ -69,13 +90,17 @@ class User(AbstractBaseUser, PermissionsMixin):
         validators=[validate_cpf],
     )
 
-    birthday = models.DateField(null=True, blank=True, verbose_name=_('Data de nascimento'))
+    birthday = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_('Data de nascimento'),
+    )
 
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
 
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ()
 
     def __str__(self):
         return f'{self.name.title()}'

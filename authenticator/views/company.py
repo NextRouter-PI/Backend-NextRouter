@@ -12,12 +12,10 @@ from authenticator.serializers.company import (
 
 
 class CompanyViewSet(ModelViewSet):
-    http_method_names = ['get', 'post', 'patch', 'delete']
+    http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_permissions(self):
-        if self.request.method == 'POST':
-            permission_classes = [AllowAny]
-        elif self.request.method in SAFE_METHODS:
+        if self.request.method == 'POST' or self.request.method in SAFE_METHODS:
             permission_classes = [AllowAny]
         else:
             permission_classes = [IsAuthenticated, IsCompanyOwner]

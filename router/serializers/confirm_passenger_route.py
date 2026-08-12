@@ -14,7 +14,7 @@ class ConfirmPassengerRoutePatchSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ConfirmPassengerRoute
-        fields = ['confirm']
+        fields = ('confirm',)
 
     def validate_confirm(self, value):
         if value is not True:

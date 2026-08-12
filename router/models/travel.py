@@ -22,7 +22,11 @@ class Travel(models.Model):
         related_name='travels',
     )
 
-    path = models.ForeignKey(Path, on_delete=models.CASCADE, verbose_name=_('Rota (Path)'))
+    path = models.ForeignKey(
+        Path,
+        on_delete=models.CASCADE,
+        verbose_name=_('Rota (Path)'),
+    )
 
     started_at = models.DateTimeField(
         null=True,
@@ -39,7 +43,7 @@ class Travel(models.Model):
         verbose_name = _('Viagem')
         verbose_name_plural = _('Viagens')
         db_table = 'router_travel'
-        ordering = ['-started_at']
+        ordering = ('-started_at',)
         # required_db_features = ['gis_enabled']
 
     def __str__(self):

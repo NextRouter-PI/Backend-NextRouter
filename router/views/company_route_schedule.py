@@ -9,7 +9,12 @@ from router.serializers.company_route_schedule import CompanyRouteScheduleSerial
 
 class CompanyRouteScheduleViewSet(ModelViewSet):
     serializer_class = CompanyRouteScheduleSerializer
-    http_method_names = ['get', 'post', 'patch', 'delete']
+    http_method_names = (
+        'get',
+        'post',
+        'patch',
+        'delete',
+    )
 
     def get_permissions(self):
         if self.action == 'create':
@@ -27,7 +32,9 @@ class CompanyRouteScheduleViewSet(ModelViewSet):
         user = self.request.user
 
         queryset = CompanyRouteSchedule.objects.select_related(
-            'route_group', 'route_group__company', 'route_group__company__user'
+            'route_group',
+            'route_group__company',
+            'route_group__company__user',
         )
 
         if user.is_staff or user.is_superuser:

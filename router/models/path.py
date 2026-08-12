@@ -14,13 +14,19 @@ class Path(models.Model):
         on_delete=models.CASCADE,
     )
 
-    name = models.CharField(max_length=100, verbose_name=_('Nome da Rota'))
-
-    def __str__(self):
-        return f'{self.name.title()} ({self.group.name.title()})'
+    name = models.CharField(
+        max_length=100,
+        verbose_name=_('Nome da Rota'),
+    )
 
     class Meta:
         verbose_name = _('Rota')
         verbose_name_plural = _('Rotas')
         db_table = 'router_path'
-        ordering = ['group', 'name']
+        ordering = (
+            'group',
+            'name',
+        )
+
+    def __str__(self):
+        return f'{self.name.title()} ({self.group.name.title()})'

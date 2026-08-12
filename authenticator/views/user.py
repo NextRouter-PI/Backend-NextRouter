@@ -11,7 +11,7 @@ from authenticator.serializers import UserCreateSerializer, UserListAndRetriveSe
 
 class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = (IsAuthenticated, IsAdminUser)
 
     @extend_schema(
         summary='Dados do usuário autenticado',

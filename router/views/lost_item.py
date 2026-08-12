@@ -8,7 +8,12 @@ from router.serializers.lost_item import LostItemCreateSerializer, LostItemListA
 
 
 class LostItemViewSet(ModelViewSet):
-    http_method_names = ['get', 'post', 'patch', 'delete']
+    http_method_names = (
+        'get',
+        'post',
+        'patch',
+        'delete',
+    )
 
     def get_permissions(self):
         if self.action == 'create':
@@ -27,12 +32,17 @@ class LostItemViewSet(ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = LostItem.objects.select_related('travel', 'user')
+        queryset = LostItem.objects.select_related(
+            'travel',
+            'user',
+        )
 
         if user.is_staff or user.is_superuser:
             return queryset.all()
 
-        return queryset.filter(Q(user=user) | Q(travel__company__user=user)).distinct()
+        return queryset.filter(
+            Q(user=user) | Q(travel__company__user=user),
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

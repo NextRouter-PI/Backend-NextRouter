@@ -1,6 +1,8 @@
-from authenticator.views.auth import CustomLogoutView, CustomTokenObtainPairView, CustomTokenRefreshView
-from authenticator.views.company import CompanyViewSet
-from authenticator.views.company_route_group import CompanyGroupRouteViewSet
-from authenticator.views.driver import DriverViewSet
-from authenticator.views.passenger import PassengerViewSet
-from authenticator.views.email_token import EmailTokenViewSet
+from authenticator.views.auth import CustomLogoutView as CustomLogoutView
+from authenticator.views.auth import CustomTokenObtainPairView as CustomTokenObtainPairView
+from authenticator.views.auth import CustomTokenRefreshView as CustomTokenRefreshView
+from authenticator.views.company import CompanyViewSet as CompanyViewSet
+from authenticator.views.company_route_group import CompanyGroupRouteViewSet as CompanyGroupRouteViewSet
+from authenticator.views.driver import DriverViewSet as DriverViewSet
+from authenticator.views.email_token import EmailTokenViewSet as EmailTokenViewSet
+from authenticator.views.passenger import PassengerViewSet as PassengerViewSet

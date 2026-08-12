@@ -9,7 +9,12 @@ from router.serializers.path import PathSerializer
 
 class PathViewSet(ModelViewSet):
     serializer_class = PathSerializer
-    http_method_names = ['get', 'post', 'patch', 'delete']
+    http_method_names = (
+        'get',
+        'post',
+        'patch',
+        'delete',
+    )
 
     def get_permissions(self):
         if self.action == 'create':
@@ -24,11 +29,15 @@ class PathViewSet(ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        queryset = Path.objects.select_related('group', 'group__company', 'group__company__user')
+        queryset = Path.objects.select_related(
+            'group',
+            'group__company',
+            'group__company__user',
+        )
 
         if user.is_staff or user.is_superuser:
             return queryset.all()
 
         return queryset.filter(
-            Q(group__company__user=user) | Q(group__drivers__user=user) | Q(group__passengers__user=user)
+            Q(group__company__user=user) | Q(group__drivers__user=user) | Q(group__passengers__user=user),
         ).distinct()

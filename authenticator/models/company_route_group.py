@@ -12,7 +12,10 @@ class CompanyRouteGroup(models.Model):
         related_name='route_groups',
     )
 
-    name = models.CharField(max_length=100, verbose_name=_('Nome do Grupo'))
+    name = models.CharField(
+        max_length=100,
+        verbose_name=_('Nome do Grupo'),
+    )
 
     common_cep = models.CharField(
         max_length=9,
@@ -20,12 +23,15 @@ class CompanyRouteGroup(models.Model):
         help_text=_('CEP do endereço comum aos passageiros'),
     )
 
-    def __str__(self):
-        return f'{self.name.title()} ({self.company.trade_name})'
-
     class Meta:
         verbose_name = _('Grupo de Rota')
         verbose_name_plural = _('Grupos de Rotas')
         db_table = 'authenticator_company_route_group'
-        constraints = [models.UniqueConstraint(fields=['company', 'name'], name='unique_company_route_name')]
-        ordering = ['company', 'name']
+        constraints = (models.UniqueConstraint(fields=['company', 'name'], name='unique_company_route_name'),)
+        ordering = (
+            'company',
+            'name',
+        )
+
+    def __str__(self):
+        return f'{self.name.title()} ({self.company.trade_name})'

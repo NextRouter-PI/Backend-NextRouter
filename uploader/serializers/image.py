@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from rest_framework import serializers
 
 from uploader.helpers.files import CONTENT_TYPE_JPG, CONTENT_TYPE_PNG
@@ -7,9 +9,20 @@ from uploader.models import Image
 class ImageUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Image
-        fields = ['attachment_key', 'file', 'description', 'uploaded_on', 'url']
-        read_only_fields = ['attachment_key', 'uploaded_on', 'url', 'description']
-        extra_kwargs = {'file': {'write_only': True}}
+        fields = (
+            'attachment_key',
+            'file',
+            'description',
+            'uploaded_on',
+            'url',
+        )
+        read_only_fields = (
+            'attachment_key',
+            'uploaded_on',
+            'url',
+            'description',
+        )
+        extra_kwargs: ClassVar[dict] = {'file': {'write_only': True}}
 
     def validate_file(self, value):
         valid_content_types = [CONTENT_TYPE_JPG, CONTENT_TYPE_PNG]
@@ -21,8 +34,16 @@ class ImageUploadSerializer(serializers.ModelSerializer):
 class ImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Image
-        fields = ['url', 'description', 'uploaded_on']
-        read_only_fields = ['url', 'attachment_key', 'uploaded_on']
+        fields = (
+            'url',
+            'description',
+            'uploaded_on',
+        )
+        read_only_fields = (
+            'url',
+            'attachment_key',
+            'uploaded_on',
+        )
 
     def create(self, validated_data):
         raise NotImplementedError('Use ImageUploadSerializer to create images.')

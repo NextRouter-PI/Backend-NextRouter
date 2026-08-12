@@ -9,7 +9,7 @@ from authenticator.serializers.company_route_group import CompanyRouteGroupSeria
 
 class CompanyGroupRouteViewSet(ModelViewSet):
     serializer_class = CompanyRouteGroupSerializer
-    http_method_names = ['get', 'post', 'patch', 'delete']
+    http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_permissions(self):
         if self.request.method == 'POST':

@@ -29,5 +29,3 @@ def validate_cnpj(cnpj: str):
 
     if not int(cnpj[13]) == digit_2:
         raise ValidationError('CNPJ inválido.')
-    else:
-        pass
