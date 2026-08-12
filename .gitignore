@@ -175,3 +175,6 @@ poetry.toml
 
 # Pasta ignorada durante desenvolvimento
 /media/
+
+# Banco de dados
+db.sqlite3
