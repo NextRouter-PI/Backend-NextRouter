@@ -61,10 +61,6 @@ format = "ruff format"
 [tool.pdm]
 distribution = false
 
-[[tool.pdm.autoexport]]
-filename = "requirements.txt"
-without-hashes = "true"
-
 [tool.ruff]
 line-length = 120
 extend-exclude = ['migrations', '__init__.py', 'manage.py']
