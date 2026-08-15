@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:de1d1732bf9e0270ed479600fc2f67ba5492a9a8f9e27015ce898f070a3e13ed"
+content_hash = "sha256:5e4b1a5b6faf95cc224bdec037b34b1de74270adbe5d18f242bbe773a92752f3"
 
 [[metadata.targets]]
 requires_python = ">=3.13.14"
@@ -527,21 +527,6 @@ files = [
     {file = "pillow-12.3.0-cp315-cp315t-win_amd64.whl", hash = "sha256:8cd2f7bdda092d99c9fc2fb7391354f306d01443d22785d0cbfafa2e2c8bb418"},
     {file = "pillow-12.3.0-cp315-cp315t-win_arm64.whl", hash = "sha256:06ff022112bc9cbf83b60f8e028d94ad87b60621706487e65f673de61610ab59"},
     {file = "pillow-12.3.0.tar.gz", hash = "sha256:3b8182a766685eaa002637e28b4ec8d6b18819a0c71f579bf0dbaa5830297cce"},
-]
-
-[[package]]
-name = "pydot"
-version = "4.0.1"
-requires_python = ">=3.8"
-summary = "Python interface to Graphviz's Dot"
-groups = ["default"]
-marker = "python_full_version >= \"3.13.14\""
-dependencies = [
-    "pyparsing>=3.1.0",
-]
-files = [
-    {file = "pydot-4.0.1-py3-none-any.whl", hash = "sha256:869c0efadd2708c0be1f916eb669f3d664ca684bc57ffb7ecc08e70d5e93fee6"},
-    {file = "pydot-4.0.1.tar.gz", hash = "sha256:c2148f681c4a33e08bf0e26a9e5f8e4099a82e0e2a068098f32ce86577364ad5"},
 ]
 
 [[package]]
