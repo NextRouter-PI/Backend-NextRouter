@@ -8,6 +8,7 @@ from authenticator.serializers.company_route_group import CompanyRouteGroupSeria
 
 
 class CompanyGroupRouteViewSet(ModelViewSet):
+    queryset = CompanyRouteGroup.objects.all()
     serializer_class = CompanyRouteGroupSerializer
     http_method_names = ('get', 'post', 'patch', 'delete')
 

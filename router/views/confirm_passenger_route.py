@@ -11,6 +11,7 @@ from router.serializers.confirm_passenger_route import (
 
 
 class ConfirmPassengerRouteViewSet(ModelViewSet):
+    queryset = ConfirmPassengerRoute.objects.all()
     http_method_names = (
         'get',
         'patch',

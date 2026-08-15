@@ -8,6 +8,7 @@ from router.serializers.path import PathSerializer
 
 
 class PathViewSet(ModelViewSet):
+    queryset = Path.objects.all()
     serializer_class = PathSerializer
     http_method_names = (
         'get',

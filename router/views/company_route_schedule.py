@@ -8,6 +8,7 @@ from router.serializers.company_route_schedule import CompanyRouteScheduleSerial
 
 
 class CompanyRouteScheduleViewSet(ModelViewSet):
+    queryset = CompanyRouteSchedule.objects.all()
     serializer_class = CompanyRouteScheduleSerializer
     http_method_names = (
         'get',
