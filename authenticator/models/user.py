@@ -10,26 +10,40 @@ from authenticator.validators.cpf import validate_cpf
 from uploader.models import Image
 
 
+# Código de https://github.com/sesh/django-authuser/blob/19e046c54f6988d33ac9e2bc5aa5f86bccae1e1f/models.py#L42.
+# Apenas as mensagens de erro foram adaptadas para o português.
+# Ele performa melhor que o anterior por fazer apenas uma query no banco.
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
-    def create_user(self, email, password=None, **extra_fields):
+    # Função criada que retorna
+    def _create_user(self, email, password, **extra_fields):
         if not email:
-            raise ValueError('Usuário devem ter um email.')
+            raise ValueError('O endereço de e-mail deve ser informado.')
 
-        user = self.model(email=self.normalize_email(email), **extra_fields)
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
 
         return user
 
-    def create_superuser(self, email, password):
-        user = self.create_user(email, password)
-        user.is_staff = True
-        user.is_superuser = True
-        user.save(using=self._db)
+    # Funções nativas da classe BaseuserManager
+    def create_user(self, email=None, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', False)
+        extra_fields.setdefault('is_superuser', False)
+        return self._create_user(email, password, **extra_fields)
 
-        return user
+    def create_superuser(self, email, password, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superusuário precisa ter is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superusuário precisa ter is_superuser=True.')
+
+        return self._create_user(email, password, **extra_fields)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -96,7 +110,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name=_('Data de nascimento'),
     )
 
-    objects = UserManager()
+    objects: UserManager = UserManager()
 
     USERNAME_FIELD = 'email'
 
