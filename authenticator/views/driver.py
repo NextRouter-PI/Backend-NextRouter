@@ -35,12 +35,12 @@ class DriverViewSet(ModelViewSet):
         user = self.request.user
 
         if user.is_staff or user.is_superuser:
-            return Driver.objects.select_related('user', 'group_route').all().order_by('id')
+            return Driver.objects.select_related('user', 'route_group').all().order_by('id')
 
         return (
             Driver.objects
-            .filter(Q(user=user) | Q(group_route__company__user=user) | Q(group_route__passengers__user=user))
+            .filter(Q(user=user) | Q(route_group__company__user=user) | Q(route_group__passengers__user=user))
             .distinct()
-            .select_related('user', 'group_route')
+            .select_related('user', 'route_group')
             .order_by('id')
         )

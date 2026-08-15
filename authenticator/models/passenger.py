@@ -16,7 +16,7 @@ class Passenger(models.Model):
         blank=False,
     )
 
-    group_route = models.ForeignKey(
+    route_group = models.ForeignKey(
         CompanyRouteGroup,
         on_delete=models.PROTECT,
         verbose_name=_('Grupo de Rota'),

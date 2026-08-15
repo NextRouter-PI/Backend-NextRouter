@@ -15,7 +15,7 @@ class Driver(models.Model):
         unique=True,
     )
 
-    group_route = models.ForeignKey(
+    route_group = models.ForeignKey(
         CompanyRouteGroup,
         blank=True,
         null=True,
@@ -46,8 +46,8 @@ class Driver(models.Model):
         ordering = ('user__name',)
 
     def __str__(self):
-        if self.group_route and self.group_route.company:
-            company_name = self.group_route.company.user.name.title()
-            route_name = self.group_route.name.title()
+        if self.route_group and self.route_group.company:
+            company_name = self.route_group.company.user.name.title()
+            route_name = self.route_group.name.title()
             return f'{self.user.name.title()} (Rota {route_name} de {company_name})'
         return f'{self.user.name.title()} (Sem rota atribuída)'

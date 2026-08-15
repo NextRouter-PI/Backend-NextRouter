@@ -39,8 +39,8 @@ class PassengerViewSet(ModelViewSet):
 
         return (
             Passenger.objects
-            .filter(Q(user=user) | Q(group_route__company__user=user) | Q(group_route__drivers__user=user))
+            .filter(Q(user=user) | Q(route_group__company__user=user) | Q(route_group__drivers__user=user))
             .distinct()
-            .select_related('user', 'group_route')
+            .select_related('user', 'route_group')
             .order_by('id')
         )

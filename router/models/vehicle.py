@@ -29,7 +29,7 @@ class Vehicle(models.Model):
         verbose_name = _('Veículo')
         verbose_name_plural = _('Veículos')
         db_table = 'router_vehicles'
-        ordering = ('group__name',)
+        ordering = ('route_group__name',)
 
     def __str__(self):
         return f'Veículo de placa {self.plate} - {self.group.company.user.name.title()}'
