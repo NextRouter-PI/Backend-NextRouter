@@ -15,6 +15,7 @@ CNPJ_LENGTH = 14
 class UserAdminForm(UserChangeForm):
     cep = forms.CharField(label='CEP', max_length=9, required=False)
     phone = forms.CharField(label='Telefone', max_length=15, required=False)
+    cpf = forms.CharField(label='CPF', max_length=14, required=False)
 
     def clean_cep(self):
         data = self.cleaned_data.get('cep')
@@ -27,6 +28,10 @@ class UserAdminForm(UserChangeForm):
     def clean_name(self):
         data = self.cleaned_data.get('name')
         return data.lower() if data else data
+
+    def clean_cpf(self):
+        data = self.cleaned_data.get('cpf')
+        return re.sub(r'\D', '', data) if data else data
 
 
 @admin.register(models.User)
