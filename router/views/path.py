@@ -39,6 +39,8 @@ class PathViewSet(ModelViewSet):
         if user.is_staff or user.is_superuser:
             return queryset.all()
 
-        return queryset.filter(
-            Q(group__company__user=user) | Q(group__drivers__user=user) | Q(group__passengers__user=user),
+        return Path.objects.filter(
+            Q(route_group__company__user=user)
+            | Q(route_group__drivers__user=user)
+            | Q(route_group__passengers__user=user),
         ).distinct()

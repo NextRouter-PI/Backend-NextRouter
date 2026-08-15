@@ -5,7 +5,7 @@ from authenticator.models.company_route_group import CompanyRouteGroup
 
 
 class Vehicle(models.Model):
-    group = models.ForeignKey(
+    route_group = models.ForeignKey(
         CompanyRouteGroup,
         on_delete=models.PROTECT,
         verbose_name=_('Grupo de Rotas'),

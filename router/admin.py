@@ -105,20 +105,20 @@ class TravelAdmin(admin.ModelAdmin):
 class PathAdmin(admin.ModelAdmin):
     fields = (
         'name',
-        'group',
+        'route_group',
         'points',
     )
 
     list_display = (
         'name',
-        'group',
+        'route_group',
     )
 
-    list_select_related = ('group',)
+    list_select_related = ('route_group',)
 
     search_fields = (
         'name',
-        'group__name',
+        'route_group__name',
     )
 
 
@@ -127,21 +127,21 @@ class VehicleAdmin(admin.ModelAdmin):
     fields = (
         'plate',
         'garage_cep',
-        'group',
+        'route_group',
     )
 
     list_display = (
         'plate',
-        'group',
+        'route_group',
         'garage_cep',
     )
 
     list_select_related = (
-        'group',
-        'group__company__user',
+        'route_group',
+        'route_group__company__user',
     )
 
     search_fields = (
         'plate',
-        'group__name',
+        'route_group__name',
     )

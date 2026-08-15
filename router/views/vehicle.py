@@ -33,14 +33,14 @@ class VehicleViewSet(ModelViewSet):
         user = self.request.user
 
         queryset = Vehicle.objects.select_related(
-            'group',
-            'group__company',
-            'group__company__user',
+            'route_group',
         )
 
         if user.is_staff or user.is_superuser:
             return queryset.all()
 
         return queryset.filter(
-            Q(group__company__user=user) | Q(group__drivers__user=user) | Q(group__passengers__user=user),
+            Q(route_group__company__user=user)
+            | Q(route_group__drivers__user=user)
+            | Q(route_group__passengers__user=user),
         ).distinct()
