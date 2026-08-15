@@ -42,7 +42,7 @@ class Driver(models.Model):
     class Meta:
         verbose_name = _('Motorista')
         verbose_name_plural = _('Motoristas')
-        db_table = 'accounts_driver'
+        db_table = 'authenticator_driver'
         ordering = ('user__name',)
 
     def __str__(self):

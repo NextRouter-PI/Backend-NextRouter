@@ -35,7 +35,7 @@ class Passenger(models.Model):
     class Meta:
         verbose_name = _('Passageiro')
         verbose_name_plural = _('Passageiros')
-        db_table = 'accounts_passenger'
+        db_table = 'authenticator_passenger'
         ordering = ('user__name',)
 
     def __str__(self):
