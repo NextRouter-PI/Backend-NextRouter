@@ -1,6 +1,7 @@
 from django.db import transaction
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, SlugRelatedField
 
+from authenticator.mixins.route_group import GroupRouteForbiddenValidatorMixin
 from authenticator.models.driver import Driver
 from authenticator.serializers.user import (
     BaseProfileCreateSerializer,
@@ -8,7 +9,6 @@ from authenticator.serializers.user import (
     UserListAndRetriveSerializer,
 )
 from uploader.models.document import Document
-from uploader.serializers.document import DocumentUploadSerializer
 
 
 class DriverListAndRetrieveSerializer(ModelSerializer):
@@ -18,13 +18,21 @@ class DriverListAndRetrieveSerializer(ModelSerializer):
         model = Driver
         fields = (
             'user_data',
-            'is_approved',
-            'cnh',
+            # 'is_approved',
+            'route_group',
+        )
+        read_only_fields = (
+            'route_group',
         )
 
 
 class DriverCreateSerializer(BaseProfileCreateSerializer):
-    cnh = DocumentUploadSerializer()
+    cnh = SlugRelatedField(
+        slug_field='attachment_key',
+        queryset=Document.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = Driver
@@ -36,15 +44,18 @@ class DriverCreateSerializer(BaseProfileCreateSerializer):
     @transaction.atomic
     def create(self, validated_data):
         user_data = validated_data.pop('user')
-        cnh_data = validated_data.pop('cnh')
-
         user = self.create_user_instance(user_data)
-        cnh_object = Document.objects.create(**cnh_data)
-
-        return Driver.objects.create(user=user, cnh=cnh_object, **validated_data)
+        return Driver.objects.create(user=user, **validated_data)
 
 
-class DriverPatchSerializer(BaseProfilePatchSerializer):
+class DriverPatchSerializer(GroupRouteForbiddenValidatorMixin, BaseProfilePatchSerializer):
+    cnh = SlugRelatedField(
+        slug_field='attachment_key',
+        queryset=Document.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = Driver
-        fields = ('user_data',)
+        fields = ('user_data', 'cnh', 'route_group')

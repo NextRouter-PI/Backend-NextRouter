@@ -10,7 +10,6 @@ from authenticator.serializers.user import (
 )
 from authenticator.validators.cnpj import validate_cnpj
 from uploader.models.document import Document
-from uploader.serializers.document import DocumentUploadSerializer
 
 
 class CompanyListAndRetrieveSerializer(ModelSerializer):
@@ -19,6 +18,7 @@ class CompanyListAndRetrieveSerializer(ModelSerializer):
     class Meta:
         model = Company
         fields = (
+            'id',
             'user_data',
             'trade_name',
             'contact_phone',
@@ -27,22 +27,28 @@ class CompanyListAndRetrieveSerializer(ModelSerializer):
 
 
 class CompanyCreateSerializer(BaseProfileCreateSerializer):
-    articles_of_association_document = DocumentUploadSerializer()
-    state_operating_license_document = DocumentUploadSerializer()
-    certificate_of_good_stading_document = DocumentUploadSerializer()
+    articles_of_association_document = serializers.SlugRelatedField(
+        slug_field='attachment_key', queryset=Document.objects.all()
+    )
+    state_operating_license_document = serializers.SlugRelatedField(
+        slug_field='attachment_key', queryset=Document.objects.all()
+    )
+    certificate_of_good_stading_document = serializers.SlugRelatedField(
+        slug_field='attachment_key', queryset=Document.objects.all()
+    )
     cnpj = serializers.CharField(validators=[validate_cnpj], required=True)
 
     class Meta:
         model = Company
         fields = (
             'user_data',
-            'cnpj',
+            'trade_name',
             'contact_phone',
             'contact_email',
+            'cnpj',
             'articles_of_association_document',
             'state_operating_license_document',
             'certificate_of_good_stading_document',
-            'trade_name',
             'legal_name',
             'state_registration',
         )
@@ -50,23 +56,30 @@ class CompanyCreateSerializer(BaseProfileCreateSerializer):
     @transaction.atomic
     def create(self, validated_data):
         user_data = validated_data.pop('user')
-
-        doc_fields = [
-            'articles_of_association_document',
-            'state_operating_license_document',
-            'certificate_of_good_stading_document',
-        ]
-        documents = {field: Document.objects.create(**validated_data.pop(field)) for field in doc_fields}
-
         user = self.create_user_instance(user_data)
 
-        return Company.objects.create(user=user, **documents, **validated_data)
+        return Company.objects.create(user=user, **validated_data)
 
 
 class CompanyPatchSerializer(BaseProfilePatchSerializer):
-    articles_of_association_document = DocumentUploadSerializer(required=False)
-    state_operating_license_document = DocumentUploadSerializer(required=False)
-    certificate_of_good_stading_document = DocumentUploadSerializer(required=False)
+    articles_of_association_document = serializers.SlugRelatedField(
+        slug_field='attachment_key',
+        queryset=Document.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    state_operating_license_document = serializers.SlugRelatedField(
+        slug_field='attachment_key',
+        queryset=Document.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    certificate_of_good_stading_document = serializers.SlugRelatedField(
+        slug_field='attachment_key',
+        queryset=Document.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = Company
@@ -79,23 +92,21 @@ class CompanyPatchSerializer(BaseProfilePatchSerializer):
             'certificate_of_good_stading_document',
         )
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         document_fields = [
             'articles_of_association_document',
             'state_operating_license_document',
             'certificate_of_good_stading_document',
         ]
-        for doc_field in document_fields:
-            doc_data = validated_data.pop(doc_field, None)
-            if doc_data is not None:
-                doc_instance = getattr(instance, doc_field)
 
-                if doc_instance:
-                    for attr, value in doc_data.items():
-                        setattr(doc_instance, attr, value)
-                    doc_instance.save()
-                else:
-                    new_doc = Document.objects.create(**doc_data)
-                    setattr(instance, doc_field, new_doc)
+        for doc_field in document_fields:
+            if doc_field in validated_data:
+                new_doc_instance = validated_data.pop(doc_field)
+                old_doc_instance = getattr(instance, doc_field, None)
+                if old_doc_instance and old_doc_instance != new_doc_instance:
+                    old_doc_instance.delete()
+
+                setattr(instance, doc_field, new_doc_instance)
 
         return super().update(instance, validated_data)
