@@ -1,8 +1,9 @@
 from django.db.models import Q
-from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
-from app.permissions import IsCompanyOwner
+from app.permissions import IsUserOwner
+from authenticator.filters.compay import CompanyFilter
 from authenticator.models.company import Company
 from authenticator.serializers.company import (
     CompanyCreateSerializer,
@@ -14,6 +15,7 @@ from authenticator.serializers.company import (
 class CompanyViewSet(ModelViewSet):
     queryset = Company.objects.all()
     http_method_names = ('get', 'post', 'patch', 'delete')
+    filterset_class = CompanyFilter
 
     def get_permissions(self):
         if self.action == 'create' or self.action in {'list', 'retrieve'}:
@@ -27,8 +29,6 @@ class CompanyViewSet(ModelViewSet):
             return CompanyCreateSerializer
         elif self.action == 'partial_update':
             return CompanyPatchSerializer
-        elif self.action in {'list', 'retrieve'}:
-            return CompanyListAndRetrieveSerializer
         return CompanyListAndRetrieveSerializer
 
     def get_queryset(self):
