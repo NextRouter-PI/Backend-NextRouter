@@ -27,6 +27,7 @@ dependencies = [
   "pyparsing>=3.3.2",
   "pydot>=4.0.1",
   "pillow>=12.3.0",
+  "django-crispy-forms>=2.7",
 ]
 license = { text = "MIT" }
 
