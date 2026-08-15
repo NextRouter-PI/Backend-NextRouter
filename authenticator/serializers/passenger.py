@@ -17,8 +17,8 @@ class PassengerListAndRetrieveSerializer(ModelSerializer):
         fields = (
             'id',
             'user_data',
-            'is_approved',
-            'group_route',
+            # 'is_approved',
+            'route_group',
         )
 
 

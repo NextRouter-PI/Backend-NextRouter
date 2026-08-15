@@ -123,10 +123,7 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(models.Passenger)
 class PassengerAdmin(admin.ModelAdmin):
-    list_display = (
-        'id',
-        'get_user_name',
-    )
+    list_display = ('id', 'get_user_name', 'route_group')
     search_fields = (
         'user__name',
         'user__email',
@@ -152,11 +149,11 @@ class DriverAdmin(admin.ModelAdmin):
     search_fields = (
         'user__name',
         'user__email',
-        'group_route__name',
+        'route_group__name',
     )
     list_select_related = (
         'user',
-        'group_route',
+        'route_group',
     )
     actions = None
 
@@ -164,9 +161,9 @@ class DriverAdmin(admin.ModelAdmin):
     def get_user_name(self, obj):
         return obj.user.name.title() if obj.user else 'Sem usuário'
 
-    @admin.display(description='Rota', ordering='group_route__name')
+    @admin.display(description='Rota', ordering='route_group__name')
     def get_group_name(self, obj):
-        return obj.group_route.name.title() if obj.group_route else 'Sem rota'
+        return obj.route_group.name.title() if obj.route_group else 'Sem rota'
 
     def get_readonly_fields(self, request, obj=None):
         return (*self.readonly_fields, 'user') if obj else self.readonly_fields
@@ -255,7 +252,7 @@ class CompanyRouteGroupAdmin(admin.ModelAdmin):
     form = CompanyRouteGroupAdminForm
     list_display = (
         'id',
-        'get_group_route_name',
+        'get_route_group_name',
         'get_company_user_name',
     )
     search_fields = (
@@ -280,7 +277,7 @@ class CompanyRouteGroupAdmin(admin.ModelAdmin):
         return obj.company.user.name.title() if obj.company and obj.company.user else 'Sem empresa'
 
     @admin.display(description='Nome do Grupo', ordering='name')
-    def get_group_route_name(self, obj):
+    def get_route_group_name(self, obj):
         return obj.name.title()
 
     def get_readonly_fields(self, request, obj=None):
