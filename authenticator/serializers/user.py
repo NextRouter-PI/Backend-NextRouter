@@ -1,5 +1,3 @@
-from typing import Any, ClassVar
-
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from rest_framework import serializers
@@ -270,7 +268,7 @@ class BaseProfilePatchSerializer(ModelSerializer):
 
         return attrs
 
-    def update(self, instance: Any, validated_data):
+    def update(self, instance, validated_data):
         user_data = validated_data.pop('user', None)
 
         if user_data:

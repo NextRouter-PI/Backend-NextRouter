@@ -21,9 +21,7 @@ class DriverListAndRetrieveSerializer(ModelSerializer):
             # 'is_approved',
             'route_group',
         )
-        read_only_fields = (
-            'route_group',
-        )
+        read_only_fields = ('route_group',)
 
 
 class DriverCreateSerializer(BaseProfileCreateSerializer):
