@@ -1,6 +1,7 @@
 from django.db import transaction
 from rest_framework.serializers import ModelSerializer
 
+from authenticator.mixins.route_group import GroupRouteForbiddenValidatorMixin
 from authenticator.models.passenger import Passenger
 from authenticator.serializers.user import (
     BaseProfileCreateSerializer,
@@ -20,6 +21,7 @@ class PassengerListAndRetrieveSerializer(ModelSerializer):
             # 'is_approved',
             'route_group',
         )
+        read_only_fields = ('route_group',)
 
 
 class PassengerCreateSerializer(BaseProfileCreateSerializer):
@@ -34,7 +36,7 @@ class PassengerCreateSerializer(BaseProfileCreateSerializer):
         return Passenger.objects.create(user=user, **validated_data)
 
 
-class PassengerPatchSerializer(BaseProfilePatchSerializer):
+class PassengerPatchSerializer(GroupRouteForbiddenValidatorMixin, BaseProfilePatchSerializer):
     class Meta:
         model = Passenger
         fields = ('user_data',)

@@ -1,0 +1,2 @@
+from authenticator.mixins.tokens import TokenValidatorMixin as TokenValidatorMixin
+from authenticator.mixins.is_approved import ApproveProfileMixin as ApproveProfileMixin
