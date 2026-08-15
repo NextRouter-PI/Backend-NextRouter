@@ -42,7 +42,10 @@ class EmailToken(models.Model):
     )
 
     token_type = models.CharField(
-        max_length=20, choices=TokenType.choices, default=TokenType.NEW_USER, verbose_name=_('Tipo de Token')
+        max_length=20,
+        choices=TokenType.choices,
+        default=TokenType.NEW_USER,
+        verbose_name=_('Tipo de Token'),
     )
 
     class Meta:

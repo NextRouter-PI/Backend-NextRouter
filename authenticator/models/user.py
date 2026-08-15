@@ -84,7 +84,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     profile_picture = models.OneToOneField(
         Image,
         null=True,
-        verbose_name='Foto de perfil',
+        verbose_name=_('Foto de perfil'),
         blank=True,
         on_delete=models.SET_NULL,
     )
