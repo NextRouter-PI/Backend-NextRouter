@@ -16,10 +16,10 @@ class CompanyViewSet(ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_permissions(self):
-        if self.request.method == 'POST' or self.request.method in SAFE_METHODS:
+        if self.action == 'create' or self.action in {'list', 'retrieve'}:
             permission_classes = [AllowAny]
         else:
-            permission_classes = [IsAuthenticated, IsCompanyOwner]
+            permission_classes = [IsAuthenticated, IsUserOwner]
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):

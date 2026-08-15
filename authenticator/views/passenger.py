@@ -29,13 +29,14 @@ class PassengerViewSet(ModelViewSet):
             return PassengerCreateSerializer
         elif self.action == 'partial_update':
             return PassengerPatchSerializer
-        return PassengerListAndRetrieveSerializer
+        else:
+            return PassengerListAndRetrieveSerializer
 
     def get_queryset(self):
         user = self.request.user
 
         if user.is_staff or user.is_superuser:
-            return Passenger.objects.select_related('user', 'group_route').all().order_by('id')
+            return Passenger.objects.select_related('user', 'route_group').all().order_by('id')
 
         return (
             Passenger.objects
