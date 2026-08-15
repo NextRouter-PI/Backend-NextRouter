@@ -3,7 +3,7 @@ import re
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.forms import UserChangeForm
+from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.utils.translation import gettext_lazy as _
 
 from authenticator import models
@@ -12,7 +12,13 @@ from router.models.company_route_schedule import CompanyRouteSchedule
 CNPJ_LENGTH = 14
 
 
-class UserAdminForm(UserChangeForm):
+class UserAdminCreationForm(UserCreationForm):
+    class Meta:
+        model = models.User
+        fields = ('email',)
+
+
+class UserAdminChangeForm(UserChangeForm):
     cep = forms.CharField(label='CEP', max_length=9, required=False)
     phone = forms.CharField(label='Telefone', max_length=15, required=False)
     cpf = forms.CharField(label='CPF', max_length=14, required=False)
@@ -36,7 +42,8 @@ class UserAdminForm(UserChangeForm):
 
 @admin.register(models.User)
 class UserAdmin(BaseUserAdmin):
-    form = UserAdminForm
+    form = UserAdminChangeForm
+    add_form = UserAdminCreationForm
     ordering = ('id',)
     list_display = (
         'id',
@@ -109,6 +116,19 @@ class UserAdmin(BaseUserAdmin):
                     'groups',
                     'user_permissions',
                 )
+            },
+        ),
+    )
+    add_fieldsets = (
+        (
+            None,
+            {
+                'classes': ('wide',),
+                'fields': (
+                    'email',
+                    'password1',
+                    'password2',
+                ),
             },
         ),
     )
