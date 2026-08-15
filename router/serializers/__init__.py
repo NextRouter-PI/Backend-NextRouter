@@ -1,10 +1,7 @@
-from router.serializers.company_route_schedule import CompanyRouteScheduleSerializer as CompanyRouteScheduleSerializer
+from router.serializers.company_route_schedule import CompanyRouteScheduleCreateSerializer, CompanyRouteScheduleListAndRetrieveSerializer, CompanyRouteSchedulePatchSerializer
 from router.serializers.confirm_passenger_route import (
     ConfirmPassengerRouteListAndRetrieveSerializer as ConfirmPassengerRouteListAndRetrieveSerializer,
 )
-from router.serializers.confirm_passenger_route import (
-    ConfirmPassengerRoutePatchSerializer as ConfirmPassengerRoutePatchSerializer,
-)
-from router.serializers.lost_item import LostItemCreateSerializer as LostItemCreateSerializer
-from router.serializers.path import PathSerializer as PathSerializer
-from router.serializers.vehicle import VehicleSerializer as VehicleSerializer
+from router.serializers.lost_item import LostItemCreateSerializer,LostItemListAndRetrieveSerializer,LostItemPatchSerializer
+from router.serializers.path import PathCreateSerializer,PathListAndRetrieveSerializer,PathPatchSerializer
+from router.serializers.vehicle import VehicleCreateSerializer,VehicleListAndRetrieveSerializer,VehiclePatchSerializer

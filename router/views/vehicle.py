@@ -4,30 +4,28 @@ from rest_framework.viewsets import ModelViewSet
 
 from app.permissions import IsCompany, IsVehicleOwner
 from router.models.vehicle import Vehicle
-from router.serializers.vehicle import VehicleSerializer
+from router.serializers.vehicle import VehicleCreateSerializer, VehicleListAndRetrieveSerializer, VehiclePatchSerializer
 
 
 class VehicleViewSet(ModelViewSet):
     queryset = Vehicle.objects.all()
-    serializer_class = VehicleSerializer
-    http_method_names = (
-        'get',
-        'post',
-        'patch',
-        'delete',
-    )
+    http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_permissions(self):
         if self.action == 'create':
             permission_classes = [IsAuthenticated, IsCompany]
-
-        elif self.action in {'partial_update', 'update', 'destroy'}:
+        elif self.action in {'destroy', 'partial_update'}:
             permission_classes = [IsAuthenticated, IsCompany, IsVehicleOwner]
-
         else:
             permission_classes = [IsAuthenticated]
-
         return [permission() for permission in permission_classes]
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return VehicleCreateSerializer
+        elif self.action == 'partial_update':
+            return VehiclePatchSerializer
+        return VehicleListAndRetrieveSerializer
 
     def get_queryset(self):
         user = self.request.user
