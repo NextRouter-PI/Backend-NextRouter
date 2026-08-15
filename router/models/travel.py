@@ -35,7 +35,11 @@ class Travel(models.Model):
         db_index=True,
     )
 
-    finished_at = models.DateTimeField(null=True, blank=True, verbose_name=_('Data de término'))
+    finished_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Data de término'),
+    )
 
     # location = geo_models.PointField(verbose_name=_('Localização atual'), null=True, blank=True)
 

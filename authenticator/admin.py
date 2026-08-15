@@ -66,7 +66,6 @@ class UserAdmin(BaseUserAdmin):
         'created_at',
     )
     actions = None
-
     fieldsets = (
         (
             None,
