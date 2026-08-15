@@ -85,7 +85,7 @@ class Company(models.Model):
     class Meta:
         verbose_name = _('Empresa')
         verbose_name_plural = _('Empresas')
-        db_table = 'accounts_company'
+        db_table = 'authenticator_company'
         ordering = ('trade_name',)
 
     def __str__(self):
