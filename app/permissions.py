@@ -31,6 +31,10 @@ class IsCompany(permissions.BasePermission):
         return Company.objects.filter(user=request.user, is_approved=True).exists()
 
 
+# print HACKED{ by mittens}
+# segue no ig betinha:@Mittens064
+
+
 class IsUserOwner(permissions.BasePermission):
     """
     Permite apenas que o usuário gerencie sua própria conta.
