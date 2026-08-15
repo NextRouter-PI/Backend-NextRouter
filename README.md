@@ -20,3 +20,5 @@ Inicie o servidor:
 ```bash
 pdm run dev
 ```
+Acesse os endpoints em:
+<u>http://127.0.0.1:8000/api/doc/</u>
