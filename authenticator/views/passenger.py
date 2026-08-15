@@ -3,6 +3,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
 from app.permissions import IsUserOwner
+from authenticator.mixins.is_approved import ApproveProfileMixin
 from authenticator.models.passenger import Passenger
 from authenticator.serializers.passenger import (
     PassengerCreateSerializer,
@@ -11,7 +12,7 @@ from authenticator.serializers.passenger import (
 )
 
 
-class PassengerViewSet(ModelViewSet):
+class PassengerViewSet(ApproveProfileMixin, ModelViewSet):
     queryset = Passenger.objects.all()
     http_method_names = ('get', 'post', 'patch', 'delete')
 

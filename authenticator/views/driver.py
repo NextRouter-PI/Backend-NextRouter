@@ -3,6 +3,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
 from app.permissions import IsUserOwner
+from authenticator.mixins.is_approved import ApproveProfileMixin
 from authenticator.models.driver import Driver
 from authenticator.serializers.driver import (
     DriverCreateSerializer,
@@ -11,7 +12,7 @@ from authenticator.serializers.driver import (
 )
 
 
-class DriverViewSet(ModelViewSet):
+class DriverViewSet(ApproveProfileMixin, ModelViewSet):
     queryset = Driver.objects.all()
     http_method_names = ('get', 'post', 'patch', 'delete')
 
