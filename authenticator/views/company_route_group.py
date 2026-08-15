@@ -1,24 +1,28 @@
-from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
+from django.db.models import Q
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
 from app.permissions import IsCompany, IsCompanyOwner
 from authenticator.models.company import Company
 from authenticator.models.company_route_group import CompanyRouteGroup
-from authenticator.serializers.company_route_group import CompanyRouteGroupSerializer
+from authenticator.serializers.company_route_group import (
+    CompanyRouteGroupCreateSerializer,
+    CompanyRouteGroupListAndRetrieveSerializer,
+    CompanyRouteGroupPatchSerializer,
+)
 
 
 class CompanyGroupRouteViewSet(ModelViewSet):
     queryset = CompanyRouteGroup.objects.all()
-    serializer_class = CompanyRouteGroupSerializer
     http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_permissions(self):
-        if self.request.method == 'POST':
+        if self.action == 'create':
             permission_classes = [
                 IsAuthenticated,
                 IsCompany,
             ]
-        elif self.request.method in SAFE_METHODS:
+        elif self.action in {'list', 'retrieve'}:
             permission_classes = [AllowAny]
         else:
             permission_classes = [
@@ -27,9 +31,21 @@ class CompanyGroupRouteViewSet(ModelViewSet):
             ]
         return [permission() for permission in permission_classes]
 
-    def perform_create(self, serializer):
-        company = Company.objects.get(user=self.request.user)
-        return serializer.save(company=company)
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return CompanyRouteGroupCreateSerializer
+        elif self.action == 'partial_update':
+            return CompanyRouteGroupPatchSerializer
+        return CompanyRouteGroupListAndRetrieveSerializer
 
     def get_queryset(self):
-        return CompanyRouteGroup.objects.select_related('company', 'company__user').all()
+        queryset = CompanyRouteGroup.objects.select_related('company', 'company__user').order_by('id')
+        user = self.request.user
+
+        if user.is_staff or user.is_superuser:
+            return queryset
+
+        if self.action != 'list' and user.is_authenticated:
+            return queryset.filter(Q(company__is_approved=True) | Q(company__user=user))
+
+        return queryset.filter(company__is_approved=True)

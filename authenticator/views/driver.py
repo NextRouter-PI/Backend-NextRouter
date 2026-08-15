@@ -29,7 +29,8 @@ class DriverViewSet(ModelViewSet):
             return DriverCreateSerializer
         elif self.action == 'partial_update':
             return DriverPatchSerializer
-        return DriverListAndRetrieveSerializer
+        else:
+            return DriverListAndRetrieveSerializer
 
     def get_queryset(self):
         user = self.request.user
