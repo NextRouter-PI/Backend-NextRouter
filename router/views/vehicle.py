@@ -8,6 +8,7 @@ from router.serializers.vehicle import VehicleSerializer
 
 
 class VehicleViewSet(ModelViewSet):
+    queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
     http_method_names = (
         'get',

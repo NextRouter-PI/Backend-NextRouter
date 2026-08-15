@@ -8,6 +8,7 @@ from router.serializers.lost_item import LostItemCreateSerializer, LostItemListA
 
 
 class LostItemViewSet(ModelViewSet):
+    queryset = LostItem.objects.all()
     http_method_names = (
         'get',
         'post',

@@ -12,6 +12,7 @@ from authenticator.serializers.passenger import (
 
 
 class PassengerViewSet(ModelViewSet):
+    queryset = Passenger.objects.all()
     http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_permissions(self):

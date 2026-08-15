@@ -12,6 +12,7 @@ from authenticator.serializers.driver import (
 
 
 class DriverViewSet(ModelViewSet):
+    queryset = Driver.objects.all()
     http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_permissions(self):
