@@ -7,7 +7,7 @@ from authenticator.models.company_route_group import CompanyRouteGroup
 class Path(models.Model):
     points = models.JSONField(verbose_name=_('Pontos de Parada'))
 
-    group = models.ForeignKey(
+    route_group = models.ForeignKey(
         CompanyRouteGroup,
         verbose_name=_('Grupo de Rotas'),
         related_name='paths',
@@ -24,9 +24,9 @@ class Path(models.Model):
         verbose_name_plural = _('Rotas')
         db_table = 'router_path'
         ordering = (
-            'group',
+            'route_group',
             'name',
         )
 
     def __str__(self):
-        return f'{self.name.title()} ({self.group.name.title()})'
+        return f'{self.name.title()} ({self.route_group.name.title()})'

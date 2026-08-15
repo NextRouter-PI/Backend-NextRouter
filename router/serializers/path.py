@@ -11,13 +11,27 @@ class PathSerializer(serializers.ModelSerializer):
             'id',
             'points',
             'name',
-            'group',
+            'route_group',
         )
 
-    def validate_group(self, value):
-        user = self.context['request'].user
 
-        if not CompanyRouteGroup.objects.filter(id=value.id, company__user=user).exists():
-            raise serializers.ValidationError('Este grupo de rotas não pertence à sua empresa.')
+class PathCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Path
+        fields = (
+            'id',
+            'points',
+            'name',
+            'route_group',
+        )
 
-        return value
+
+class PathPatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Path
+        fields = (
+            'id',
+            'points',
+            'name',
+            'route_group',
+        )
