@@ -1,6 +1,8 @@
 from rest_framework import permissions
 
 from authenticator.models.company import Company
+from authenticator.models.driver import Driver
+from authenticator.models.passenger import Passenger
 
 
 class IsCompanyOwner(permissions.BasePermission):
@@ -9,8 +11,10 @@ class IsCompanyOwner(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        if isinstance(obj, Company):
-            return obj.user == request.user
+        if isinstance(obj, (Driver, Passenger)):
+            if obj.route_group and obj.route_group.company:
+                return obj.route_group.company.user == request.user
+            return False
 
         return getattr(obj, 'company', None) and obj.company.user == request.user
 
@@ -42,8 +46,6 @@ class IsConfirmationOwner(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
         return obj.user == request.user
 
 
@@ -53,8 +55,6 @@ class IsItemOwner(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
         return obj.user == request.user
 
 
@@ -64,9 +64,7 @@ class IsVehicleOwner(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return obj.group.company.user == request.user
+        return obj.route_group.company.user == request.user
 
 
 class IsScheduleOwner(permissions.BasePermission):
@@ -75,8 +73,6 @@ class IsScheduleOwner(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
         return obj.route_group.company.user == request.user
 
 
@@ -86,6 +82,13 @@ class IsPathOwner(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return obj.group.company.user == request.user
+        return obj.route_group.company.user == request.user
+
+
+class IsTravelPassenger(permissions.BasePermission):
+    """
+    Garante que o usuário que está criando o objeto tenha participado da viagem
+    """
+
+    def has_object_permission(self, request, view, obj):
+        return obj.passenger_confirms.filter(user=request.user).exists()
