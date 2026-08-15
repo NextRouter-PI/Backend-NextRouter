@@ -3,7 +3,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
 from app.permissions import IsCompany, IsCompanyOwner
-from authenticator.models.company import Company
 from authenticator.models.company_route_group import CompanyRouteGroup
 from authenticator.serializers.company_route_group import (
     CompanyRouteGroupCreateSerializer,
