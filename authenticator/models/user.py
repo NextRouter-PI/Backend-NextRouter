@@ -12,11 +12,9 @@ from uploader.models import Image
 
 # Código de https://github.com/sesh/django-authuser/blob/19e046c54f6988d33ac9e2bc5aa5f86bccae1e1f/models.py#L42.
 # Apenas as mensagens de erro foram adaptadas para o português.
-# Ele performa melhor que o anterior por fazer apenas uma query no banco.
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
-    # Função criada que retorna
     def _create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError('O endereço de e-mail deve ser informado.')
@@ -28,7 +26,6 @@ class UserManager(BaseUserManager):
 
         return user
 
-    # Funções nativas da classe BaseuserManager
     def create_user(self, email=None, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)

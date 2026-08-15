@@ -66,19 +66,17 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
             'birthday',
         )
 
-    # Valida a senha com os validadores de senha definidos no settings.py
-    def validate_password(self, value: str) -> str:
+    def validate_password(self, value):
         validate_password(value)
         return value
 
-    # Valida se o código é um número e retorna para o usuário um erro caso não seja
-    def validate_code(self, value: str) -> str:
+    def validate_code(self, value):
         if not value.isdigit():
             raise serializers.ValidationError('Formato de código inválido.')
 
         return value
 
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+    def validate(self, attrs):
         attrs = super().validate(attrs)
         code = attrs.get('code')
 
@@ -89,18 +87,14 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
 
         token = self.validate_token(email, code, token_type='new-user')
 
-        # Salva o token no contexto para ser usado no create
         self.context['token_instance'] = token
 
         return attrs
 
     @transaction.atomic
-    def create(self, validated_data: dict[str, Any]) -> User:
-        # Limpa o atributo 'code' do dicionário para salvar o objeto no banco.
-        # Se não foi enviado, retorna 'None' para evitar erros de chave de atributo.
+    def create(self, validated_data):
         validated_data.pop('code', None)
 
-        # Salva a imagem de perfil mas antes dá uma descrição com base no nome e cpf do usuário.
         pic_instance = validated_data.pop('profile_picture', None)
         user_name = validated_data.get('name', '')
         user_cpf = validated_data.get('cpf', '')
@@ -108,16 +102,13 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
             pic_instance.description = f'Foto de {user_name} ({user_cpf})'
             pic_instance.save()
 
-        # Salva o usuário.
         user = User.objects.create_user(**validated_data, profile_picture=pic_instance)
 
-        # Recupera o token do contexto e consome ele.
         token = self.context.get('token_instance')
         if token:
             token.consumed = True
             token.save()
 
-        # Retorna o JSON de retorno da requisição.
         return user
 
 
@@ -155,11 +146,8 @@ class UserPatchSerializer(UserCreateSerializer):
             'profile_picture',
         )
 
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        # Acessa atributo 'intial_data' da instância para conseguir verificar se o usuário enviou o cpf
+    def validate(self, attrs):
         initial_data = getattr(self, 'initial_data', {}) or {}
-        # Se o cpf estiver mesmo nos dados JSON enviados pelo usuário,
-        # retorna uma mensagem que avisa o usuário que não pode alterar o CPF
         if 'cpf' in initial_data:
             raise serializers.ValidationError({
                 'cpf': 'Você não tem permissão para alterar o campo CPF. Contate o suporte.'
@@ -177,7 +165,6 @@ class UserPatchSerializer(UserCreateSerializer):
                 ]
             })
 
-        # Usuário não pode alterar email usando o email que ele usa atualmente.
         if is_changing_email:
             if User.objects.filter(email=new_email).exclude(pk=user.pk).exists():
                 raise serializers.ValidationError({'email': 'Já existe um usuário cadastrado com este e-mail.'})
@@ -195,7 +182,6 @@ class UserPatchSerializer(UserCreateSerializer):
             token = self.validate_token(new_email, code, token_type='new-email')
             self.context['token_instance'] = token
 
-        # Se não tem email mas tem a senha na requisição JSON do usuário, significa que ele quer trocar a senha
         elif has_new_password:
             code = attrs.get('code')
             if not code:
@@ -206,11 +192,10 @@ class UserPatchSerializer(UserCreateSerializer):
             token = self.validate_token(user.email, code, token_type='new-password')
             self.context['token_instance'] = token
 
-        # Se ele não quer trocar nem email e nem senha, nenhuma verificação a mais é necessária
         return attrs
 
     @transaction.atomic
-    def update(self, instance: User, validated_data: dict[str, Any]) -> User:
+    def update(self, instance: User, validated_data):
         validated_data.pop('code', None)
         validated_data.pop('current_password', None)
 
@@ -245,30 +230,25 @@ class UserPatchSerializer(UserCreateSerializer):
 
 
 class BaseProfileCreateSerializer(serializers.ModelSerializer):
-    # Dentro do objeto da requisição 'user_data' terá os campos do usuário.
     user_data = UserCreateSerializer(source='user')
 
-    def create_user_instance(self, user_data: dict[str, Any]) -> User:
-        # Salva e valida os dados enviados usando o contexto da classe que herda.
+    def create_user_instance(self, user_data):
         user_serializer = UserCreateSerializer(data=user_data, context=self.context)
         user_serializer.is_valid(raise_exception=True)
         return user_serializer.save()
 
 
 class BaseProfilePatchSerializer(ModelSerializer):
-    # Dentro do objeto da requisição 'user_data' terá os campos do usuário.
     user_data = UserPatchSerializer(source='user', required=False)
 
-    # Campos proibidos de serem alterados dentro da requisição.
-    FORBIDDEN_FIELDS: ClassVar[tuple[str, ...]] = (
+    FORBIDDEN_FIELDS = (
         'is_approved',
-        # 'route_group', # Adicionado individualmente nos serializadores de motorista e passageiros
         'user',
     )
 
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+    def validate(self, attrs):
         attrs = super().validate(attrs)
-        errors: dict[str, Any] = {}
+        errors = {}
 
         initial_data = getattr(self, 'initial_data', {}) or {}
 
@@ -290,7 +270,7 @@ class BaseProfilePatchSerializer(ModelSerializer):
 
         return attrs
 
-    def update(self, instance: Any, validated_data: dict[str, Any]) -> Any:
+    def update(self, instance: Any, validated_data):
         user_data = validated_data.pop('user', None)
 
         if user_data:
