@@ -14,7 +14,6 @@ class CompanyRouteGroupListAndRetrieveSerializer(ModelSerializer):
 
 
 class CompanyRouteGroupCreateSerializer(ModelSerializer):
-    # Cria o grupo de rotas com relacionado ao usuário que fez a requisição.
     def perform_create(self, serializer):
         company = Company.objects.get(user=self.request.user)
         serializer.save(company=company)
