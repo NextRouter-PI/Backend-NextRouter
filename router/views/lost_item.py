@@ -2,33 +2,33 @@ from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
-from app.permissions import IsItemOwner, IsUserOwner
+from app.permissions import IsItemOwner, IsTravelPassenger
 from router.models.lost_item import LostItem
-from router.serializers.lost_item import LostItemCreateSerializer, LostItemListAndRetrieveSerializer
+from router.serializers.lost_item import (
+    LostItemCreateSerializer,
+    LostItemListAndRetrieveSerializer,
+    LostItemPatchSerializer,
+)
 
 
 class LostItemViewSet(ModelViewSet):
     queryset = LostItem.objects.all()
-    http_method_names = (
-        'get',
-        'post',
-        'patch',
-        'delete',
-    )
+    http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_permissions(self):
         if self.action == 'create':
-            permission_classes = [IsAuthenticated, IsUserOwner]
-        elif self.action in {'partial_update', 'update', 'destroy'}:
+            permission_classes = [IsAuthenticated, IsTravelPassenger]
+        elif self.action in {'partial_update', 'destroy'}:
             permission_classes = [IsAuthenticated, IsItemOwner]
         else:
             permission_classes = [IsAuthenticated]
-
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
-        if self.action in {'create', 'partial_update', 'update'}:
+        if self.action == 'create':
             return LostItemCreateSerializer
+        elif self.action == 'partial_update':
+            return LostItemPatchSerializer
         return LostItemListAndRetrieveSerializer
 
     def get_queryset(self):
@@ -44,6 +44,3 @@ class LostItemViewSet(ModelViewSet):
         return queryset.filter(
             Q(user=user) | Q(travel__company__user=user),
         ).distinct()
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)

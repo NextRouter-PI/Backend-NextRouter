@@ -16,3 +16,12 @@ class LostItemCreateSerializer(serializers.ModelSerializer):
             'item_description',
             'travel',
         )
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class LostItemPatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LostItem
+        fields = ('item_description',)
