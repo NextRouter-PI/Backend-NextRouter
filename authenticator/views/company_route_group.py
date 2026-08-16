@@ -9,11 +9,13 @@ from authenticator.serializers.company_route_group import (
     CompanyRouteGroupListAndRetrieveSerializer,
     CompanyRouteGroupPatchSerializer,
 )
+from authenticator.filters.route_group import CompanyRouteGroupFilter
 
 
 class CompanyGroupRouteViewSet(ModelViewSet):
     queryset = CompanyRouteGroup.objects.all()
     http_method_names = ('get', 'post', 'patch', 'delete')
+    filterset_class = CompanyRouteGroupFilter
 
     def get_permissions(self):
         if self.action == 'create':
