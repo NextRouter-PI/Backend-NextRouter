@@ -12,9 +12,11 @@ from rest_framework.routers import DefaultRouter
 from authenticator.views import (
     CompanyGroupRouteViewSet,
     CompanyViewSet,
+    DriverRatingViewSet,
     DriverViewSet,
     EmailTokenViewSet,
     PassengerViewSet,
+    UserViewSet,
 )
 from authenticator.views.auth import (
     CustomLogoutView,
@@ -26,6 +28,7 @@ from router.views import (
     ConfirmPassengerRouteViewSet,
     LostItemViewSet,
     PathViewSet,
+    TravelViewSet,
     VehicleViewSet,
 )
 
@@ -40,7 +43,10 @@ router.register(r'confirmations', ConfirmPassengerRouteViewSet, basename='confir
 router.register(r'lost-items', LostItemViewSet, basename='lost-items')
 router.register(r'paths', PathViewSet, basename='paths')
 router.register(r'vehicles', VehicleViewSet, basename='vehicles')
+router.register(r'travels', TravelViewSet, basename='travels')
+router.register(r'driver-ratings', DriverRatingViewSet, basename='driver-ratings')
 router.register(r'email-tokens', EmailTokenViewSet, basename='email-tokens')
+router.register(r'users', UserViewSet, basename='users')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -51,6 +57,7 @@ urlpatterns = [
     path('api/token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/logout/', CustomLogoutView.as_view(), name='token_logout'),
     path('api/', include(router.urls)),
+    path('api/uploads/', include('uploader.router')),
 ]
 
 if settings.DEBUG:

@@ -10,10 +10,20 @@ from authenticator.serializers.user import (
 )
 from authenticator.validators.cnpj import validate_cnpj
 from uploader.models.document import Document
+from uploader.serializers.document import DocumentSerializer
 
 
 class CompanyListAndRetrieveSerializer(ModelSerializer):
     user_data = UserListAndRetriveSerializer(source='user', read_only=True)
+    articles_of_association_document_data = DocumentSerializer(
+        source='articles_of_association_document', read_only=True
+    )
+    state_operating_license_document_data = DocumentSerializer(
+        source='state_operating_license_document', read_only=True
+    )
+    certificate_of_good_stading_document_data = DocumentSerializer(
+        source='certificate_of_good_stading_document', read_only=True
+    )
 
     class Meta:
         model = Company
@@ -21,8 +31,25 @@ class CompanyListAndRetrieveSerializer(ModelSerializer):
             'id',
             'user_data',
             'trade_name',
+            'legal_name',
+            'cnpj',
+            'state_registration',
             'contact_phone',
             'contact_email',
+            'cep',
+            'street',
+            'number',
+            'complement',
+            'neighborhood',
+            'city',
+            'state',
+            'latitude',
+            'longitude',
+            'geocoded_at',
+            'is_approved',
+            'articles_of_association_document_data',
+            'state_operating_license_document_data',
+            'certificate_of_good_stading_document_data',
         )
 
 
@@ -46,6 +73,13 @@ class CompanyCreateSerializer(BaseProfileCreateSerializer):
             'contact_phone',
             'contact_email',
             'cnpj',
+            'cep',
+            'street',
+            'number',
+            'complement',
+            'neighborhood',
+            'city',
+            'state',
             'articles_of_association_document',
             'state_operating_license_document',
             'certificate_of_good_stading_document',
@@ -85,12 +119,33 @@ class CompanyPatchSerializer(BaseProfilePatchSerializer):
         model = Company
         fields = (
             'user_data',
+            'trade_name',
+            'legal_name',
+            'state_registration',
             'contact_phone',
             'contact_email',
+            'cep',
+            'street',
+            'number',
+            'complement',
+            'neighborhood',
+            'city',
+            'state',
             'articles_of_association_document',
             'state_operating_license_document',
             'certificate_of_good_stading_document',
         )
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        initial_data = getattr(self, 'initial_data', {}) or {}
+        if 'cnpj' in initial_data:
+            raise serializers.ValidationError({
+                'cnpj': 'Você não tem permissão para alterar o campo CNPJ. Contate o suporte.'
+            })
+
+        return attrs
 
     @transaction.atomic
     def update(self, instance, validated_data):

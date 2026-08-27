@@ -78,14 +78,25 @@ class TravelAdmin(admin.ModelAdmin):
         'company',
         'driver',
         'path',
+        'status',
         'started_at',
         'finished_at',
+        'current_latitude',
+        'current_longitude',
+        'location_updated_at',
+    )
+
+    readonly_fields = (
+        'current_latitude',
+        'current_longitude',
+        'location_updated_at',
     )
 
     list_display = (
         'id',
         'company',
         'driver',
+        'status',
         'started_at',
         'finished_at',
     )
@@ -96,7 +107,7 @@ class TravelAdmin(admin.ModelAdmin):
         'path',
     )
 
-    list_filter = ('started_at',)
+    list_filter = ('status', 'started_at')
 
     date_hierarchy = 'started_at'
 
@@ -126,22 +137,36 @@ class PathAdmin(admin.ModelAdmin):
 class VehicleAdmin(admin.ModelAdmin):
     fields = (
         'plate',
+        'model',
+        'color',
+        'year',
+        'capacity',
+        'status',
+        'features',
         'garage_cep',
         'route_group',
+        'driver',
     )
 
     list_display = (
         'plate',
+        'model',
+        'status',
         'route_group',
+        'driver',
         'garage_cep',
     )
+
+    list_filter = ('status',)
 
     list_select_related = (
         'route_group',
         'route_group__company__user',
+        'driver__user',
     )
 
     search_fields = (
         'plate',
+        'model',
         'route_group__name',
     )

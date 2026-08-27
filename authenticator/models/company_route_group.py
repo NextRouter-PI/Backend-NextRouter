@@ -23,6 +23,25 @@ class CompanyRouteGroup(models.Model):
         help_text=_('CEP do endereço comum aos passageiros'),
     )
 
+    reference_latitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_('Latitude de referência'),
+        help_text=_('Ponto central da área de captação do grupo, usado para calcular rotas e paradas.'),
+    )
+
+    reference_longitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_('Longitude de referência'),
+    )
+
+    geocoded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Data da geocodificação'),
+    )
+
     class Meta:
         verbose_name = _('Grupo de Rota')
         verbose_name_plural = _('Grupos de Rotas')

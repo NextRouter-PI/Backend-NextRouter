@@ -4,4 +4,9 @@ from router.serializers.confirm_passenger_route import (
 )
 from router.serializers.lost_item import LostItemCreateSerializer,LostItemListAndRetrieveSerializer,LostItemPatchSerializer
 from router.serializers.path import PathCreateSerializer,PathListAndRetrieveSerializer,PathPatchSerializer
+from router.serializers.travel import (
+    TravelCreateSerializer as TravelCreateSerializer,
+    TravelListAndRetrieveSerializer as TravelListAndRetrieveSerializer,
+    TravelLocationSerializer as TravelLocationSerializer,
+)
 from router.serializers.vehicle import VehicleCreateSerializer,VehicleListAndRetrieveSerializer,VehiclePatchSerializer

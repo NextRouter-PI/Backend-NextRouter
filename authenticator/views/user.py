@@ -15,14 +15,19 @@ class UserViewSet(ModelViewSet):
 
     @extend_schema(
         summary='Dados do usuário autenticado',
-        description='Retorna os dados do usuário autenticado.',
-        responses={200: UserCreateSerializer, 401: None},
+        description='Retorna ou atualiza os dados do usuário autenticado.',
+        responses={200: UserListAndRetriveSerializer, 401: None},
     )
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['get', 'patch'], permission_classes=[IsAuthenticated])
     def me(self, request):
         user = request.user
 
-        serializer = UserCreateSerializer(user)
+        if request.method == 'PATCH':
+            serializer = UserPatchSerializer(user, data=request.data, partial=True, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+
+        serializer = UserListAndRetriveSerializer(user)
         data = serializer.data
 
         if Driver.objects.filter(user=user).exists():

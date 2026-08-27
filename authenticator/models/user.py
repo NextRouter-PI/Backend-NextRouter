@@ -6,6 +6,7 @@ from django.contrib.auth.models import (
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from authenticator.geocoding_mixin import GeocodableAddressMixin
 from authenticator.validators.cpf import validate_cpf
 from uploader.models import Image
 
@@ -43,7 +44,7 @@ class UserManager(BaseUserManager):
         return self._create_user(email, password, **extra_fields)
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(GeocodableAddressMixin, AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(
         max_length=255,
         unique=True,
@@ -76,6 +77,61 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=9,
         blank=True,
         verbose_name=_('CEP'),
+    )
+
+    street = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Rua'),
+    )
+
+    number = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name=_('Número'),
+        help_text=_('Número da casa/apartamento. Use "S/N" quando não houver numeração.'),
+    )
+
+    complement = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Complemento'),
+    )
+
+    neighborhood = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Bairro'),
+    )
+
+    city = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name=_('Cidade'),
+    )
+
+    state = models.CharField(
+        max_length=2,
+        blank=True,
+        verbose_name=_('Estado (UF)'),
+    )
+
+    latitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_('Latitude'),
+    )
+
+    longitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_('Longitude'),
+    )
+
+    geocoded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Data da geocodificação do endereço'),
     )
 
     profile_picture = models.OneToOneField(
