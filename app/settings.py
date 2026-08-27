@@ -32,7 +32,7 @@ _default_origins = [
     'https://next-router-frontend.vercel.app',
     'https://next-router-admin.vercel.app',
 ]
-_extra_origins = [origin.strip() for origin in (FRONTEND_URL, FRONTEND_ADMIN_URL) if origin.strip()]
+_extra_origins = [origin.strip().rstrip('/') for origin in (FRONTEND_URL, FRONTEND_ADMIN_URL) if origin.strip()]
 
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(_default_origins + _extra_origins))
 CORS_ALLOW_ALL_ORIGINS = False
