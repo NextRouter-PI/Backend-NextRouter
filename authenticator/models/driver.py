@@ -1,0 +1,53 @@
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+
+from authenticator.models.company_route_group import CompanyRouteGroup
+from authenticator.models.user import User
+from uploader.models.document import Document
+
+
+class Driver(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.PROTECT,
+        verbose_name=_('Motorista (Usuário)'),
+        related_name='driver',
+        unique=True,
+    )
+
+    route_group = models.ForeignKey(
+        CompanyRouteGroup,
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        verbose_name=_('Grupo de Rota'),
+        related_name='drivers',
+    )
+
+    is_approved = models.BooleanField(
+        default=False,
+        verbose_name=_('Aprovado na empresa'),
+        db_index=True,
+    )
+
+    cnh = models.OneToOneField(
+        Document,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='cnh',
+        verbose_name=_('CNH'),
+    )
+
+    class Meta:
+        verbose_name = _('Motorista')
+        verbose_name_plural = _('Motoristas')
+        db_table = 'authenticator_driver'
+        ordering = ('user__name',)
+
+    def __str__(self):
+        if self.route_group and self.route_group.company:
+            company_name = self.route_group.company.user.name.title()
+            route_name = self.route_group.name.title()
+            return f'{self.user.name.title()} (Rota {route_name} de {company_name})'
+        return f'{self.user.name.title()} (Sem rota atribuída)'

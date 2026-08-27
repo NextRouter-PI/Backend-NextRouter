@@ -173,5 +173,8 @@ poetry.toml
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
-# Pasta ignorada durante desenvilvimento
-/media 
+# Pasta ignorada durante desenvolvimento
+/media/
+
+# Banco de dados
+db.sqlite3

@@ -1,6 +1,7 @@
 import mimetypes
 import uuid
 
+from django.conf import settings
 from django.db import models
 
 from uploader.helpers.files import get_content_type
@@ -10,7 +11,21 @@ def document_file_path(document, _) -> str:
     content_type = get_content_type(document.file)
     extension: str = mimetypes.guess_extension(content_type)
 
-    return f"documents/{document.public_id}{extension or ''}"
+    return f'documents/{document.public_id}{extension or ""}'
+
+
+def get_document_storage():
+    """
+    Documentos (PDFs) não são imagens, então precisam ser enviados ao Cloudinary como
+    recurso do tipo "raw" (`RawMediaCloudinaryStorage`) em vez do tipo "image" usado por
+    padrão pelo storage global (`MediaCloudinaryStorage`, adequado para `uploader.models.Image`).
+    Enviar um PDF como "image" faz o Cloudinary rejeitar/restringir o arquivo.
+    """
+    if getattr(settings, 'CLOUDINARY_URL', None):
+        from cloudinary_storage.storage import RawMediaCloudinaryStorage
+
+        return RawMediaCloudinaryStorage()
+    return None
 
 
 class Document(models.Model):
@@ -18,24 +33,24 @@ class Document(models.Model):
         max_length=255,
         default=uuid.uuid4,
         unique=True,
-        help_text=("Used to attach the document to another object. " "Cannot be used to retrieve the document file."),
+        help_text=('Used to attach the document to another object. Cannot be used to retrieve the document file.'),
     )
     public_id = models.UUIDField(
         max_length=255,
         default=uuid.uuid4,
         unique=True,
         help_text=(
-            "Used to retrieve the document file itself. "
-            "Should not be readable until the document is attached to another object."
+            'Used to retrieve the document file itself. '
+            'Should not be readable until the document is attached to another object.'
         ),
     )
-    file = models.FileField(upload_to=document_file_path)
+    file = models.FileField(upload_to=document_file_path, storage=get_document_storage)
     description = models.CharField(max_length=255, blank=True)
     uploaded_on = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
-        return f"{self.description} - {self.file.name}"
+        return f'{self.description} - {self.file.name}'
 
     @property
     def url(self) -> str:
-        return self.file.url  # pylint: disable=no-member
+        return self.file.url
