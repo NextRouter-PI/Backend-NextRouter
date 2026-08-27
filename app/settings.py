@@ -152,6 +152,11 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
+# Sempre definido (mesmo em desenvolvimento) porque plataformas estilo Heroku/Fabroku rodam
+# 'collectstatic' durante o build independentemente do valor de MODE, e o comando falha com
+# 'ImproperlyConfigured' se STATIC_ROOT não existir.
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 # Configurações de arquivos de mídia (App Uploader)
 MEDIA_ENDPOINT = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
@@ -179,7 +184,6 @@ if MODE == 'DEVELOPMENT':
     MEDIA_URL = f'http://{BACKEND_HOST}:{BACKEND_PORT}/media/'
 else:
     MEDIA_URL = '/media/'
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_STORAGE_BACKEND = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # django-cloudinary-storage usa `MEDIA_URL` como prefixo de pasta por padrão quando

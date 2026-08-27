@@ -178,3 +178,6 @@ poetry.toml
 
 # Banco de dados
 db.sqlite3
+
+# Arquivos estáticos coletados (gerados no build/deploy)
+/staticfiles/
