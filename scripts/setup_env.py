@@ -16,6 +16,9 @@ def setup_project():
             f.write('EMAIL_HOST_USER=seu@email.com\n')
             f.write('EMAIL_HOST_PASSWORD=\n')
             f.write('EMAIL_HOST=\n')
+            f.write('DEFAULT_FROM_EMAIL=seu@email.com\n')
+            f.write('FRONTEND_URL=http://localhost:5173\n')
+            f.write('FRONTEND_ADMIN_URL=\n')
         print()
         print(f'Arquivo {env_file} criado com variáveis padrão.')
     else:
@@ -34,7 +37,7 @@ def setup_project():
 
     print()
     print('Gerando MER...')
-    subprocess.run(
+    result = subprocess.run(
         [
             'pdm',
             'run',
@@ -55,9 +58,11 @@ def setup_project():
             'uploader',
             'router',
         ],
-        check=True,
+        check=False,
         shell=False,
     )
+    if result.returncode != 0:
+        print('Não foi possível gerar o MER (requer o pacote "pydot" e o Graphviz instalado). Pulando essa etapa.')
 
 
 if __name__ == '__main__':

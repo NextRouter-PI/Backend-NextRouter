@@ -38,4 +38,4 @@ class ConfirmPassengerRoute(models.Model):
         ordering = ('-created_at',)
 
     def __str__(self):
-        return f'Confirmação de {self.user_id.name.title()} na {self.route_id}'
+        return f'Confirmação de {self.user.name.title()} na {self.travel}'

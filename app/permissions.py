@@ -12,8 +12,24 @@ class IsCompanyOwner(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         if isinstance(obj, (Driver, Passenger)):
-            if obj.route_group and obj.route_group.company:
-                return obj.route_group.company.user == request.user
+            current_route_group = obj.route_group
+
+            # Já pertence a um grupo de rota desta empresa: pode gerenciar (editar/desvincular/excluir).
+            if current_route_group and current_route_group.company:
+                return current_route_group.company.user == request.user
+
+            # Ainda não está vinculado a nenhum grupo de rota: uma empresa só pode "reivindicar"
+            # o motorista/passageiro se estiver vinculando-o a um grupo de rota que ela mesma possui.
+            if current_route_group is None:
+                from authenticator.models.company_route_group import CompanyRouteGroup
+
+                target_route_group_id = request.data.get('route_group')
+                if target_route_group_id:
+                    return CompanyRouteGroup.objects.filter(
+                        id=target_route_group_id,
+                        company__user=request.user,
+                    ).exists()
+
             return False
 
         return getattr(obj, 'company', None) and obj.company.user == request.user
@@ -96,3 +112,13 @@ class IsTravelPassenger(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return obj.passenger_confirms.filter(user=request.user).exists()
+
+
+class IsTravelDriverOrCompanyOwner(permissions.BasePermission):
+    """
+    Garante que apenas o motorista escalado ou a empresa dona da viagem
+    possam iniciar/finalizar a viagem ou atualizar a localização.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        return obj.driver.user == request.user or obj.company.user == request.user

@@ -4,5 +4,7 @@ from authenticator.views.auth import CustomTokenRefreshView as CustomTokenRefres
 from authenticator.views.company import CompanyViewSet as CompanyViewSet
 from authenticator.views.company_route_group import CompanyGroupRouteViewSet as CompanyGroupRouteViewSet
 from authenticator.views.driver import DriverViewSet as DriverViewSet
+from authenticator.views.driver_rating import DriverRatingViewSet as DriverRatingViewSet
 from authenticator.views.email_token import EmailTokenViewSet as EmailTokenViewSet
 from authenticator.views.passenger import PassengerViewSet as PassengerViewSet
+from authenticator.views.user import UserViewSet as UserViewSet

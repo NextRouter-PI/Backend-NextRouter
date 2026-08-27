@@ -23,7 +23,22 @@ class UserListAndRetriveSerializer(ModelSerializer):
         fields = (
             'id',
             'name',
+            'email',
+            'phone',
+            'cpf',
+            'birthday',
             'profile_picture_data',
+            'cep',
+            'street',
+            'number',
+            'complement',
+            'neighborhood',
+            'city',
+            'state',
+            'latitude',
+            'longitude',
+            'geocoded_at',
+            'created_at',
         )
 
 
@@ -58,6 +73,12 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
             'name',
             'password',
             'cep',
+            'street',
+            'number',
+            'complement',
+            'neighborhood',
+            'city',
+            'state',
             'phone',
             'profile_picture',
             'cpf',
@@ -140,6 +161,12 @@ class UserPatchSerializer(UserCreateSerializer):
             'current_password',
             'name',
             'cep',
+            'street',
+            'number',
+            'complement',
+            'neighborhood',
+            'city',
+            'state',
             'phone',
             'profile_picture',
         )
@@ -255,7 +282,7 @@ class BaseProfilePatchSerializer(ModelSerializer):
         if extra_forbidden_fields:
             forbidden_fields.extend(extra_forbidden_fields)
 
-        for field in self.FORBIDDEN_FIELDS:
+        for field in forbidden_fields:
             if field in initial_data:
                 errors[field] = f"Você não tem permissão para alterar o campo '{field}'. Contate o suporte"
 

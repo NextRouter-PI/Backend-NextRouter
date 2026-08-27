@@ -14,10 +14,12 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
             'file',
             'description',
             'uploaded_on',
+            'url',
         )
         read_only_fields = (
             'attachment_key',
             'uploaded_on',
+            'url',
         )
         extra_kwargs: ClassVar[dict] = {'file': {'write_only': True}}
 

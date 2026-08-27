@@ -10,6 +10,7 @@ from router.serializers.vehicle import VehicleCreateSerializer, VehicleListAndRe
 class VehicleViewSet(ModelViewSet):
     queryset = Vehicle.objects.all()
     http_method_names = ('get', 'post', 'patch', 'delete')
+    filterset_fields = ('route_group',)
 
     def get_permissions(self):
         if self.action == 'create':

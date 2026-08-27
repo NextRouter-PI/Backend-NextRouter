@@ -10,9 +10,10 @@ from router.serializers.path import PathCreateSerializer, PathListAndRetrieveSer
 class PathViewSet(ModelViewSet):
     queryset = Path.objects.all()
     http_method_names = ('get', 'post', 'patch', 'delete')
+    filterset_fields = ('route_group',)
 
     def get_permissions(self):
-        if self.action == 'POST':
+        if self.action == 'create':
             permission_classes = [IsAuthenticated, IsCompany]
         elif self.action in {'partial_update', 'destroy'}:
             permission_classes = [IsAuthenticated, IsCompany, IsPathOwner]

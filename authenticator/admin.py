@@ -64,6 +64,9 @@ class UserAdmin(BaseUserAdmin):
     readonly_fields = (
         'last_login',
         'created_at',
+        'latitude',
+        'longitude',
+        'geocoded_at',
     )
     actions = None
     fieldsets = (
@@ -82,10 +85,26 @@ class UserAdmin(BaseUserAdmin):
                 'fields': (
                     'name',
                     'profile_picture',
-                    'cep',
                     'phone',
                     'cpf',
                     'birthday',
+                ),
+            },
+        ),
+        (
+            _('Endereço'),
+            {
+                'fields': (
+                    'cep',
+                    'street',
+                    'number',
+                    'complement',
+                    'neighborhood',
+                    'city',
+                    'state',
+                    'latitude',
+                    'longitude',
+                    'geocoded_at',
                 ),
             },
         ),
@@ -188,6 +207,26 @@ class DriverAdmin(admin.ModelAdmin):
         return (*self.readonly_fields, 'user') if obj else self.readonly_fields
 
 
+@admin.register(models.DriverRating)
+class DriverRatingAdmin(admin.ModelAdmin):
+    list_display = ('id', 'get_driver_name', 'get_passenger_name', 'score', 'travel', 'created_at')
+    search_fields = ('driver__user__name', 'passenger__name')
+    list_select_related = ('driver__user', 'passenger', 'travel')
+    list_filter = ('score',)
+    actions = None
+
+    @admin.display(description='Motorista', ordering='driver__user__name')
+    def get_driver_name(self, obj):
+        return obj.driver.user.name.title()
+
+    @admin.display(description='Passageiro', ordering='passenger__name')
+    def get_passenger_name(self, obj):
+        return obj.passenger.name.title()
+
+    def get_readonly_fields(self, request, obj=None):
+        return (*self.readonly_fields, 'driver', 'passenger', 'travel') if obj else self.readonly_fields
+
+
 class CompanyAdminForm(forms.ModelForm):
     cnpj = forms.CharField(label='CNPJ', max_length=18, required=False)
     contact_phone = forms.CharField(label='Telefone comercial', max_length=15, required=False)
@@ -227,6 +266,23 @@ class CompanyAdmin(admin.ModelAdmin):
         (None, {'fields': ('user', 'is_approved', 'cnpj')}),
         (_('Informações de contato'), {'fields': ('contact_email', 'contact_phone')}),
         (
+            _('Endereço'),
+            {
+                'fields': (
+                    'cep',
+                    'street',
+                    'number',
+                    'complement',
+                    'neighborhood',
+                    'city',
+                    'state',
+                    'latitude',
+                    'longitude',
+                    'geocoded_at',
+                )
+            },
+        ),
+        (
             _('Documentos'),
             {
                 'fields': (
@@ -243,7 +299,8 @@ class CompanyAdmin(admin.ModelAdmin):
         return obj.user.name.title() if obj.user else 'Sem usuário'
 
     def get_readonly_fields(self, request, obj=None):
-        return (*self.readonly_fields, 'user', 'cnpj') if obj else self.readonly_fields
+        base = (*self.readonly_fields, 'latitude', 'longitude', 'geocoded_at')
+        return (*base, 'user', 'cnpj') if obj else base
 
     class Media:
         js = ('core/js/cnpj_mask.js', 'core/js/phone_mask.js')
@@ -289,6 +346,15 @@ class CompanyRouteGroupAdmin(admin.ModelAdmin):
         'company',
         'name',
         'common_cep',
+        'reference_latitude',
+        'reference_longitude',
+        'geocoded_at',
+    )
+
+    readonly_fields = (
+        'reference_latitude',
+        'reference_longitude',
+        'geocoded_at',
     )
 
     @admin.display(description='Empresa', ordering='company__user__name')
@@ -300,7 +366,7 @@ class CompanyRouteGroupAdmin(admin.ModelAdmin):
         return obj.name.title()
 
     def get_readonly_fields(self, request, obj=None):
-        return self.readonly_fields + ('company') if obj else self.readonly_fields
+        return self.readonly_fields + ('company',) if obj else self.readonly_fields
 
     class Media:
         js = ('core/js/name_mask.js', 'core/js/cep_mask.js')

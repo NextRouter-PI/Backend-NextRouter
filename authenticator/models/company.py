@@ -1,12 +1,13 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from authenticator.geocoding_mixin import GeocodableAddressMixin
 from authenticator.models.user import User
 from authenticator.validators.cnpj import validate_cnpj
 from uploader.models.document import Document
 
 
-class Company(models.Model):
+class Company(GeocodableAddressMixin, models.Model):
     user = models.OneToOneField(
         User,
         on_delete=models.PROTECT,
@@ -47,6 +48,66 @@ class Company(models.Model):
         max_length=255,
         verbose_name=_('Email de contato'),
         blank=True,
+    )
+
+    cep = models.CharField(
+        max_length=9,
+        blank=True,
+        verbose_name=_('CEP'),
+    )
+
+    street = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Rua'),
+    )
+
+    number = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name=_('Número'),
+    )
+
+    complement = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Complemento'),
+    )
+
+    neighborhood = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Bairro'),
+    )
+
+    city = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name=_('Cidade'),
+    )
+
+    state = models.CharField(
+        max_length=2,
+        blank=True,
+        verbose_name=_('Estado (UF)'),
+    )
+
+    latitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_('Latitude'),
+    )
+
+    longitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_('Longitude'),
+    )
+
+    geocoded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Data da geocodificação do endereço'),
     )
 
     articles_of_association_document = models.OneToOneField(

@@ -2,7 +2,7 @@ from django.db.models import Q
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
-from app.permissions import IsUserOwner
+from app.permissions import IsCompanyOwner, IsUserOwner
 from authenticator.mixins.is_approved import ApproveProfileMixin
 from authenticator.models.passenger import Passenger
 from authenticator.serializers.passenger import (
@@ -20,7 +20,7 @@ class PassengerViewSet(ApproveProfileMixin, ModelViewSet):
         if self.action == 'create':
             permission_classes = [AllowAny]
         elif self.action in {'partial_update', 'destroy'}:
-            permission_classes = [IsAuthenticated, IsUserOwner]
+            permission_classes = [IsAuthenticated, (IsUserOwner | IsCompanyOwner)]
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]

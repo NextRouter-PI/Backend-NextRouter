@@ -39,4 +39,4 @@ class PassengerCreateSerializer(BaseProfileCreateSerializer):
 class PassengerPatchSerializer(GroupRouteForbiddenValidatorMixin, BaseProfilePatchSerializer):
     class Meta:
         model = Passenger
-        fields = ('user_data',)
+        fields = ('user_data', 'route_group')
