@@ -1,7 +1,8 @@
 from django.db import transaction
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, PrimaryKeyRelatedField, Serializer
 
 from authenticator.mixins.route_group import GroupRouteForbiddenValidatorMixin
+from authenticator.models.company_route_group import CompanyRouteGroup
 from authenticator.models.passenger import Passenger
 from authenticator.serializers.user import (
     BaseProfileCreateSerializer,
@@ -40,3 +41,7 @@ class PassengerPatchSerializer(GroupRouteForbiddenValidatorMixin, BaseProfilePat
     class Meta:
         model = Passenger
         fields = ('user_data', 'route_group')
+
+
+class PassengerRouteGroupRequestSerializer(Serializer):
+    route_group = PrimaryKeyRelatedField(queryset=CompanyRouteGroup.objects.all())

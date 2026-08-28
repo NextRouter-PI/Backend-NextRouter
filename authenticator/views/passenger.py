@@ -1,5 +1,8 @@
 from django.db.models import Q
+from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from app.permissions import IsCompanyOwner, IsUserOwner
@@ -9,6 +12,7 @@ from authenticator.serializers.passenger import (
     PassengerCreateSerializer,
     PassengerListAndRetrieveSerializer,
     PassengerPatchSerializer,
+    PassengerRouteGroupRequestSerializer,
 )
 
 
@@ -45,4 +49,30 @@ class PassengerViewSet(ApproveProfileMixin, ModelViewSet):
             .distinct()
             .select_related('user', 'route_group')
             .order_by('id')
+        )
+
+    @action(
+        detail=True,
+        methods=['patch'],
+        url_path='request-route-group',
+        permission_classes=[IsAuthenticated, IsUserOwner],
+    )
+    def request_route_group(self, request, pk=None):
+        """
+        Permite que o próprio passageiro peça para entrar num grupo de rota de uma
+        empresa (autocadastro). Fica pendente (`is_approved=False`) até a empresa
+        aprovar — diferente do PATCH genérico, que só a empresa pode usar para
+        definir `route_group` diretamente.
+        """
+        instance = self.get_object()
+        serializer = PassengerRouteGroupRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        instance.route_group = serializer.validated_data['route_group']
+        instance.is_approved = False
+        instance.save(update_fields=['route_group', 'is_approved'])
+
+        return Response(
+            PassengerListAndRetrieveSerializer(instance).data,
+            status=status.HTTP_200_OK,
         )
