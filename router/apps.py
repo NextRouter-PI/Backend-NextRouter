@@ -6,4 +6,4 @@ class RouterConfig(AppConfig):
     name = 'router'
 
     def ready(self):
-        from router import signals  # noqa: F401
+        from router import signals  # ruff: ignore[unused-import]

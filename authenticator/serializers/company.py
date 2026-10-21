@@ -65,6 +65,12 @@ class CompanyCreateSerializer(BaseProfileCreateSerializer):
     )
     cnpj = serializers.CharField(validators=[validate_cnpj], required=True)
 
+    def validate_cnpj(self, value):
+        cnpj = ''.join(filter(str.isdigit, value))
+        if Company.objects.filter(cnpj=cnpj).exists():
+            raise serializers.ValidationError('Já existe uma empresa cadastrada com este CNPJ.')
+        return cnpj
+
     class Meta:
         model = Company
         fields = (

@@ -2,7 +2,7 @@ from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
-from app.permissions import IsItemOwner, IsTravelPassenger
+from app.permissions import IsItemOwner
 from router.models.lost_item import LostItem
 from router.serializers.lost_item import (
     LostItemCreateSerializer,
@@ -16,9 +16,7 @@ class LostItemViewSet(ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_permissions(self):
-        if self.action == 'create':
-            permission_classes = [IsAuthenticated, IsTravelPassenger]
-        elif self.action in {'partial_update', 'destroy'}:
+        if self.action in {'partial_update', 'destroy'}:
             permission_classes = [IsAuthenticated, IsItemOwner]
         else:
             permission_classes = [IsAuthenticated]
@@ -31,6 +29,11 @@ class LostItemViewSet(ModelViewSet):
             return LostItemPatchSerializer
         return LostItemListAndRetrieveSerializer
 
+    def perform_create(self, serializer):
+        # O `perform_create` ficava no serializer, onde nunca é chamado: o item era salvo sem
+        # usuário e todo cadastro de item perdido dava erro 500.
+        serializer.save(user=self.request.user)
+
     def get_queryset(self):
         user = self.request.user
         queryset = LostItem.objects.select_related(
@@ -42,5 +45,5 @@ class LostItemViewSet(ModelViewSet):
             return queryset.all()
 
         return queryset.filter(
-            Q(user=user) | Q(travel__company__user=user),
+            Q(user=user) | Q(travel__company__user=user) | Q(travel__driver__user=user),
         ).distinct()

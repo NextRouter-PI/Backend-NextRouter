@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from app.permissions import IsCompany, IsTravelDriverOrCompanyOwner
+from authenticator.models.company import Company
 from authenticator.models.passenger import Passenger
 from router.models.confirm_passenger_route import ConfirmPassengerRoute
 from router.models.travel import Travel
@@ -20,6 +21,7 @@ from router.serializers.travel import (
 
 class TravelViewSet(ModelViewSet):
     queryset = Travel.objects.all()
+    # A edição da viagem é feita pelas ações start/finish/location, não por PATCH genérico.
     http_method_names = ('get', 'post', 'patch')
     filterset_fields = ('company', 'driver', 'path', 'status')
 
@@ -42,7 +44,9 @@ class TravelViewSet(ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        queryset = Travel.objects.select_related('company', 'company__user', 'driver', 'driver__user', 'path')
+        queryset = Travel.objects.select_related(
+            'company', 'company__user', 'driver', 'driver__user', 'path', 'path__route_group'
+        )
 
         if user.is_staff or user.is_superuser:
             return queryset.all()
@@ -52,7 +56,8 @@ class TravelViewSet(ModelViewSet):
         ).distinct()
 
     def perform_create(self, serializer):
-        travel = serializer.save()
+        path = serializer.validated_data['path']
+        travel = serializer.save(company=Company.objects.get(pk=path.route_group.company_id))
         self._create_passenger_confirmations(travel)
 
     def _create_passenger_confirmations(self, travel):
@@ -62,27 +67,30 @@ class TravelViewSet(ModelViewSet):
             ignore_conflicts=True,
         )
 
+    def _change_status(self, travel, expected_status, new_status, timestamp_field):
+        if travel.status != expected_status:
+            return Response(
+                {'detail': f'Ação inválida para uma viagem com status "{travel.get_status_display()}".'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        travel.status = new_status
+        setattr(travel, timestamp_field, timezone.now())
+        travel.save(update_fields=['status', timestamp_field])
+
+        return Response(TravelListAndRetrieveSerializer(travel).data, status=status.HTTP_200_OK)
+
     @extend_schema(request=None, responses={200: TravelListAndRetrieveSerializer})
     @action(detail=True, methods=['patch'])
     def start(self, request, pk=None):
-        travel = self.get_object()
-        travel.status = Travel.Status.IN_PROGRESS
-        travel.started_at = timezone.now()
-        travel.save(update_fields=['status', 'started_at'])
-
-        serializer = TravelListAndRetrieveSerializer(travel)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return self._change_status(self.get_object(), Travel.Status.SCHEDULED, Travel.Status.IN_PROGRESS, 'started_at')
 
     @extend_schema(request=None, responses={200: TravelListAndRetrieveSerializer})
     @action(detail=True, methods=['patch'])
     def finish(self, request, pk=None):
-        travel = self.get_object()
-        travel.status = Travel.Status.FINISHED
-        travel.finished_at = timezone.now()
-        travel.save(update_fields=['status', 'finished_at'])
-
-        serializer = TravelListAndRetrieveSerializer(travel)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return self._change_status(
+            self.get_object(), Travel.Status.IN_PROGRESS, Travel.Status.FINISHED, 'finished_at'
+        )
 
     @extend_schema(responses={200: TravelListAndRetrieveSerializer})
     @action(detail=True, methods=['patch'], url_path='location')
@@ -90,6 +98,12 @@ class TravelViewSet(ModelViewSet):
         travel = self.get_object()
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        if travel.status != Travel.Status.IN_PROGRESS:
+            return Response(
+                {'detail': 'A localização só pode ser enviada durante uma viagem em andamento.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         travel.current_latitude = serializer.validated_data['latitude']
         travel.current_longitude = serializer.validated_data['longitude']

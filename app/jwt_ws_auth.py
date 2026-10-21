@@ -2,6 +2,7 @@ from urllib.parse import parse_qs
 
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
@@ -12,7 +13,8 @@ def get_user_from_token(token):
         auth = JWTAuthentication()
         validated_token = auth.get_validated_token(token)
         return auth.get_user(validated_token)
-    except (InvalidToken, TokenError):
+    except (InvalidToken, TokenError, AuthenticationFailed):
+        # Token inválido/expirado ou usuário inexistente/inativo.
         return AnonymousUser()
 
 

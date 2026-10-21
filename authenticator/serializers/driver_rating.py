@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from authenticator.models.driver_rating import DriverRating
+from router.models.travel import Travel
 
 
 class DriverRatingListAndRetrieveSerializer(serializers.ModelSerializer):
@@ -19,6 +20,9 @@ class DriverRatingListAndRetrieveSerializer(serializers.ModelSerializer):
 
 
 class DriverRatingCreateSerializer(serializers.ModelSerializer):
+    # Obrigatória: só quem viajou pode avaliar, uma única vez por viagem.
+    travel = serializers.PrimaryKeyRelatedField(queryset=Travel.objects.all())
+
     class Meta:
         model = DriverRating
         fields = (
@@ -30,15 +34,21 @@ class DriverRatingCreateSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, attrs):
-        request = self.context['request']
-        travel = attrs.get('travel')
-        driver = attrs.get('driver')
+        user = self.context['request'].user
+        travel = attrs['travel']
+        driver = attrs['driver']
 
-        if travel and travel.driver_id != driver.id:
+        if travel.driver_id != driver.id:
             raise serializers.ValidationError({'travel': 'Esta viagem não foi realizada por este motorista.'})
 
-        if travel and not travel.passenger_confirms.filter(user=request.user).exists():
+        if travel.status != Travel.Status.FINISHED:
+            raise serializers.ValidationError({'travel': 'Só é possível avaliar viagens finalizadas.'})
+
+        if not travel.passenger_confirms.filter(user=user).exists():
             raise serializers.ValidationError({'travel': 'Você não participou desta viagem.'})
+
+        if DriverRating.objects.filter(driver=driver, passenger=user, travel=travel).exists():
+            raise serializers.ValidationError({'travel': 'Você já avaliou este motorista nesta viagem.'})
 
         return attrs
 

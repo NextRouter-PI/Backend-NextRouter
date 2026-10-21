@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from router.models.travel import Travel
+from router.serializers.ownership import validate_driver_in_route_group, validate_route_group_ownership
 
 
 class TravelListAndRetrieveSerializer(serializers.ModelSerializer):
@@ -19,6 +20,9 @@ class TravelListAndRetrieveSerializer(serializers.ModelSerializer):
             'location_updated_at',
         )
         read_only_fields = (
+            'company',
+            'driver',
+            'path',
             'status',
             'started_at',
             'finished_at',
@@ -37,15 +41,19 @@ class TravelCreateSerializer(serializers.ModelSerializer):
             'driver',
             'path',
         )
+        # A empresa da viagem é sempre a dona do trajeto (definida na view), nunca enviada pelo cliente.
+        read_only_fields = ('company',)
+
+    def validate_path(self, path):
+        validate_route_group_ownership(self.context, path.route_group)
+        return path
 
     def validate(self, attrs):
-        driver = attrs.get('driver')
-        path = attrs.get('path')
+        path = attrs.get('path', getattr(self.instance, 'path', None))
+        driver = attrs.get('driver', getattr(self.instance, 'driver', None))
 
-        if driver and path and driver.route_group_id != path.route_group_id:
-            raise serializers.ValidationError(
-                {'driver': 'O motorista não pertence ao grupo de rota deste trajeto.'}
-            )
+        if path is not None:
+            validate_driver_in_route_group(driver, path.route_group)
 
         return attrs
 

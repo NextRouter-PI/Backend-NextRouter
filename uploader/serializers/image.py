@@ -1,8 +1,9 @@
 from typing import ClassVar
 
+from django.conf import settings
 from rest_framework import serializers
 
-from uploader.helpers.files import CONTENT_TYPE_JPG, CONTENT_TYPE_PNG
+from uploader.helpers.files import CONTENT_TYPE_JPG, CONTENT_TYPE_PNG, get_content_type
 from uploader.models import Image
 
 
@@ -25,9 +26,12 @@ class ImageUploadSerializer(serializers.ModelSerializer):
         extra_kwargs: ClassVar[dict] = {'file': {'write_only': True}}
 
     def validate_file(self, value):
-        valid_content_types = [CONTENT_TYPE_JPG, CONTENT_TYPE_PNG]
-        if value.content_type not in valid_content_types:
-            raise serializers.ValidationError('Invalid or corrupted image.')
+        if value.size > settings.MAX_IMAGE_UPLOAD_SIZE:
+            raise serializers.ValidationError('A imagem deve ter no máximo 5 MB.')
+
+        # Verifica o conteúdo real do arquivo, não o Content-Type informado pelo cliente.
+        if get_content_type(value) not in {CONTENT_TYPE_JPG, CONTENT_TYPE_PNG}:
+            raise serializers.ValidationError('Imagem inválida ou corrompida. Envie um arquivo JPG ou PNG.')
         return value
 
 

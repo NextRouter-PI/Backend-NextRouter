@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from app.permissions import IsCompany, IsCompanyOwner
+from authenticator.filters.route_group import CompanyRouteGroupFilter
 from authenticator.models.company import Company
 from authenticator.models.company_route_group import CompanyRouteGroup
 from authenticator.serializers.company_route_group import (
@@ -13,7 +14,6 @@ from authenticator.serializers.company_route_group import (
     CompanyRouteGroupListAndRetrieveSerializer,
     CompanyRouteGroupPatchSerializer,
 )
-from authenticator.filters.route_group import CompanyRouteGroupFilter
 
 
 class CompanyGroupRouteViewSet(ModelViewSet):
