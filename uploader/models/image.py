@@ -3,9 +3,11 @@ import uuid
 
 from django.db import models
 
+from uploader.helpers.files import get_content_type
+
 
 def image_file_path(image, _) -> str:
-    extension: str = mimetypes.guess_extension(image.file.file.content_type)
+    extension: str = mimetypes.guess_extension(get_content_type(image.file))
     if extension == '.jpe':
         extension = '.jpg'
     return f'images/{image.public_id}{extension or ""}'

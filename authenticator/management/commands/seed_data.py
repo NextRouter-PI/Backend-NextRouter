@@ -38,13 +38,13 @@ def gen_cnpj(base: str) -> str:
     digits = [int(d) for d in base]
 
     weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-    total = sum(d * w for d, w in zip(digits, weights1))
+    total = sum(d * w for d, w in zip(digits, weights1, strict=True))
     remainder = total % 11
     d1 = 0 if remainder < 2 else 11 - remainder
     digits.append(d1)
 
     weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-    total = sum(d * w for d, w in zip(digits, weights2))
+    total = sum(d * w for d, w in zip(digits, weights2, strict=True))
     remainder = total % 11
     d2 = 0 if remainder < 2 else 11 - remainder
     digits.append(d2)
@@ -140,7 +140,7 @@ class Command(BaseCommand):
 
             for group_index, group in enumerate(route_groups, start=1):
                 driver = self._create_driver(company_index, group_index, group, driver_pool)
-                vehicle = self._create_vehicle(company_index, group_index, group, driver)
+                self._create_vehicle(company_index, group_index, group, driver)
                 self._create_schedules(group)
                 path = self._create_path(group)
                 passengers = self._create_passengers(company_index, group_index, group, passenger_pool, count=3)

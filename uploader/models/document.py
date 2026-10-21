@@ -2,6 +2,7 @@ import mimetypes
 import uuid
 
 from django.conf import settings
+from django.core.files.storage import default_storage
 from django.db import models
 
 from uploader.helpers.files import get_content_type
@@ -25,7 +26,8 @@ def get_document_storage():
         from cloudinary_storage.storage import RawMediaCloudinaryStorage
 
         return RawMediaCloudinaryStorage()
-    return None
+    # Sem Cloudinary configurado, salva os documentos no storage padrão (pasta /media).
+    return default_storage
 
 
 class Document(models.Model):

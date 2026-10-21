@@ -1,5 +1,6 @@
 from typing import ClassVar
 
+from django.conf import settings
 from rest_framework import serializers
 
 from uploader.helpers.files import CONTENT_TYPE_PDF, get_content_type
@@ -24,9 +25,11 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
         extra_kwargs: ClassVar[dict] = {'file': {'write_only': True}}
 
     def validate_file(self, value):
-        valid_content_types = [CONTENT_TYPE_PDF]
-        if get_content_type(value) not in valid_content_types:
-            raise serializers.ValidationError('Invalid or corrupted document.')
+        if value.size > settings.MAX_DOCUMENT_UPLOAD_SIZE:
+            raise serializers.ValidationError('O documento deve ter no máximo 10 MB.')
+
+        if get_content_type(value) != CONTENT_TYPE_PDF:
+            raise serializers.ValidationError('Documento inválido ou corrompido. Envie um arquivo PDF.')
         return value
 
 

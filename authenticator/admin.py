@@ -366,7 +366,7 @@ class CompanyRouteGroupAdmin(admin.ModelAdmin):
         return obj.name.title()
 
     def get_readonly_fields(self, request, obj=None):
-        return self.readonly_fields + ('company',) if obj else self.readonly_fields
+        return (*self.readonly_fields, 'company') if obj else self.readonly_fields
 
     class Media:
         js = ('core/js/name_mask.js', 'core/js/cep_mask.js')

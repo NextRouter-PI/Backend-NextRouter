@@ -3,6 +3,7 @@ from django.utils import timezone
 from app.geocoding import geocode_address
 
 ADDRESS_FIELDS = ('street', 'number', 'neighborhood', 'city', 'state', 'cep')
+GEOCODE_FIELDS = ('latitude', 'longitude', 'geocoded_at')
 
 
 class GeocodableAddressMixin:
@@ -22,6 +23,11 @@ class GeocodableAddressMixin:
         return any(getattr(old, field) != getattr(self, field) for field in ADDRESS_FIELDS)
 
     def save(self, *args, **kwargs):
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None and not set(update_fields) & set(ADDRESS_FIELDS):
+            # Salvamento parcial que não mexe no endereço (ex.: senha, last_login): nada a geocodificar.
+            return super().save(*args, **kwargs)
+
         if self.city and self._address_changed():
             latitude, longitude = geocode_address(
                 street=self.street,
@@ -35,5 +41,7 @@ class GeocodableAddressMixin:
                 self.latitude = latitude
                 self.longitude = longitude
                 self.geocoded_at = timezone.now()
+                if update_fields is not None:
+                    kwargs['update_fields'] = {*update_fields, *GEOCODE_FIELDS}
 
-        super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)

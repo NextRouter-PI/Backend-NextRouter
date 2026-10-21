@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.db.models import Avg
+from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, SlugRelatedField
 
 from authenticator.mixins.route_group import GroupRouteForbiddenValidatorMixin
@@ -9,7 +10,6 @@ from authenticator.serializers.user import (
     BaseProfilePatchSerializer,
     UserListAndRetriveSerializer,
 )
-from rest_framework import serializers
 from uploader.models.document import Document
 from uploader.serializers.document import DocumentSerializer
 

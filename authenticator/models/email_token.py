@@ -41,6 +41,11 @@ class EmailToken(models.Model):
         db_index=True,
     )
 
+    failed_attempts = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name=_('Tentativas inválidas'),
+    )
+
     token_type = models.CharField(
         max_length=20,
         choices=TokenType.choices,

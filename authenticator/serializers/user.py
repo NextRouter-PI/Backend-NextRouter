@@ -2,6 +2,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
+from rest_framework.validators import UniqueValidator
 
 from authenticator.mixins.tokens import TokenValidatorMixin
 from authenticator.models.user import User
@@ -59,6 +60,13 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
     )
     email = serializers.EmailField(
         required=True,
+        validators=[
+            UniqueValidator(
+                queryset=User.objects.all(),
+                lookup='iexact',
+                message='Já existe um usuário cadastrado com este e-mail.',
+            ),
+        ],
     )
     cpf = serializers.CharField(
         required=True,
@@ -84,6 +92,16 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
             'cpf',
             'birthday',
         )
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+    def validate_cpf(self, value):
+        # O front-end envia o CPF com máscara (000.000.000-00), mas a coluna guarda só os 11 dígitos.
+        cpf = ''.join(filter(str.isdigit, value))
+        if User.objects.filter(cpf=cpf).exists():
+            raise serializers.ValidationError('Já existe um usuário cadastrado com este CPF.')
+        return cpf
 
     def validate_password(self, value):
         validate_password(value)
@@ -115,11 +133,10 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
         validated_data.pop('code', None)
 
         pic_instance = validated_data.pop('profile_picture', None)
-        user_name = validated_data.get('name', '')
-        user_cpf = validated_data.get('cpf', '')
         if pic_instance:
-            pic_instance.description = f'Foto de {user_name} ({user_cpf})'
-            pic_instance.save()
+            # A descrição da foto é exibida para outros usuários: não incluir o CPF.
+            pic_instance.description = f'Foto de {validated_data.get("name", "")}'
+            pic_instance.save(update_fields=['description'])
 
         user = User.objects.create_user(**validated_data, profile_picture=pic_instance)
 
@@ -147,10 +164,7 @@ class UserPatchSerializer(UserCreateSerializer):
     email = serializers.EmailField(
         required=False,
     )
-    cpf = serializers.CharField(
-        required=False,
-        validators=[validate_cpf],
-    )
+    cpf = None
 
     class Meta:
         model = User
@@ -168,8 +182,15 @@ class UserPatchSerializer(UserCreateSerializer):
             'city',
             'state',
             'phone',
+            'birthday',
             'profile_picture',
         )
+
+    def _get_user(self):
+        if self.instance is not None:
+            return self.instance
+        # Aninhado em um perfil (user_data do motorista/passageiro/empresa): o usuário é o dono do perfil.
+        return getattr(getattr(self.parent, 'instance', None), 'user', None)
 
     def validate(self, attrs):
         initial_data = getattr(self, 'initial_data', {}) or {}
@@ -178,10 +199,12 @@ class UserPatchSerializer(UserCreateSerializer):
                 'cpf': 'Você não tem permissão para alterar o campo CPF. Contate o suporte.'
             })
 
-        user = self.instance
+        user = self._get_user()
+        if user is None:
+            raise serializers.ValidationError('Usuário não encontrado.')
         new_email = attrs.get('email')
         has_new_password = 'password' in attrs
-        is_changing_email = user and new_email and new_email != user.email
+        is_changing_email = bool(new_email) and new_email != user.email.lower()
 
         if has_new_password and is_changing_email:
             raise serializers.ValidationError({
@@ -191,7 +214,7 @@ class UserPatchSerializer(UserCreateSerializer):
             })
 
         if is_changing_email:
-            if User.objects.filter(email=new_email).exclude(pk=user.pk).exists():
+            if User.objects.filter(email__iexact=new_email).exclude(pk=user.pk).exists():
                 raise serializers.ValidationError({'email': 'Já existe um usuário cadastrado com este e-mail.'})
 
             current_pw = attrs.get('current_password')
@@ -232,8 +255,8 @@ class UserPatchSerializer(UserCreateSerializer):
                 old_pic_instance.delete()
 
             if new_pic_instance:
-                new_pic_instance.description = f'Foto atualizada de {validated_data.get("name", instance.name)}'
-                new_pic_instance.save()
+                new_pic_instance.description = f'Foto de {validated_data.get("name", instance.name)}'
+                new_pic_instance.save(update_fields=['description'])
 
             instance.profile_picture = new_pic_instance
 
@@ -258,9 +281,10 @@ class BaseProfileCreateSerializer(serializers.ModelSerializer):
     user_data = UserCreateSerializer(source='user')
 
     def create_user_instance(self, user_data):
-        user_serializer = UserCreateSerializer(data=user_data, context=self.context)
-        user_serializer.is_valid(raise_exception=True)
-        return user_serializer.save()
+        # `user_data` já foi validado pelo serializer aninhado (inclusive o código do e-mail, guardado em
+        # context['token_instance']). Validar de novo falhava: os dados validados contêm instâncias
+        # (ex.: a foto de perfil) e não os valores enviados pelo cliente.
+        return UserCreateSerializer(context=self.context).create(user_data)
 
 
 class BaseProfilePatchSerializer(ModelSerializer):
@@ -277,12 +301,7 @@ class BaseProfilePatchSerializer(ModelSerializer):
 
         initial_data = getattr(self, 'initial_data', {}) or {}
 
-        forbidden_fields = list(self.FORBIDDEN_FIELDS)
-        extra_forbidden_fields = self.context.get('errors', [])
-        if extra_forbidden_fields:
-            forbidden_fields.extend(extra_forbidden_fields)
-
-        for field in forbidden_fields:
+        for field in self.FORBIDDEN_FIELDS:
             if field in initial_data:
                 errors[field] = f"Você não tem permissão para alterar o campo '{field}'. Contate o suporte"
 
@@ -295,22 +314,12 @@ class BaseProfilePatchSerializer(ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user', None)
 
         if user_data:
-            user_instance = getattr(instance, 'user', None)
-
-            if not user_instance:
-                raise serializers.ValidationError({'user_data': 'Usuário associado a este perfil não foi encontrado.'})
-
-            user_serializer = UserPatchSerializer(
-                user_instance,
-                data=user_data,
-                partial=True,
-                context=self.context,
-            )
-            user_serializer.is_valid(raise_exception=True)
-            user_serializer.save()
+            # Os dados já foram validados pelo serializer aninhado; apenas aplica a atualização.
+            UserPatchSerializer(instance.user, context=self.context).update(instance.user, user_data)
 
         return super().update(instance, validated_data)

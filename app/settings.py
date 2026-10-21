@@ -3,6 +3,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Carrega as variáveis de ambiente do arquivo .env
@@ -15,11 +16,18 @@ MODE = os.getenv('MODE')
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Segurança e configuração básica
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    if not DEBUG:
+        # A SECRET_KEY também assina os tokens JWT: uma chave padrão conhecida em produção
+        # permitiria a qualquer pessoa forjar tokens de acesso.
+        raise ImproperlyConfigured('A variável de ambiente SECRET_KEY é obrigatória quando DEBUG=False.')
+    SECRET_KEY = 'django-insecure-chave-apenas-para-desenvolvimento'
 # No Fabroku, defina ALLOWED_HOSTS (ex.: "seu-app.fabroku.app") como variável de ambiente;
 # o fallback abaixo só cobre desenvolvimento local.
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+# Apenas nomes de host, sem protocolo nem porta (ex.: "localhost,127.0.0.1,seu-app.fabroku.app").
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',') if host.strip()]
 
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 FRONTEND_ADMIN_URL = os.getenv('FRONTEND_ADMIN_URL', '')
@@ -213,12 +221,26 @@ AUTH_USER_MODEL = 'authenticator.User'
 # Configurações do Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',),
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
     'DEFAULT_PAGINATION_CLASS': 'app.pagination.CustomPagination',
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'PAGE_SIZE': 10,
-    'DEFAULT_FILTER_BACKENDS': (
-        'django_filters.rest_framework.DjangoFilterBackend',)
+    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
+    'EXCEPTION_HANDLER': 'app.exceptions.custom_exception_handler',
+    'DEFAULT_THROTTLE_RATES': {
+        # Limita o envio/validação de códigos por e-mail e o login (evita spam e força bruta).
+        'email_tokens': '60/hour',
+        'login': '30/minute',
+    },
 }
+
+# Validade e número máximo de tentativas dos códigos de verificação enviados por e-mail
+EMAIL_TOKEN_EXPIRATION_MINUTES = int(os.getenv('EMAIL_TOKEN_EXPIRATION_MINUTES', 15))
+EMAIL_TOKEN_MAX_ATTEMPTS = int(os.getenv('EMAIL_TOKEN_MAX_ATTEMPTS', 5))
+
+# Limite de tamanho dos arquivos enviados ao App Uploader
+MAX_IMAGE_UPLOAD_SIZE = 5 * 1024 * 1024
+MAX_DOCUMENT_UPLOAD_SIZE = 10 * 1024 * 1024
 
 # Configurações do Simple JWT
 SIMPLE_JWT = {
@@ -226,9 +248,6 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),  # Tokens de atualização expiram em 1 dia
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
-
-# Exibe as configurações principais para verificação
-print(f'{MODE = } \n{MEDIA_URL = } \n{DATABASES = }')
 
 
 # Envio de email
@@ -238,6 +257,8 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False') == 'True'
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'webmaster@localhost')
+# Sem timeout, um servidor SMTP lento deixa a requisição de cadastro travada indefinidamente.
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', 15))
 
 if not EMAIL_HOST:
     # Sem SMTP configurado (ex.: ambiente de desenvolvimento): imprime os e-mails no console

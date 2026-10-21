@@ -12,7 +12,8 @@ def setup_project():
             f.write('MODE=DEVELOPMENT\n')
             f.write('DEBUG=True\n')
             f.write('SECRET_KEY=exemplo\n')
-            f.write('CLOUDINARY_URL=cloudinary://exemplo.com/media/\n')
+            # Vazio: os arquivos ficam em /media. Para usar o Cloudinary, preencha com a URL real.
+            f.write('CLOUDINARY_URL=\n')
             f.write('EMAIL_HOST_USER=seu@email.com\n')
             f.write('EMAIL_HOST_PASSWORD=\n')
             f.write('EMAIL_HOST=\n')
