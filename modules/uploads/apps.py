@@ -1,0 +1,8 @@
+from django.apps import AppConfig
+
+
+class UploadsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'modules.uploads'
+    label = 'uploader'
+    verbose_name = 'Arquivos e documentos'

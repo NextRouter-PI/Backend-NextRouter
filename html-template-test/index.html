@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>NextRouter API — Painel de Testes Manuais (Desenvolvimento)</title>
+</head>
+<body>
+  <p><strong>AVISO DE SEGURANÇA: Ferramenta exclusiva para ambiente de desenvolvimento local. Não exponha esta pasta em produção.</strong></p>
+  <h1>NextRouter — Testes Manuais da API</h1>
+  <p>Interface em HTML puro para exercitar manualmente todos os endpoints REST e WebSocket do backend e inspecionar as respostas cruas.</p>
+
+  <hr>
+
+  <h2>1. Configuração da URL Base da API</h2>
+  <form id="form-base-url">
+    <p>
+      <label for="api-base-url">URL Base da API:</label>
+      <input type="url" id="api-base-url" name="api_base_url" value="http://localhost:8000" size="40" required>
+      <button type="submit">Salvar URL Base</button>
+      <button type="button" id="btn-reset-url">Restaurar Padrão (http://localhost:8000)</button>
+    </p>
+  </form>
+  <pre id="out-base-url">URL base ativa: http://localhost:8000</pre>
+
+  <hr>
+
+  <h2>2. Sessão Atual e Troca Rápida de Papel</h2>
+  <p>
+    Usuário logado: <strong id="current-user-label">Nenhum (anônimo)</strong> |
+    Papel atual: <strong id="current-role-label">-</strong>
+  </p>
+  <p>
+    Preencher e-mail de demonstração (digite a senha abaixo para autenticar):
+    <button type="button" data-demo-email="contato@transnorte.com.br">Empresa (TransNorte)</button>
+    <button type="button" data-demo-email="marcos.antunes@transnorte.com.br">Motorista (Marcos)</button>
+    <button type="button" data-demo-email="ana.souza@example.com">Passageiro (Ana)</button>
+    <button type="button" data-demo-email="admin@nextrouter.com">Admin</button>
+  </p>
+  <p>
+    Alternar token Bearer salvo nesta aba (para chamadas REST):
+    <select id="saved-sessions-select">
+      <option value="">-- Nenhuma sessão salva --</option>
+    </select>
+    <button type="button" id="btn-switch-session">Ativar Sessão Selecionada</button>
+    <button type="button" id="btn-clear-storage">Limpar sessionStorage</button>
+  </p>
+
+  <h3>GET /api/csrf/ (Obter Token CSRF)</h3>
+  <form id="form-csrf">
+    <button type="submit">GET /api/csrf/</button>
+  </form>
+  <pre id="out-csrf">Aguardando envio...</pre>
+
+  <h3>POST /api/login/ (Autenticar e Salvar Sessão)</h3>
+  <form id="form-login">
+    <p>
+      <label for="login-email">E-mail:</label>
+      <input type="email" id="login-email" name="email" value="contato@transnorte.com.br" size="35" required>
+    </p>
+    <p>
+      <label for="login-password">Senha:</label>
+      <input type="password" id="login-password" name="password" value="" placeholder="Digite a senha em tempo de uso" size="35" required>
+    </p>
+    <button type="submit">POST /api/login/</button>
+  </form>
+  <pre id="out-login">Aguardando envio...</pre>
+
+  <h3>GET /api/users/me/ (Verificar Usuário e Papel Atual)</h3>
+  <form id="form-me">
+    <button type="submit">GET /api/users/me/</button>
+  </form>
+  <pre id="out-me">Aguardando envio...</pre>
+
+  <h3>POST /api/refresh/ (Renovar Access Token via Cookie Refresh)</h3>
+  <form id="form-refresh">
+    <button type="submit">POST /api/refresh/</button>
+  </form>
+  <pre id="out-refresh">Aguardando envio...</pre>
+
+  <h3>POST /api/me/logout/ (Encerrar Sessão Atual e Limpar Cookies)</h3>
+  <form id="form-logout">
+    <button type="submit">POST /api/me/logout/</button>
+  </form>
+  <pre id="out-logout">Aguardando envio...</pre>
+
+  <hr>
+
+  <h2>3. Páginas por Recurso (Fluxo da Aplicação)</h2>
+  <ul>
+    <li>
+      <strong>1. Contas, Acesso e Administração de Usuários:</strong>
+      <a href="contas.html">contas.html</a>
+      — Códigos por e-mail (cadastro, recuperação de senha, troca de e-mail), confirmação polimórfica de cadastro, perfil (<code>/api/users/me/</code>), sessões ativas e CRUD de usuários (Admin).
+    </li>
+    <li>
+      <strong>2. Uploads Privados e Empresas:</strong>
+      <a href="empresas.html">empresas.html</a>
+      — Upload de documentos PDF e imagens (<code>multipart/form-data</code>), download privado de documentos, cadastro de empresa, painel da empresa (<code>/api/companies/me/</code> e <code>/api/companies/me/stats/</code>), listagem e edição.
+    </li>
+    <li>
+      <strong>3. Grupos de Rota e Horários:</strong>
+      <a href="grupos-horarios.html">grupos-horarios.html</a>
+      — CRUD de grupos de rota (<code>/api/company-route-groups/</code>) e CRUD de horários de ida/volta sem sobreposição (<code>/api/route-schedules/</code>).
+    </li>
+    <li>
+      <strong>4. Motoristas e Veículos:</strong>
+      <a href="veiculos-motoristas.html">veiculos-motoristas.html</a>
+      — Cadastro e gestão de motoristas (<code>/api/drivers/</code>) e CRUD de veículos do grupo (<code>/api/vehicles/</code>).
+    </li>
+    <li>
+      <strong>5. Passageiros e Vínculos na Rota (Solicitação e Aprovação):</strong>
+      <a href="vinculos.html">vinculos.html</a>
+      — Cadastro de passageiros (<code>/api/passengers/</code>), pedido de entrada no grupo (<code>request-route-group</code>) e aprovação/recusa pela empresa (<code>approve</code> / <code>reject</code>) para passageiros e motoristas.
+    </li>
+    <li>
+      <strong>6. Trajetos com Paradas e OSRM:</strong>
+      <a href="trajeto-osrm.html">trajeto-osrm.html</a>
+      — CRUD de trajetos (<code>/api/paths/</code>), otimização de paradas via OSRM (<code>/api/paths/{id}/optimize/</code>) exibindo melhor ordem, distância, duração e geometria, e status de otimização (<code>/api/paths/{id}/optimization/</code>).
+    </li>
+    <li>
+      <strong>7. Viagens e Confirmação de Presença:</strong>
+      <a href="viagens-presenca.html">viagens-presenca.html</a>
+      — Agendamento de viagem (<code>/api/travels/</code>), transições de estado (<code>start</code>, <code>location</code> HTTP, <code>finish</code>, <code>cancel</code>) e confirmação idempotente de presença (<code>/api/confirmations/</code>).
+    </li>
+    <li>
+      <strong>8. Localização da Viagem em Tempo Real (WebSocket):</strong>
+      <a href="ws-localizacao.html">ws-localizacao.html</a>
+      — Painel duplo independente para o canal <code>ws/travels/{travel_id}/location/</code>: transmissor do motorista (ponto único ou sequência simulada) e receptor de acompanhamento (passageiro/empresa).
+    </li>
+    <li>
+      <strong>9. Objetos Perdidos e Avaliações de Motoristas:</strong>
+      <a href="objetos-avaliacoes.html">objetos-avaliacoes.html</a>
+      — Relato e atualização de status de objetos perdidos (<code>/api/lost-items/</code>) e avaliações de motoristas pós-viagem (<code>/api/driver-ratings/</code>).
+    </li>
+  </ul>
+
+  <hr>
+
+  <h2>4. Esquema OpenAPI e Painel Administrativo</h2>
+  <p>
+    Links diretos no navegador (usam a URL base configurada):
+    <a id="link-admin" href="http://localhost:8000/admin/" target="_blank">Painel Admin (/admin/)</a> |
+    <a id="link-swagger" href="http://localhost:8000/api/doc/" target="_blank">Swagger UI (/api/doc/)</a> |
+    <a id="link-redoc" href="http://localhost:8000/api/redoc/" target="_blank">Redoc (/api/redoc/)</a>
+  </p>
+
+  <h3>GET /api/schema/ (Baixar / Inspecionar Schema OpenAPI)</h3>
+  <form id="form-schema">
+    <p>
+      <label for="schema-format">Formato (Accept):</label>
+      <select id="schema-format" name="accept">
+        <option value="application/vnd.oai.openapi+json">JSON (application/vnd.oai.openapi+json)</option>
+        <option value="application/vnd.oai.openapi">YAML (application/vnd.oai.openapi)</option>
+      </select>
+      <button type="submit">GET /api/schema/</button>
+    </p>
+  </form>
+  <pre id="out-schema">Aguardando envio...</pre>
+
+  <script>
+    (function () {
+      var defaultHost = window.location.hostname || 'localhost';
+      var defaultBase = 'http://' + defaultHost + ':8000';
+
+      function getBaseUrl() {
+        return (sessionStorage.getItem('nr_api_base') || defaultBase).replace(/\/+$/, '');
+      }
+
+      function getCookie(name) {
+        var match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+        return match ? decodeURIComponent(match[1]) : '';
+      }
+
+      function getCsrfToken() {
+        return getCookie('csrftoken') || sessionStorage.getItem('nr_csrf_token') || '';
+      }
+
+      function getSavedSessions() {
+        try {
+          return JSON.parse(sessionStorage.getItem('nr_saved_sessions') || '{}');
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function saveProfileSession(user, accessToken) {
+        if (!user || !user.email) return;
+        var sessions = getSavedSessions();
+        var key = (user.type || 'user') + ':' + user.email;
+        sessions[key] = {
+          user: user,
+          access: accessToken || sessionStorage.getItem('nr_access_token') || ''
+        };
+        sessionStorage.setItem('nr_saved_sessions', JSON.stringify(sessions));
+        sessionStorage.setItem('nr_current_user', JSON.stringify(user));
+        renderAuthStatus();
+      }
+
+      function renderAuthStatus() {
+        var base = getBaseUrl();
+        document.getElementById('api-base-url').value = base;
+        document.getElementById('out-base-url').textContent = 'URL base ativa: ' + base;
+        document.getElementById('link-admin').href = base + '/admin/';
+        document.getElementById('link-swagger').href = base + '/api/doc/';
+        document.getElementById('link-redoc').href = base + '/api/redoc/';
+
+        var userRaw = sessionStorage.getItem('nr_current_user');
+        var userLabel = document.getElementById('current-user-label');
+        var roleLabel = document.getElementById('current-role-label');
+        if (userRaw) {
+          try {
+            var u = JSON.parse(userRaw);
+            userLabel.textContent = (u.name || '-') + ' <' + (u.email || '-') + '> (ID: ' + u.id + ')';
+            roleLabel.textContent = u.type || 'autenticado';
+          } catch (e) {
+            userLabel.textContent = 'Nenhum (anônimo)';
+            roleLabel.textContent = '-';
+          }
+        } else {
+          userLabel.textContent = 'Nenhum (anônimo)';
+          roleLabel.textContent = '-';
+        }
+
+        var select = document.getElementById('saved-sessions-select');
+        var sessions = getSavedSessions();
+        var keys = Object.keys(sessions);
+        select.innerHTML = '';
+        if (keys.length === 0) {
+          var optEmpty = document.createElement('option');
+          optEmpty.value = '';
+          optEmpty.textContent = '-- Nenhuma sessão salva --';
+          select.appendChild(optEmpty);
+        } else {
+          keys.forEach(function (k) {
+            var item = sessions[k];
+            var opt = document.createElement('option');
+            opt.value = k;
+            opt.textContent = '[' + item.user.type + '] ' + item.user.name + ' (' + item.user.email + ')';
+            select.appendChild(opt);
+          });
+        }
+      }
+
+      async function ensureCsrf() {
+        var url = getBaseUrl() + '/api/csrf/';
+        var res = await fetch(url, { method: 'GET', credentials: 'include' });
+        var data = await res.json();
+        if (data && data.csrfToken) {
+          sessionStorage.setItem('nr_csrf_token', data.csrfToken);
+        }
+        return { res: res, data: data, url: url };
+      }
+
+      async function sendRequest(method, path, bodyObj, outputEl, extraHeaders, skipBearer) {
+        var url = getBaseUrl() + path;
+        outputEl.textContent = 'Enviando ' + method + ' ' + url + ' ...';
+        var headers = Object.assign({ 'Accept': 'application/json' }, extraHeaders || {});
+        if (method !== 'GET' && method !== 'HEAD') {
+          if (!getCsrfToken()) {
+            try { await ensureCsrf(); } catch (e) {}
+          }
+          var csrf = getCsrfToken();
+          if (csrf) headers['X-CSRFToken'] = csrf;
+        }
+        var access = sessionStorage.getItem('nr_access_token');
+        if (access && !skipBearer) {
+          headers['Authorization'] = 'Bearer ' + access;
+        }
+        var opts = { method: method, headers: headers, credentials: 'include' };
+        if (bodyObj !== null && bodyObj !== undefined) {
+          headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(bodyObj);
+        }
+        try {
+          var res = await fetch(url, opts);
+          var rawText = await res.text();
+          var parsed = null;
+          var formattedBody = rawText;
+          try {
+            parsed = rawText ? JSON.parse(rawText) : null;
+            if (parsed !== null) formattedBody = JSON.stringify(parsed, null, 2);
+          } catch (e) {}
+
+          var headerLines = [];
+          ['content-type', 'www-authenticate', 'retry-after', 'allow', 'vary'].forEach(function (h) {
+            var val = res.headers.get(h);
+            if (val) headerLines.push(h + ': ' + val);
+          });
+
+          outputEl.textContent =
+            method + ' ' + url + '\n' +
+            'Status: ' + res.status + ' ' + res.statusText + '\n' +
+            (headerLines.length ? 'Headers:\n  ' + headerLines.join('\n  ') + '\n' : '') +
+            '\nCorpo da resposta:\n' + (formattedBody || '(vazio)');
+
+          return { ok: res.ok, status: res.status, data: parsed };
+        } catch (err) {
+          outputEl.textContent =
+            method + ' ' + url + '\n' +
+            'ERRO DE REDE: ' + (err && err.message ? err.message : String(err)) + '\n' +
+            'Verifique se o servidor Django está rodando em ' + getBaseUrl() + ' e se a origem atual está permitida no CORS.';
+          return { ok: false, status: 0, data: null };
+        }
+      }
+
+      document.getElementById('form-base-url').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var val = document.getElementById('api-base-url').value.trim().replace(/\/+$/, '');
+        sessionStorage.setItem('nr_api_base', val);
+        renderAuthStatus();
+      });
+
+      document.getElementById('btn-reset-url').addEventListener('click', function () {
+        sessionStorage.setItem('nr_api_base', defaultBase);
+        renderAuthStatus();
+      });
+
+      document.querySelectorAll('[data-demo-email]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.getElementById('login-email').value = btn.getAttribute('data-demo-email');
+          document.getElementById('login-password').focus();
+        });
+      });
+
+      document.getElementById('btn-switch-session').addEventListener('click', function () {
+        var key = document.getElementById('saved-sessions-select').value;
+        var sessions = getSavedSessions();
+        if (key && sessions[key]) {
+          sessionStorage.setItem('nr_access_token', sessions[key].access || '');
+          sessionStorage.setItem('nr_current_user', JSON.stringify(sessions[key].user));
+          renderAuthStatus();
+          document.getElementById('out-me').textContent =
+            'Sessão alternada no sessionStorage (Bearer):\n' + JSON.stringify(sessions[key].user, null, 2);
+        }
+      });
+
+      document.getElementById('btn-clear-storage').addEventListener('click', function () {
+        sessionStorage.removeItem('nr_access_token');
+        sessionStorage.removeItem('nr_csrf_token');
+        sessionStorage.removeItem('nr_current_user');
+        sessionStorage.removeItem('nr_saved_sessions');
+        renderAuthStatus();
+        document.getElementById('out-login').textContent = 'sessionStorage limpo.';
+      });
+
+      document.getElementById('form-csrf').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var result = await sendRequest('GET', '/api/csrf/', null, document.getElementById('out-csrf'), null, true);
+        if (result.ok && result.data && result.data.csrfToken) {
+          sessionStorage.setItem('nr_csrf_token', result.data.csrfToken);
+        }
+      });
+
+      document.getElementById('form-login').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var email = document.getElementById('login-email').value.trim();
+        var password = document.getElementById('login-password').value;
+        var result = await sendRequest(
+          'POST',
+          '/api/login/',
+          { email: email, password: password },
+          document.getElementById('out-login'),
+          null,
+          true
+        );
+        if (result.ok && result.data && result.data.access) {
+          sessionStorage.setItem('nr_access_token', result.data.access);
+          var meRes = await sendRequest('GET', '/api/users/me/', null, document.getElementById('out-me'));
+          if (meRes.ok && meRes.data) {
+            saveProfileSession(meRes.data, result.data.access);
+          }
+        }
+      });
+
+      document.getElementById('form-me').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var meRes = await sendRequest('GET', '/api/users/me/', null, document.getElementById('out-me'));
+        if (meRes.ok && meRes.data) {
+          saveProfileSession(meRes.data, sessionStorage.getItem('nr_access_token'));
+        }
+      });
+
+      document.getElementById('form-refresh').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var res = await sendRequest('POST', '/api/refresh/', null, document.getElementById('out-refresh'), null, true);
+        if (res.ok && res.data && res.data.access) {
+          sessionStorage.setItem('nr_access_token', res.data.access);
+        }
+      });
+
+      document.getElementById('form-logout').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        await sendRequest('POST', '/api/me/logout/', null, document.getElementById('out-logout'));
+        sessionStorage.removeItem('nr_access_token');
+        sessionStorage.removeItem('nr_current_user');
+        renderAuthStatus();
+      });
+
+      document.getElementById('form-schema').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var accept = document.getElementById('schema-format').value;
+        await sendRequest('GET', '/api/schema/', null, document.getElementById('out-schema'), { 'Accept': accept });
+      });
+
+      renderAuthStatus();
+    })();
+  </script>
+</body>
+</html>

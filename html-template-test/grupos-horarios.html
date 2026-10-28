@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>NextRouter — Grupos de Rota e Horários</title>
+</head>
+<body>
+  <p><a href="index.html">&larr; Voltar para index.html</a></p>
+  <h1>Grupos de Rota e Horários</h1>
+  <p>URL Base: <strong id="hdr-base-url"></strong> | Usuário: <strong id="hdr-user"></strong> | Papel: <strong id="hdr-role"></strong></p>
+
+  <hr>
+
+  <h2>Parte 1: Grupos de Rota (/api/company-route-groups/)</h2>
+
+  <h3>GET /api/company-route-groups/</h3>
+  <form data-endpoint="GET /api/company-route-groups/">
+    <p><label>name (query): <input type="text" name="query__name" value=""></label></p>
+    <p><label>company (query ID): <input type="number" name="query__company" value=""></label></p>
+    <p><label>page (query): <input type="number" name="query__page" value="1" min="1"></label></p>
+    <p><label>page_size (query): <input type="number" name="query__page_size" value="10" min="1" max="100"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>POST /api/company-route-groups/ (Papel: Empresa Aprovada)</h3>
+  <form data-endpoint="POST /api/company-route-groups/">
+    <p><label>name: <input type="text" name="name" value="Rota Centro-FURB" size="35" required></label></p>
+    <p><label>common_cep: <input type="text" name="common_cep" value="89010-000" size="15" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>GET /api/company-route-groups/{id}/</h3>
+  <form data-endpoint="GET /api/company-route-groups/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/company-route-groups/{id}/ (Papel: Empresa Dona)</h3>
+  <form data-endpoint="PATCH /api/company-route-groups/{id}/" data-omit-empty="true">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <p><label>name: <input type="text" name="name" value="Rota Centro-Garcia Atualizada" size="35"></label></p>
+    <p><label>common_cep: <input type="text" name="common_cep" value="89010-000" size="15"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>DELETE /api/company-route-groups/{id}/ (Papel: Empresa Dona)</h3>
+  <form data-endpoint="DELETE /api/company-route-groups/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <hr>
+
+  <h2>Parte 2: Horários de Rota (/api/route-schedules/)</h2>
+  <p>Regra de negócio: <code>return_hour</code> deve ser posterior a <code>go_hour</code> e não pode haver sobreposição de horários no mesmo <code>route_group</code>.</p>
+
+  <h3>GET /api/route-schedules/</h3>
+  <form data-endpoint="GET /api/route-schedules/">
+    <p><label>route_group (query ID): <input type="number" name="query__route_group" value=""></label></p>
+    <p><label>page (query): <input type="number" name="query__page" value="1" min="1"></label></p>
+    <p><label>page_size (query): <input type="number" name="query__page_size" value="10" min="1" max="100"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>POST /api/route-schedules/ (Papel: Empresa Aprovada)</h3>
+  <form data-endpoint="POST /api/route-schedules/">
+    <p><label>route_group (ID): <input type="number" name="route_group" value="1" min="1" required></label></p>
+    <p><label>go_hour (HH:MM): <input type="time" name="go_hour" value="07:00" required></label></p>
+    <p><label>return_hour (HH:MM): <input type="time" name="return_hour" value="12:00" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>GET /api/route-schedules/{id}/</h3>
+  <form data-endpoint="GET /api/route-schedules/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/route-schedules/{id}/ (Papel: Empresa Dona)</h3>
+  <form data-endpoint="PATCH /api/route-schedules/{id}/" data-omit-empty="true">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <p><label>route_group (ID opcional): <input type="number" name="route_group" value=""></label></p>
+    <p><label>go_hour (HH:MM): <input type="time" name="go_hour" value="06:45"></label></p>
+    <p><label>return_hour (HH:MM): <input type="time" name="return_hour" value="12:15"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>DELETE /api/route-schedules/{id}/ (Papel: Empresa Dona)</h3>
+  <form data-endpoint="DELETE /api/route-schedules/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <script>
+    (function () {
+      var defaultBase = 'http://' + (window.location.hostname || 'localhost') + ':8000';
+      function getBaseUrl() {
+        return (sessionStorage.getItem('nr_api_base') || defaultBase).replace(/\/+$/, '');
+      }
+      function getCookie(name) {
+        var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function getCsrfToken() {
+        return getCookie('csrftoken') || sessionStorage.getItem('nr_csrf_token') || '';
+      }
+      function renderHeader() {
+        document.getElementById('hdr-base-url').textContent = getBaseUrl();
+        var raw = sessionStorage.getItem('nr_current_user');
+        if (raw) {
+          try {
+            var u = JSON.parse(raw);
+            document.getElementById('hdr-user').textContent = u.name + ' <' + u.email + '> (ID: ' + u.id + ')';
+            document.getElementById('hdr-role').textContent = u.type || '-';
+            return;
+          } catch (e) {}
+        }
+        document.getElementById('hdr-user').textContent = 'Anônimo';
+        document.getElementById('hdr-role').textContent = '-';
+      }
+
+      async function sendRaw(method, path, bodyObj, outEl) {
+        var url = getBaseUrl() + path;
+        outEl.textContent = 'Enviando ' + method + ' ' + url + ' ...';
+        var headers = { 'Accept': 'application/json' };
+        if (method !== 'GET' && method !== 'HEAD') {
+          if (!getCsrfToken()) {
+            try {
+              var r = await fetch(getBaseUrl() + '/api/csrf/', { method: 'GET', credentials: 'include' });
+              var d = await r.json();
+              if (d && d.csrfToken) sessionStorage.setItem('nr_csrf_token', d.csrfToken);
+            } catch (e) {}
+          }
+          var csrf = getCsrfToken();
+          if (csrf) headers['X-CSRFToken'] = csrf;
+        }
+        var access = sessionStorage.getItem('nr_access_token');
+        if (access) headers['Authorization'] = 'Bearer ' + access;
+        var opts = { method: method, headers: headers, credentials: 'include' };
+        if (bodyObj !== null && bodyObj !== undefined && method !== 'GET' && method !== 'DELETE') {
+          headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(bodyObj);
+        }
+        try {
+          var res = await fetch(url, opts);
+          var text = await res.text();
+          var formatted = text;
+          try {
+            if (text) formatted = JSON.stringify(JSON.parse(text), null, 2);
+          } catch (e) {}
+          var hdrs = [];
+          ['content-type', 'www-authenticate', 'retry-after'].forEach(function (h) {
+            var v = res.headers.get(h);
+            if (v) hdrs.push(h + ': ' + v);
+          });
+          outEl.textContent =
+            method + ' ' + url + '\n' +
+            'Status: ' + res.status + ' ' + res.statusText + '\n' +
+            (hdrs.length ? 'Headers:\n  ' + hdrs.join('\n  ') + '\n' : '') +
+            '\nCorpo da resposta:\n' + (formatted || '(vazio)');
+        } catch (err) {
+          outEl.textContent = method + ' ' + url + '\nERRO DE REDE: ' + (err.message || String(err));
+        }
+      }
+
+      document.querySelectorAll('form[data-endpoint]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var parts = form.getAttribute('data-endpoint').split(' ');
+          var method = parts[0];
+          var path = parts[1];
+          var omitEmpty = form.getAttribute('data-omit-empty') === 'true';
+          var query = [];
+          var body = {};
+          var hasBody = false;
+          var fd = new FormData(form);
+          fd.forEach(function (val, key) {
+            var s = String(val).trim();
+            if (key.indexOf('path__') === 0) {
+              path = path.replace('{' + key.slice(6) + '}', encodeURIComponent(s));
+            } else if (key.indexOf('query__') === 0) {
+              if (s !== '') query.push(encodeURIComponent(key.slice(7)) + '=' + encodeURIComponent(s));
+            } else {
+              if (omitEmpty && s === '') return;
+              hasBody = true;
+              body[key] = (key === 'route_group' && s !== '') ? Number(s) : val;
+            }
+          });
+          if (query.length) path += '?' + query.join('&');
+          sendRaw(method, path, hasBody ? body : null, form.nextElementSibling);
+        });
+      });
+
+      renderHeader();
+    })();
+  </script>
+</body>
+</html>

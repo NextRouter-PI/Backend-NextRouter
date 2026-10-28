@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>NextRouter — WebSocket de Localização da Viagem</title>
+</head>
+<body>
+  <p><a href="index.html">&larr; Voltar para index.html</a></p>
+  <h1>Localização da Viagem em Tempo Real (WebSocket)</h1>
+  <p>URL Base HTTP: <strong id="hdr-base-url"></strong> | URL Base WS: <strong id="hdr-ws-url"></strong> | Usuário: <strong id="hdr-user"></strong> | Papel: <strong id="hdr-role"></strong></p>
+  <p>
+    Observação: O navegador envia automaticamente o cookie HttpOnly <code>access_token</code> na conexão WebSocket.
+    A viagem deve estar com status <code>in_progress</code> (<a href="viagens-presenca.html">inicie a viagem em viagens-presenca.html</a>).
+    Códigos de fechamento do backend: <code>1000</code> (encerramento normal), <code>4001</code> (não autenticado), <code>4003</code> (sem permissão), <code>4004</code> (viagem inexistente), <code>4009</code> (viagem não está em andamento).
+  </p>
+
+  <hr>
+
+  <h2>Parte 1: Motorista — Transmitir Posições (ws/travels/{travel_id}/location/)</h2>
+  <p>Estado da conexão do Motorista: <strong id="driver-ws-status">DESCONECTADO</strong></p>
+
+  <form id="form-driver-connect">
+    <p>
+      <label>travel_id: <input type="number" id="driver-travel-id" value="1" min="1" required></label>
+      <button type="submit">Conectar WebSocket (Motorista)</button>
+      <button type="button" id="btn-driver-disconnect">Desconectar</button>
+    </p>
+  </form>
+
+  <h3>Enviar Um Ponto de Localização</h3>
+  <form id="form-driver-send-point">
+    <p>
+      <label>latitude (-90 a 90): <input type="number" id="driver-lat" step="any" value="-26.9194" required></label>
+      <label>longitude (-180 a 180): <input type="number" id="driver-lon" step="any" value="-49.0661" required></label>
+      <label>recorded_at (ISO opcional): <input type="text" id="driver-rec-at" value="" placeholder="Opcional (ex.: 2026-10-27T12:00:00Z)" size="28"></label>
+      <button type="submit">Enviar um Ponto</button>
+    </p>
+  </form>
+
+  <h3>Enviar Sequência Simulada de Pontos</h3>
+  <form id="form-driver-sim">
+    <p>
+      <label>Intervalo entre pontos (ms — mínimo recomendado 2500ms devido ao rate limit de 2s):
+        <input type="number" id="driver-sim-interval" value="2500" min="500" step="100" required>
+      </label>
+    </p>
+    <p>
+      <label>Lista de coordenadas da sequência (JSON array de <code>[latitude, longitude]</code>):<br>
+        <textarea id="driver-sim-points" rows="7" cols="70">[
+  [-26.9150, -49.0700],
+  [-26.9175, -49.0680],
+  [-26.9194, -49.0661],
+  [-26.9220, -49.0645],
+  [-26.9244, -49.0630]
+]</textarea>
+      </label>
+    </p>
+    <p>
+      <button type="submit">Iniciar Sequência Simulada</button>
+      <button type="button" id="btn-driver-stop-sim">Parar Sequência</button>
+      <button type="button" id="btn-driver-clear-log">Limpar Log do Motorista</button>
+    </p>
+  </form>
+  <pre id="out-driver-ws">Aguardando conexão do motorista...</pre>
+
+  <hr>
+
+  <h2>Parte 2: Passageiro / Empresa — Acompanhar Viagem (ws/travels/{travel_id}/location/)</h2>
+  <p>Estado da conexão de Acompanhamento: <strong id="watcher-ws-status">DESCONECTADO</strong></p>
+
+  <form id="form-watcher-connect">
+    <p>
+      <label>travel_id: <input type="number" id="watcher-travel-id" value="1" min="1" required></label>
+      <button type="submit">Conectar WebSocket (Acompanhamento)</button>
+      <button type="button" id="btn-watcher-disconnect">Desconectar</button>
+      <button type="button" id="btn-watcher-clear-log">Limpar Mensagens</button>
+    </p>
+  </form>
+
+  <h3>Última Posição Recebida</h3>
+  <pre id="out-watcher-last">Nenhuma posição recebida ainda.</pre>
+
+  <h3>Histórico de Mensagens Recebidas</h3>
+  <pre id="out-watcher-log">Aguardando conexão de acompanhamento...</pre>
+
+  <script>
+    (function () {
+      var defaultBase = 'http://' + (window.location.hostname || 'localhost') + ':8000';
+      function getBaseUrl() {
+        return (sessionStorage.getItem('nr_api_base') || defaultBase).replace(/\/+$/, '');
+      }
+      function getWsBaseUrl() {
+        var httpBase = getBaseUrl();
+        if (httpBase.indexOf('https://') === 0) {
+          return 'wss://' + httpBase.slice(8);
+        }
+        if (httpBase.indexOf('http://') === 0) {
+          return 'ws://' + httpBase.slice(7);
+        }
+        return 'ws://' + httpBase;
+      }
+      function nowIso() {
+        return new Date().toISOString();
+      }
+      function renderHeader() {
+        document.getElementById('hdr-base-url').textContent = getBaseUrl();
+        document.getElementById('hdr-ws-url').textContent = getWsBaseUrl();
+        var raw = sessionStorage.getItem('nr_current_user');
+        if (raw) {
+          try {
+            var u = JSON.parse(raw);
+            document.getElementById('hdr-user').textContent = u.name + ' <' + u.email + '> (ID: ' + u.id + ')';
+            document.getElementById('hdr-role').textContent = u.type || '-';
+            return;
+          } catch (e) {}
+        }
+        document.getElementById('hdr-user').textContent = 'Anônimo';
+        document.getElementById('hdr-role').textContent = '-';
+      }
+
+      function describeCloseCode(code) {
+        var map = {
+          1000: 'Fechamento normal / viagem encerrada',
+          1006: 'Fechamento anormal (queda de rede ou handshake recusado)',
+          4001: 'Não autenticado (faça login antes de conectar)',
+          4003: 'Sem permissão para esta viagem ou envio bloqueado',
+          4004: 'Viagem não encontrada',
+          4009: 'Viagem não está em andamento (in_progress)'
+        };
+        return map[code] ? (code + ' - ' + map[code]) : String(code);
+      }
+
+      /* --- Parte 1: Motorista --- */
+      var driverSocket = null;
+      var simTimer = null;
+      var driverLogEl = document.getElementById('out-driver-ws');
+      var driverStatusEl = document.getElementById('driver-ws-status');
+
+      function appendDriverLog(line) {
+        var current = driverLogEl.textContent;
+        if (current === 'Aguardando conexão do motorista...') current = '';
+        driverLogEl.textContent = (current ? current + '\n' : '') + '[' + nowIso() + '] ' + line;
+      }
+
+      function stopSimulation() {
+        if (simTimer !== null) {
+          clearInterval(simTimer);
+          simTimer = null;
+          appendDriverLog('Sequência simulada interrompida.');
+        }
+      }
+
+      document.getElementById('form-driver-connect').addEventListener('submit', function (e) {
+        e.preventDefault();
+        stopSimulation();
+        if (driverSocket && driverSocket.readyState <= 1) {
+          driverSocket.close(1000);
+        }
+        var travelId = document.getElementById('driver-travel-id').value.trim();
+        var wsUrl = getWsBaseUrl() + '/ws/travels/' + encodeURIComponent(travelId) + '/location/';
+        driverStatusEl.textContent = 'CONECTANDO (' + wsUrl + ')...';
+        appendDriverLog('Conectando a ' + wsUrl + ' ...');
+
+        try {
+          driverSocket = new WebSocket(wsUrl);
+        } catch (err) {
+          driverStatusEl.textContent = 'ERRO AO CRIAR WEBSOCKET';
+          appendDriverLog('ERRO: ' + (err.message || String(err)));
+          return;
+        }
+
+        driverSocket.onopen = function () {
+          driverStatusEl.textContent = 'CONECTADO (' + wsUrl + ')';
+          appendDriverLog('Conexão aberta com sucesso.');
+        };
+
+        driverSocket.onmessage = function (ev) {
+          var formatted = ev.data;
+          try {
+            formatted = JSON.stringify(JSON.parse(ev.data));
+          } catch (err) {}
+          appendDriverLog('RECEBIDO <- ' + formatted);
+        };
+
+        driverSocket.onerror = function () {
+          appendDriverLog('ERRO no canal WebSocket (verifique autenticação, CORS/Origin ou se o servidor ASGI/Daphne está ativo).');
+        };
+
+        driverSocket.onclose = function (ev) {
+          stopSimulation();
+          driverStatusEl.textContent = 'FECHADO (' + describeCloseCode(ev.code) + ')';
+          appendDriverLog('CONEXÃO FECHADA: código=' + describeCloseCode(ev.code) + (ev.reason ? ' motivo=' + ev.reason : ''));
+        };
+      });
+
+      document.getElementById('btn-driver-disconnect').addEventListener('click', function () {
+        stopSimulation();
+        if (driverSocket) {
+          driverSocket.close(1000);
+        }
+      });
+
+      function sendDriverPoint(lat, lon, recordedAt) {
+        if (!driverSocket || driverSocket.readyState !== WebSocket.OPEN) {
+          appendDriverLog('FALHA AO ENVIAR: WebSocket do motorista não está conectado.');
+          return false;
+        }
+        var payload = { latitude: Number(lat), longitude: Number(lon) };
+        if (recordedAt) payload.recorded_at = recordedAt;
+        var raw = JSON.stringify(payload);
+        driverSocket.send(raw);
+        appendDriverLog('ENVIADO -> ' + raw);
+        return true;
+      }
+
+      document.getElementById('form-driver-send-point').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var lat = document.getElementById('driver-lat').value;
+        var lon = document.getElementById('driver-lon').value;
+        var rec = document.getElementById('driver-rec-at').value.trim();
+        sendDriverPoint(lat, lon, rec || null);
+      });
+
+      document.getElementById('form-driver-sim').addEventListener('submit', function (e) {
+        e.preventDefault();
+        stopSimulation();
+        if (!driverSocket || driverSocket.readyState !== WebSocket.OPEN) {
+          appendDriverLog('Conecte o WebSocket do motorista antes de iniciar a sequência simulada.');
+          return;
+        }
+        var pts;
+        try {
+          pts = JSON.parse(document.getElementById('driver-sim-points').value);
+          if (!Array.isArray(pts) || pts.length === 0) throw new Error('Informe um array não vazio.');
+        } catch (err) {
+          appendDriverLog('JSON inválido na sequência: ' + err.message);
+          return;
+        }
+        var intervalMs = Math.max(500, Number(document.getElementById('driver-sim-interval').value) || 2500);
+        var idx = 0;
+        appendDriverLog('Iniciando sequência simulada de ' + pts.length + ' pontos a cada ' + intervalMs + 'ms...');
+        sendDriverPoint(pts[0][0], pts[0][1], null);
+        idx = 1;
+        simTimer = setInterval(function () {
+          if (idx >= pts.length) {
+            stopSimulation();
+            appendDriverLog('Sequência simulada concluída.');
+            return;
+          }
+          var p = pts[idx];
+          idx += 1;
+          sendDriverPoint(p[0], p[1], null);
+        }, intervalMs);
+      });
+
+      document.getElementById('btn-driver-stop-sim').addEventListener('click', function () {
+        stopSimulation();
+      });
+
+      document.getElementById('btn-driver-clear-log').addEventListener('click', function () {
+        driverLogEl.textContent = 'Aguardando conexão do motorista...';
+      });
+
+      /* --- Parte 2: Passageiro / Empresa (Acompanhamento) --- */
+      var watcherSocket = null;
+      var watcherStatusEl = document.getElementById('watcher-ws-status');
+      var watcherLastEl = document.getElementById('out-watcher-last');
+      var watcherLogEl = document.getElementById('out-watcher-log');
+
+      function appendWatcherLog(line) {
+        var current = watcherLogEl.textContent;
+        if (current === 'Aguardando conexão de acompanhamento...') current = '';
+        watcherLogEl.textContent = (current ? current + '\n' : '') + '[' + nowIso() + '] ' + line;
+      }
+
+      document.getElementById('form-watcher-connect').addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (watcherSocket && watcherSocket.readyState <= 1) {
+          watcherSocket.close(1000);
+        }
+        var travelId = document.getElementById('watcher-travel-id').value.trim();
+        var wsUrl = getWsBaseUrl() + '/ws/travels/' + encodeURIComponent(travelId) + '/location/';
+        watcherStatusEl.textContent = 'CONECTANDO (' + wsUrl + ')...';
+        appendWatcherLog('Conectando a ' + wsUrl + ' ...');
+
+        try {
+          watcherSocket = new WebSocket(wsUrl);
+        } catch (err) {
+          watcherStatusEl.textContent = 'ERRO AO CRIAR WEBSOCKET';
+          appendWatcherLog('ERRO: ' + (err.message || String(err)));
+          return;
+        }
+
+        watcherSocket.onopen = function () {
+          watcherStatusEl.textContent = 'CONECTADO (' + wsUrl + ')';
+          appendWatcherLog('Conexão de acompanhamento aberta.');
+        };
+
+        watcherSocket.onmessage = function (ev) {
+          var parsed = null;
+          try { parsed = JSON.parse(ev.data); } catch (err) {}
+          if (parsed && parsed.type === 'location') {
+            watcherLastEl.textContent = JSON.stringify(parsed, null, 2);
+          }
+          appendWatcherLog('MENSAGEM <- ' + (parsed ? JSON.stringify(parsed) : ev.data));
+        };
+
+        watcherSocket.onerror = function () {
+          appendWatcherLog('ERRO no canal WebSocket de acompanhamento.');
+        };
+
+        watcherSocket.onclose = function (ev) {
+          watcherStatusEl.textContent = 'FECHADO (' + describeCloseCode(ev.code) + ')';
+          appendWatcherLog('CONEXÃO FECHADA: código=' + describeCloseCode(ev.code) + (ev.reason ? ' motivo=' + ev.reason : ''));
+        };
+      });
+
+      document.getElementById('btn-watcher-disconnect').addEventListener('click', function () {
+        if (watcherSocket) {
+          watcherSocket.close(1000);
+        }
+      });
+
+      document.getElementById('btn-watcher-clear-log').addEventListener('click', function () {
+        watcherLogEl.textContent = 'Aguardando conexão de acompanhamento...';
+        watcherLastEl.textContent = 'Nenhuma posição recebida ainda.';
+      });
+
+      renderHeader();
+    })();
+  </script>
+</body>
+</html>
