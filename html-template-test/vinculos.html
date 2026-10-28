@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>NextRouter — Passageiros e Vínculos na Rota</title>
+</head>
+<body>
+  <p><a href="index.html">&larr; Voltar para index.html</a></p>
+  <h1>Passageiros e Vínculos na Rota (Solicitação e Aprovação)</h1>
+  <p>URL Base: <strong id="hdr-base-url"></strong> | Usuário: <strong id="hdr-user"></strong> | Papel: <strong id="hdr-role"></strong></p>
+
+  <hr>
+
+  <h2>Parte 1: Cadastro e Gestão de Passageiros (/api/passengers/)</h2>
+
+  <h3>GET /api/passengers/</h3>
+  <form data-endpoint="GET /api/passengers/">
+    <p><label>page (query): <input type="number" name="query__page" value="1" min="1"></label></p>
+    <p><label>page_size (query): <input type="number" name="query__page_size" value="10" min="1" max="100"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>POST /api/passengers/ (Cadastro de Passageiro / Aluno)</h3>
+  <p>Solicite antes o código de verificação em <a href="contas.html">contas.html</a> (<code>POST /api/registration/request/</code>).</p>
+  <form id="form-create-passenger">
+    <fieldset>
+      <legend>user_data</legend>
+      <p><label>code (6 dígitos): <input type="text" name="user__code" value="123456" size="10" required></label></p>
+      <p><label>email: <input type="email" name="user__email" value="lucas.aluno@example.com" size="35" required></label></p>
+      <p><label>name: <input type="text" name="user__name" value="Lucas Pereira" size="35" required></label></p>
+      <p><label>password: <input type="password" name="user__password" value="" placeholder="Digite a senha" size="25" required></label></p>
+      <p><label>cpf: <input type="text" name="user__cpf" value="12345678909" size="15" required></label></p>
+      <p><label>phone: <input type="text" name="user__phone" value="47991234567" size="20"></label></p>
+      <p><label>birthday: <input type="date" name="user__birthday" value="2008-09-12"></label></p>
+      <p><label>cep: <input type="text" name="user__cep" value="89010-000" size="12" required></label></p>
+      <p><label>street: <input type="text" name="user__street" value="Rua XV de Novembro" size="35" required></label></p>
+      <p><label>number: <input type="text" name="user__number" value="200" size="10" required></label></p>
+      <p><label>complement: <input type="text" name="user__complement" value="" size="20"></label></p>
+      <p><label>neighborhood: <input type="text" name="user__neighborhood" value="Centro" size="25" required></label></p>
+      <p><label>city: <input type="text" name="user__city" value="Blumenau" size="25" required></label></p>
+      <p><label>state: <input type="text" name="user__state" value="SC" size="5" required></label></p>
+    </fieldset>
+    <button type="submit">Enviar POST /api/passengers/</button>
+  </form>
+  <pre id="out-create-passenger">Aguardando envio...</pre>
+
+  <h3>GET /api/passengers/{id}/</h3>
+  <form data-endpoint="GET /api/passengers/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/passengers/{id}/ (Papel: Próprio Passageiro ou Empresa Dona)</h3>
+  <form id="form-patch-passenger">
+    <p><label>id (path): <input type="number" id="patch-pass-id" value="1" min="1" required></label></p>
+    <p><label>user_data.name (opcional): <input type="text" id="patch-pass-name" value="" size="35"></label></p>
+    <p><label>user_data.street (opcional): <input type="text" id="patch-pass-street" value="" size="35"></label></p>
+    <p><label>user_data.number (opcional): <input type="text" id="patch-pass-number" value="" size="10"></label></p>
+    <p><label>user_data.city (opcional): <input type="text" id="patch-pass-city" value="" size="25"></label></p>
+    <p><label>user_data.cep (opcional): <input type="text" id="patch-pass-cep" value="" size="12"></label></p>
+    <p><label>route_group (ID opcional p/ empresa, ou <code>null</code> para sair do grupo): <input type="text" id="patch-pass-group" value="" size="15"></label></p>
+    <button type="submit">Enviar PATCH /api/passengers/{id}/</button>
+  </form>
+  <pre id="out-patch-passenger">Aguardando envio...</pre>
+
+  <h3>DELETE /api/passengers/{id}/</h3>
+  <form data-endpoint="DELETE /api/passengers/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <hr>
+
+  <h2>Parte 2: Solicitação e Aprovação de Passageiro na Rota</h2>
+  <p>Fluxo: 1) O passageiro solicita entrada em um grupo com <code>request-route-group</code> (fica <code>pending</code>, sem acesso à rota antes da aprovação). 2) A empresa aprova (<code>approve</code>, disparando e-mail assíncrono pós-commit idempotente) ou recusa (<code>reject</code>).</p>
+
+  <h3>PATCH /api/passengers/{id}/request-route-group/ (Papel: Próprio Passageiro)</h3>
+  <form data-endpoint="PATCH /api/passengers/{id}/request-route-group/">
+    <p><label>id do passageiro (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <p><label>route_group (ID do grupo de rota): <input type="number" name="route_group" value="1" min="1" required></label></p>
+    <button type="submit">Solicitar Entrada no Grupo</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/passengers/{id}/approve/ (Papel: Empresa Dona Aprovada)</h3>
+  <form data-endpoint="PATCH /api/passengers/{id}/approve/">
+    <p><label>id do passageiro (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Aprovar Passageiro no Grupo</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/passengers/{id}/reject/ (Papel: Empresa Dona Aprovada)</h3>
+  <form data-endpoint="PATCH /api/passengers/{id}/reject/">
+    <p><label>id do passageiro (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Recusar Passageiro no Grupo</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <hr>
+
+  <h2>Parte 3: Solicitação e Aprovação de Motorista na Rota</h2>
+
+  <h3>PATCH /api/drivers/{id}/request-route-group/ (Papel: Próprio Motorista)</h3>
+  <form data-endpoint="PATCH /api/drivers/{id}/request-route-group/">
+    <p><label>id do motorista (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <p><label>route_group (ID do grupo de rota): <input type="number" name="route_group" value="1" min="1" required></label></p>
+    <button type="submit">Solicitar Entrada no Grupo</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/drivers/{id}/approve/ (Papel: Empresa Dona Aprovada)</h3>
+  <form data-endpoint="PATCH /api/drivers/{id}/approve/">
+    <p><label>id do motorista (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Aprovar Motorista no Grupo</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/drivers/{id}/reject/ (Papel: Empresa Dona Aprovada)</h3>
+  <form data-endpoint="PATCH /api/drivers/{id}/reject/">
+    <p><label>id do motorista (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Recusar Motorista no Grupo</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <script>
+    (function () {
+      var defaultBase = 'http://' + (window.location.hostname || 'localhost') + ':8000';
+      function getBaseUrl() {
+        return (sessionStorage.getItem('nr_api_base') || defaultBase).replace(/\/+$/, '');
+      }
+      function getCookie(name) {
+        var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function getCsrfToken() {
+        return getCookie('csrftoken') || sessionStorage.getItem('nr_csrf_token') || '';
+      }
+      function renderHeader() {
+        document.getElementById('hdr-base-url').textContent = getBaseUrl();
+        var raw = sessionStorage.getItem('nr_current_user');
+        if (raw) {
+          try {
+            var u = JSON.parse(raw);
+            document.getElementById('hdr-user').textContent = u.name + ' <' + u.email + '> (ID: ' + u.id + ')';
+            document.getElementById('hdr-role').textContent = u.type || '-';
+            return;
+          } catch (e) {}
+        }
+        document.getElementById('hdr-user').textContent = 'Anônimo';
+        document.getElementById('hdr-role').textContent = '-';
+      }
+
+      async function sendRaw(method, path, bodyObj, outEl) {
+        var url = getBaseUrl() + path;
+        outEl.textContent = 'Enviando ' + method + ' ' + url + ' ...';
+        var headers = { 'Accept': 'application/json' };
+        if (method !== 'GET' && method !== 'HEAD') {
+          if (!getCsrfToken()) {
+            try {
+              var r = await fetch(getBaseUrl() + '/api/csrf/', { method: 'GET', credentials: 'include' });
+              var d = await r.json();
+              if (d && d.csrfToken) sessionStorage.setItem('nr_csrf_token', d.csrfToken);
+            } catch (e) {}
+          }
+          var csrf = getCsrfToken();
+          if (csrf) headers['X-CSRFToken'] = csrf;
+        }
+        var access = sessionStorage.getItem('nr_access_token');
+        if (access) headers['Authorization'] = 'Bearer ' + access;
+        var opts = { method: method, headers: headers, credentials: 'include' };
+        if (bodyObj !== null && bodyObj !== undefined && method !== 'GET' && method !== 'DELETE') {
+          headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(bodyObj);
+        }
+        try {
+          var res = await fetch(url, opts);
+          var text = await res.text();
+          var formatted = text;
+          try {
+            if (text) formatted = JSON.stringify(JSON.parse(text), null, 2);
+          } catch (e) {}
+          var hdrs = [];
+          ['content-type', 'www-authenticate', 'retry-after'].forEach(function (h) {
+            var v = res.headers.get(h);
+            if (v) hdrs.push(h + ': ' + v);
+          });
+          outEl.textContent =
+            method + ' ' + url + '\n' +
+            'Status: ' + res.status + ' ' + res.statusText + '\n' +
+            (hdrs.length ? 'Headers:\n  ' + hdrs.join('\n  ') + '\n' : '') +
+            '\nCorpo da resposta:\n' + (formatted || '(vazio)');
+        } catch (err) {
+          outEl.textContent = method + ' ' + url + '\nERRO DE REDE: ' + (err.message || String(err));
+        }
+      }
+
+      document.getElementById('form-create-passenger').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var fd = new FormData(e.target);
+        var userData = {};
+        fd.forEach(function (val, key) {
+          var s = String(val).trim();
+          if (key.indexOf('user__') === 0) {
+            var uKey = key.slice(6);
+            if (uKey === 'complement' && s === '') return;
+            userData[uKey] = val;
+          }
+        });
+        sendRaw('POST', '/api/passengers/', { user_data: userData }, document.getElementById('out-create-passenger'));
+      });
+
+      document.getElementById('form-patch-passenger').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var id = document.getElementById('patch-pass-id').value.trim();
+        var payload = {};
+        var userFields = {
+          name: document.getElementById('patch-pass-name').value.trim(),
+          street: document.getElementById('patch-pass-street').value.trim(),
+          number: document.getElementById('patch-pass-number').value.trim(),
+          city: document.getElementById('patch-pass-city').value.trim(),
+          cep: document.getElementById('patch-pass-cep').value.trim()
+        };
+        var uData = {};
+        Object.keys(userFields).forEach(function (k) {
+          if (userFields[k] !== '') uData[k] = userFields[k];
+        });
+        if (Object.keys(uData).length > 0) payload.user_data = uData;
+        var grp = document.getElementById('patch-pass-group').value.trim();
+        if (grp !== '') payload.route_group = grp === 'null' ? null : Number(grp);
+        sendRaw('PATCH', '/api/passengers/' + encodeURIComponent(id) + '/', payload, document.getElementById('out-patch-passenger'));
+      });
+
+      document.querySelectorAll('form[data-endpoint]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var parts = form.getAttribute('data-endpoint').split(' ');
+          var method = parts[0];
+          var path = parts[1];
+          var query = [];
+          var body = {};
+          var hasBody = false;
+          var fd = new FormData(form);
+          fd.forEach(function (val, key) {
+            var s = String(val).trim();
+            if (key.indexOf('path__') === 0) {
+              path = path.replace('{' + key.slice(6) + '}', encodeURIComponent(s));
+            } else if (key.indexOf('query__') === 0) {
+              if (s !== '') query.push(encodeURIComponent(key.slice(7)) + '=' + encodeURIComponent(s));
+            } else {
+              hasBody = true;
+              body[key] = key === 'route_group' ? Number(s) : val;
+            }
+          });
+          if (query.length) path += '?' + query.join('&');
+          sendRaw(method, path, hasBody ? body : null, form.nextElementSibling);
+        });
+      });
+
+      renderHeader();
+    })();
+  </script>
+</body>
+</html>

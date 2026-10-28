@@ -13,13 +13,12 @@ dependencies = [
   "django-cloudinary-storage>=0.3.0",
   "django-cors-headers>=4.9.0",
   "django-extensions>=4.1",
-  "django-filter>=26.1",
+  "django-filter>=26.2",
   "django>=6.0.7",
   "djangorestframework>=3.17.1",
   "drf-spectacular>=0.30.0",
   "gunicorn>=26.0.0",
   "psycopg2-binary>=2.9.9",
-  # 'mysqlclient>=2.2.4',
   "python-dotenv>=1.2.2",
   "python-magic-bin>=0.4.14; sys_platform == \"win32\"",
   "python-magic>=0.4.27; sys_platform == \"linux\"",
@@ -33,6 +32,8 @@ dependencies = [
   "daphne>=4.2.3",
   "requests>=2.34.2",
   "channels-redis>=4.3.0",
+  "user-agents>=2.2.0",
+  "django-ipware>=8.0.0",
 ]
 license = { text = "MIT" }
 
@@ -43,23 +44,20 @@ dev = [
 ]
 
 [tool.pdm.scripts]
-pre_dev = { composite = [
-  "python ./scripts/setup_env.py",
-  "python ./scripts/set_my_ip.py",
-] }
 dev = "python manage.py runserver"
+runserver = "python manage.py runserver"
+asgi = { cmd = "daphne -b 127.0.0.1 -p 8000 app.asgi:application", env = { DJANGO_SETTINGS_MODULE = "app.settings.dev" } }
+worker = "python manage.py process_route_jobs"
 createsuperuser = "python manage.py createsuperuser"
-premigrate = "python manage.py makemigrations"
 migrate = "python manage.py migrate"
-make_graph = "python manage.py graph_models --pydot --arrow-shape normal --color-code-deletions --hide-edge-labels --disable-sort-fields -S -g -o core.png authenticator uploader router"
 shell = "python manage.py shell"
 shellp = "python manage.py shell_plus"
-test = "python manage.py test"
-loaddata = "python manage.py loaddata core.json"
-cria_api = "python ./scripts/cria_api.py {args}"
-check = "ruff check"
-pre_format = "ruff check --fix"
-format = "ruff format"
+test = "python manage.py test --noinput --settings=app.settings.dev"
+check = { composite = ["python manage.py check", "python manage.py makemigrations --check --dry-run"] }
+check-deploy = "python manage.py check --deploy --settings=app.settings.prod"
+lint = { composite = ["ruff check .", "ruff format --check ."] }
+format = { composite = ["ruff format .", "ruff check --fix ."] }
+schema = "python manage.py spectacular --validate --fail-on-warn --file /tmp/opencode/nextrouter-schema.yaml"
 
 [tool.pdm]
 distribution = false

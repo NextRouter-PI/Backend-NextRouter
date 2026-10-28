@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>NextRouter — Viagens e Confirmação de Presença</title>
+</head>
+<body>
+  <p><a href="index.html">&larr; Voltar para index.html</a></p>
+  <h1>Viagens e Confirmação de Presença</h1>
+  <p>URL Base: <strong id="hdr-base-url"></strong> | Usuário: <strong id="hdr-user"></strong> | Papel: <strong id="hdr-role"></strong></p>
+
+  <hr>
+
+  <h2>Parte 1: Ciclo de Vida de Viagens (/api/travels/)</h2>
+  <p>Estados válidos: <code>scheduled</code> &rarr; <code>in_progress</code> &rarr; <code>finished</code> (pelo motorista designado) ou <code>scheduled</code> &rarr; <code>canceled</code> (pela empresa dona). Não são permitidas duas viagens em andamento simultâneas para o mesmo motorista ou veículo.</p>
+
+  <h3>GET /api/travels/</h3>
+  <form data-endpoint="GET /api/travels/">
+    <p><label>company (query ID): <input type="number" name="query__company" value=""></label></p>
+    <p><label>driver (query ID): <input type="number" name="query__driver" value=""></label></p>
+    <p><label>path (query ID): <input type="number" name="query__path" value=""></label></p>
+    <p>
+      <label>status (query):
+        <select name="query__status">
+          <option value="">-- todos --</option>
+          <option value="scheduled">scheduled</option>
+          <option value="in_progress">in_progress</option>
+          <option value="finished">finished</option>
+          <option value="canceled">canceled</option>
+        </select>
+      </label>
+    </p>
+    <p><label>page (query): <input type="number" name="query__page" value="1" min="1"></label></p>
+    <p><label>page_size (query): <input type="number" name="query__page_size" value="10" min="1" max="100"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>POST /api/travels/ (Agendar Viagem — Papel: Empresa Aprovada)</h3>
+  <form id="form-create-travel">
+    <p><label>path (ID do trajeto): <input type="number" id="create-travel-path" value="1" min="1" required></label></p>
+    <p><label>driver (ID do motorista aprovado no grupo): <input type="number" id="create-travel-driver" value="1" min="1" required></label></p>
+    <p><label>vehicle (ID do veículo ativo — opcional se o motorista tiver exatamente 1 veículo ativo no grupo): <input type="number" id="create-travel-vehicle" value="1" min="1"></label></p>
+    <button type="submit">Enviar POST /api/travels/</button>
+  </form>
+  <pre id="out-create-travel">Aguardando envio...</pre>
+
+  <h3>GET /api/travels/{id}/</h3>
+  <form data-endpoint="GET /api/travels/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/travels/{id}/start/ (Iniciar Viagem — Papel: Motorista Designado)</h3>
+  <form data-endpoint="PATCH /api/travels/{id}/start/">
+    <p><label>id da viagem (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Iniciar Viagem (scheduled &rarr; in_progress)</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/travels/{id}/location/ (Atualizar Localização via HTTP — Papel: Motorista Designado)</h3>
+  <p>Nota: para transmissão e acompanhamento via WebSocket em tempo real, acesse <a href="ws-localizacao.html">ws-localizacao.html</a>.</p>
+  <form id="form-travel-location">
+    <p><label>id da viagem (path): <input type="number" id="loc-travel-id" value="1" min="1" required></label></p>
+    <p><label>latitude (-90 a 90): <input type="number" id="loc-lat" step="any" value="-26.9194" required></label></p>
+    <p><label>longitude (-180 a 180): <input type="number" id="loc-lon" step="any" value="-49.0661" required></label></p>
+    <p><label>recorded_at (ISO 8601 opcional, máx 30s de idade): <input type="text" id="loc-recorded-at" value="" placeholder="Deixe vazio para usar horário do servidor" size="35"></label></p>
+    <button type="submit">Enviar Localização HTTP</button>
+  </form>
+  <pre id="out-travel-location">Aguardando envio...</pre>
+
+  <h3>PATCH /api/travels/{id}/finish/ (Encerrar Viagem — Papel: Motorista Designado)</h3>
+  <p>Limpa a última posição conhecida e fecha automaticamente todas as conexões WebSocket abertas para esta viagem.</p>
+  <form data-endpoint="PATCH /api/travels/{id}/finish/">
+    <p><label>id da viagem (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Encerrar Viagem (in_progress &rarr; finished)</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/travels/{id}/cancel/ (Cancelar Viagem — Papel: Empresa Dona)</h3>
+  <form data-endpoint="PATCH /api/travels/{id}/cancel/">
+    <p><label>id da viagem (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Cancelar Viagem (scheduled &rarr; canceled)</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <hr>
+
+  <h2>Parte 2: Confirmação de Presença (/api/confirmations/)</h2>
+  <p>Quando uma viagem é criada, registros iniciais (<code>confirm=false</code>) são pré-criados para todos os passageiros aprovados do grupo. O passageiro pode confirmar presença de forma idempotente via <code>POST /api/confirmations/</code> ou via <code>PATCH /api/confirmations/{id}/confirm/</code>.</p>
+
+  <h3>GET /api/confirmations/</h3>
+  <form data-endpoint="GET /api/confirmations/">
+    <p><label>travel (query ID): <input type="number" name="query__travel" value=""></label></p>
+    <p><label>user (query ID): <input type="number" name="query__user" value=""></label></p>
+    <p>
+      <label>confirm (query):
+        <select name="query__confirm">
+          <option value="">-- todos --</option>
+          <option value="true">true</option>
+          <option value="false">false</option>
+        </select>
+      </label>
+    </p>
+    <p><label>page (query): <input type="number" name="query__page" value="1" min="1"></label></p>
+    <p><label>page_size (query): <input type="number" name="query__page_size" value="10" min="1" max="100"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>POST /api/confirmations/ (Confirmar / Atualizar Presença de Forma Idempotente — Papel: Passageiro)</h3>
+  <form id="form-post-confirmation">
+    <p><label>travel (ID da viagem): <input type="number" id="conf-travel-id" value="1" min="1" required></label></p>
+    <p>
+      <label>confirm:
+        <select id="conf-bool">
+          <option value="true">true (Vou embarcar)</option>
+          <option value="false">false (Não vou embarcar)</option>
+        </select>
+      </label>
+    </p>
+    <button type="submit">Enviar POST /api/confirmations/</button>
+  </form>
+  <pre id="out-post-confirmation">Aguardando envio...</pre>
+
+  <h3>GET /api/confirmations/{id}/</h3>
+  <form data-endpoint="GET /api/confirmations/{id}/">
+    <p><label>id da confirmação (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/confirmations/{id}/confirm/ (Confirmar pelo ID do Registro — Papel: Passageiro Dono)</h3>
+  <form data-endpoint="PATCH /api/confirmations/{id}/confirm/">
+    <p><label>id da confirmação (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Confirmar Presença (PATCH /confirm/)</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <script>
+    (function () {
+      var defaultBase = 'http://' + (window.location.hostname || 'localhost') + ':8000';
+      function getBaseUrl() {
+        return (sessionStorage.getItem('nr_api_base') || defaultBase).replace(/\/+$/, '');
+      }
+      function getCookie(name) {
+        var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function getCsrfToken() {
+        return getCookie('csrftoken') || sessionStorage.getItem('nr_csrf_token') || '';
+      }
+      function renderHeader() {
+        document.getElementById('hdr-base-url').textContent = getBaseUrl();
+        var raw = sessionStorage.getItem('nr_current_user');
+        if (raw) {
+          try {
+            var u = JSON.parse(raw);
+            document.getElementById('hdr-user').textContent = u.name + ' <' + u.email + '> (ID: ' + u.id + ')';
+            document.getElementById('hdr-role').textContent = u.type || '-';
+            return;
+          } catch (e) {}
+        }
+        document.getElementById('hdr-user').textContent = 'Anônimo';
+        document.getElementById('hdr-role').textContent = '-';
+      }
+
+      async function sendRaw(method, path, bodyObj, outEl) {
+        var url = getBaseUrl() + path;
+        outEl.textContent = 'Enviando ' + method + ' ' + url + ' ...';
+        var headers = { 'Accept': 'application/json' };
+        if (method !== 'GET' && method !== 'HEAD') {
+          if (!getCsrfToken()) {
+            try {
+              var r = await fetch(getBaseUrl() + '/api/csrf/', { method: 'GET', credentials: 'include' });
+              var d = await r.json();
+              if (d && d.csrfToken) sessionStorage.setItem('nr_csrf_token', d.csrfToken);
+            } catch (e) {}
+          }
+          var csrf = getCsrfToken();
+          if (csrf) headers['X-CSRFToken'] = csrf;
+        }
+        var access = sessionStorage.getItem('nr_access_token');
+        if (access) headers['Authorization'] = 'Bearer ' + access;
+        var opts = { method: method, headers: headers, credentials: 'include' };
+        if (bodyObj !== null && bodyObj !== undefined && method !== 'GET' && method !== 'DELETE') {
+          headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(bodyObj);
+        }
+        try {
+          var res = await fetch(url, opts);
+          var text = await res.text();
+          var formatted = text;
+          try {
+            if (text) formatted = JSON.stringify(JSON.parse(text), null, 2);
+          } catch (e) {}
+          var hdrs = [];
+          ['content-type', 'www-authenticate', 'retry-after'].forEach(function (h) {
+            var v = res.headers.get(h);
+            if (v) hdrs.push(h + ': ' + v);
+          });
+          outEl.textContent =
+            method + ' ' + url + '\n' +
+            'Status: ' + res.status + ' ' + res.statusText + '\n' +
+            (hdrs.length ? 'Headers:\n  ' + hdrs.join('\n  ') + '\n' : '') +
+            '\nCorpo da resposta:\n' + (formatted || '(vazio)');
+        } catch (err) {
+          outEl.textContent = method + ' ' + url + '\nERRO DE REDE: ' + (err.message || String(err));
+        }
+      }
+
+      document.getElementById('form-create-travel').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var payload = {
+          path: Number(document.getElementById('create-travel-path').value),
+          driver: Number(document.getElementById('create-travel-driver').value)
+        };
+        var veh = document.getElementById('create-travel-vehicle').value.trim();
+        if (veh !== '') payload.vehicle = Number(veh);
+        sendRaw('POST', '/api/travels/', payload, document.getElementById('out-create-travel'));
+      });
+
+      document.getElementById('form-travel-location').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var id = document.getElementById('loc-travel-id').value.trim();
+        var payload = {
+          latitude: Number(document.getElementById('loc-lat').value),
+          longitude: Number(document.getElementById('loc-lon').value)
+        };
+        var rec = document.getElementById('loc-recorded-at').value.trim();
+        if (rec !== '') payload.recorded_at = rec;
+        sendRaw('PATCH', '/api/travels/' + encodeURIComponent(id) + '/location/', payload, document.getElementById('out-travel-location'));
+      });
+
+      document.getElementById('form-post-confirmation').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var payload = {
+          travel: Number(document.getElementById('conf-travel-id').value),
+          confirm: document.getElementById('conf-bool').value === 'true'
+        };
+        sendRaw('POST', '/api/confirmations/', payload, document.getElementById('out-post-confirmation'));
+      });
+
+      document.querySelectorAll('form[data-endpoint]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var parts = form.getAttribute('data-endpoint').split(' ');
+          var method = parts[0];
+          var path = parts[1];
+          var query = [];
+          var fd = new FormData(form);
+          fd.forEach(function (val, key) {
+            var s = String(val).trim();
+            if (key.indexOf('path__') === 0) {
+              path = path.replace('{' + key.slice(6) + '}', encodeURIComponent(s));
+            } else if (key.indexOf('query__') === 0) {
+              if (s !== '') query.push(encodeURIComponent(key.slice(7)) + '=' + encodeURIComponent(s));
+            }
+          });
+          if (query.length) path += '?' + query.join('&');
+          sendRaw(method, path, null, form.nextElementSibling);
+        });
+      });
+
+      renderHeader();
+    })();
+  </script>
+</body>
+</html>

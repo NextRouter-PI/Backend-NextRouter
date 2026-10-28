@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>NextRouter — Uploads Privados e Empresas</title>
+</head>
+<body>
+  <p><a href="index.html">&larr; Voltar para index.html</a></p>
+  <h1>Uploads Privados e Empresas</h1>
+  <p>URL Base: <strong id="hdr-base-url"></strong> | Usuário: <strong id="hdr-user"></strong> | Papel: <strong id="hdr-role"></strong></p>
+
+  <hr>
+
+  <h2>Etapa 1: Upload de Documentos PDF e Imagens (multipart/form-data)</h2>
+  <p>Antes de cadastrar uma empresa (ou enviar CNH de motorista / foto de perfil), envie os arquivos para obter cada <code>attachment_key</code>.</p>
+
+  <h3>POST /api/uploads/documents/ (Upload de PDF até 10 MB)</h3>
+  <form id="form-upload-doc" enctype="multipart/form-data">
+    <p><label>file (PDF): <input type="file" name="file" accept="application/pdf" required></label></p>
+    <p><label>description: <input type="text" name="description" value="Contrato Social PDF" size="40" required></label></p>
+    <p>
+      Copiar <code>attachment_key</code> retornado automaticamente para:
+      <select id="doc-target-slot">
+        <option value="articles_of_association_document">articles_of_association_document (Contrato Social)</option>
+        <option value="state_operating_license_document">state_operating_license_document (Licença Estadual)</option>
+        <option value="certificate_of_good_stading_document">certificate_of_good_stading_document (Certidão Negativa)</option>
+      </select>
+    </p>
+    <button type="submit">Enviar PDF (multipart/form-data)</button>
+  </form>
+  <pre id="out-upload-doc">Aguardando envio...</pre>
+
+  <h3>GET /api/uploads/documents/{attachment_key}/download/ (Download Privado de PDF)</h3>
+  <form id="form-download-doc">
+    <p><label>attachment_key (UUID): <input type="text" id="download-doc-key" name="attachment_key" value="00000000-0000-0000-0000-000000000001" size="42" required></label></p>
+    <button type="submit">Verificar e Baixar PDF</button>
+  </form>
+  <pre id="out-download-doc">Aguardando envio...</pre>
+
+  <h3>POST /api/uploads/images/ (Upload de Imagem JPG/PNG até 5 MB)</h3>
+  <form id="form-upload-img" enctype="multipart/form-data">
+    <p><label>file (JPG/PNG): <input type="file" name="file" accept="image/jpeg,image/png" required></label></p>
+    <button type="submit">Enviar Imagem (multipart/form-data)</button>
+  </form>
+  <pre id="out-upload-img">Aguardando envio...</pre>
+
+  <hr>
+
+  <h2>Etapa 2: Cadastro de Empresa e Aprovação Administrativa</h2>
+  <p>
+    Nota: O código de e-mail (<code>user_data.code</code>) deve ser solicitado antes em <a href="contas.html">contas.html</a> (<code>POST /api/registration/request/</code>).
+    Após o cadastro, um administrador aprova ou recusa a empresa no <a id="link-admin-company" href="http://localhost:8000/admin/organizations/company/" target="_blank">Django Admin (/admin/organizations/company/)</a>.
+  </p>
+
+  <h3>POST /api/companies/</h3>
+  <form id="form-create-company">
+    <fieldset>
+      <legend>Dados do Usuário Responsável (user_data)</legend>
+      <p><label>code (6 dígitos): <input type="text" name="user__code" value="123456" size="10" required></label></p>
+      <p><label>email: <input type="email" name="user__email" value="contato@expressoblumenau.com.br" size="35" required></label></p>
+      <p><label>name: <input type="text" name="user__name" value="Expresso Blumenau" size="35" required></label></p>
+      <p><label>password: <input type="password" name="user__password" value="" placeholder="Digite a senha" size="25" required></label></p>
+      <p><label>cpf: <input type="text" name="user__cpf" value="52998224725" size="15" required></label></p>
+      <p><label>phone: <input type="text" name="user__phone" value="4733221100" size="20"></label></p>
+      <p><label>birthday: <input type="date" name="user__birthday" value="1985-04-12"></label></p>
+      <p><label>cep: <input type="text" name="user__cep" value="89010-000" size="12"></label></p>
+      <p><label>street: <input type="text" name="user__street" value="Rua XV de Novembro" size="35"></label></p>
+      <p><label>number: <input type="text" name="user__number" value="500" size="10"></label></p>
+      <p><label>complement: <input type="text" name="user__complement" value="Sala 2"></label></p>
+      <p><label>neighborhood: <input type="text" name="user__neighborhood" value="Centro" size="25"></label></p>
+      <p><label>city: <input type="text" name="user__city" value="Blumenau" size="25"></label></p>
+      <p><label>state: <input type="text" name="user__state" value="SC" size="5"></label></p>
+      <p><label>profile_picture (attachment_key opcional): <input type="text" id="company-user-pic" name="user__profile_picture" value="" size="40"></label></p>
+    </fieldset>
+    <fieldset>
+      <legend>Dados da Empresa e Documentos</legend>
+      <p><label>trade_name: <input type="text" name="trade_name" value="Expresso Blumenau" size="35" required></label></p>
+      <p><label>legal_name: <input type="text" name="legal_name" value="Expresso Blumenau Transportes Ltda" size="40" required></label></p>
+      <p><label>cnpj: <input type="text" name="cnpj" value="11222333000181" size="20" required></label></p>
+      <p><label>state_registration: <input type="text" name="state_registration" value="254896321" size="20" required></label></p>
+      <p><label>contact_phone: <input type="text" name="contact_phone" value="4733221100" size="20"></label></p>
+      <p><label>contact_email: <input type="email" name="contact_email" value="contato@expressoblumenau.com.br" size="35"></label></p>
+      <p><label>cep: <input type="text" name="cep" value="89010-000" size="12"></label></p>
+      <p><label>street: <input type="text" name="street" value="Rua XV de Novembro" size="35"></label></p>
+      <p><label>number: <input type="text" name="number" value="500" size="10"></label></p>
+      <p><label>complement: <input type="text" name="complement" value="Sala 2"></label></p>
+      <p><label>neighborhood: <input type="text" name="neighborhood" value="Centro" size="25"></label></p>
+      <p><label>city: <input type="text" name="city" value="Blumenau" size="25"></label></p>
+      <p><label>state: <input type="text" name="state" value="SC" size="5"></label></p>
+      <p><label>articles_of_association_document (attachment_key): <input type="text" id="articles_of_association_document" name="articles_of_association_document" value="00000000-0000-0000-0000-000000000001" size="42" required></label></p>
+      <p><label>state_operating_license_document (attachment_key): <input type="text" id="state_operating_license_document" name="state_operating_license_document" value="00000000-0000-0000-0000-000000000002" size="42" required></label></p>
+      <p><label>certificate_of_good_stading_document (attachment_key): <input type="text" id="certificate_of_good_stading_document" name="certificate_of_good_stading_document" value="00000000-0000-0000-0000-000000000003" size="42" required></label></p>
+    </fieldset>
+    <button type="submit">Enviar POST /api/companies/</button>
+  </form>
+  <pre id="out-create-company">Aguardando envio...</pre>
+
+  <hr>
+
+  <h2>Etapa 3: Painel da Empresa Autenticada (/me/ e /me/stats/)</h2>
+
+  <h3>GET /api/companies/me/</h3>
+  <form data-endpoint="GET /api/companies/me/">
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/companies/me/</h3>
+  <form data-endpoint="PATCH /api/companies/me/" data-omit-empty="true">
+    <p><label>trade_name: <input type="text" name="trade_name" value="TransNorte Transportes" size="35"></label></p>
+    <p><label>legal_name: <input type="text" name="legal_name" value="" size="40"></label></p>
+    <p><label>state_registration: <input type="text" name="state_registration" value="" size="20"></label></p>
+    <p><label>contact_phone: <input type="text" name="contact_phone" value="4733339999" size="20"></label></p>
+    <p><label>contact_email: <input type="email" name="contact_email" value="" size="35"></label></p>
+    <p><label>cep: <input type="text" name="cep" value="" size="12"></label></p>
+    <p><label>street: <input type="text" name="street" value="" size="35"></label></p>
+    <p><label>number: <input type="text" name="number" value="" size="10"></label></p>
+    <p><label>neighborhood: <input type="text" name="neighborhood" value="" size="25"></label></p>
+    <p><label>city: <input type="text" name="city" value="" size="25"></label></p>
+    <p><label>state: <input type="text" name="state" value="" size="5"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>GET /api/companies/me/stats/ (Exige Empresa Aprovada)</h3>
+  <form data-endpoint="GET /api/companies/me/stats/">
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <hr>
+
+  <h2>Etapa 4: Listagem, Detalhe, Edição e Exclusão de Empresas por ID</h2>
+
+  <h3>GET /api/companies/</h3>
+  <form data-endpoint="GET /api/companies/">
+    <p><label>trade_name (query): <input type="text" name="query__trade_name" value=""></label></p>
+    <p><label>state_registration (query): <input type="text" name="query__state_registration" value=""></label></p>
+    <p><label>user__name (query): <input type="text" name="query__user__name" value=""></label></p>
+    <p><label>page (query): <input type="number" name="query__page" value="1" min="1"></label></p>
+    <p><label>page_size (query): <input type="number" name="query__page_size" value="10" min="1" max="100"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>GET /api/companies/{id}/</h3>
+  <form data-endpoint="GET /api/companies/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/companies/{id}/</h3>
+  <form data-endpoint="PATCH /api/companies/{id}/" data-omit-empty="true">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <p><label>trade_name: <input type="text" name="trade_name" value="TransNorte Transportes" size="35"></label></p>
+    <p><label>contact_phone: <input type="text" name="contact_phone" value="4733338888" size="20"></label></p>
+    <p><label>contact_email: <input type="email" name="contact_email" value="" size="35"></label></p>
+    <p><label>city: <input type="text" name="city" value="" size="25"></label></p>
+    <p><label>state: <input type="text" name="state" value="" size="5"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>DELETE /api/companies/{id}/</h3>
+  <form data-endpoint="DELETE /api/companies/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <script>
+    (function () {
+      var defaultBase = 'http://' + (window.location.hostname || 'localhost') + ':8000';
+      function getBaseUrl() {
+        return (sessionStorage.getItem('nr_api_base') || defaultBase).replace(/\/+$/, '');
+      }
+      function getCookie(name) {
+        var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function getCsrfToken() {
+        return getCookie('csrftoken') || sessionStorage.getItem('nr_csrf_token') || '';
+      }
+      function renderHeader() {
+        var base = getBaseUrl();
+        document.getElementById('hdr-base-url').textContent = base;
+        document.getElementById('link-admin-company').href = base + '/admin/organizations/company/';
+        var raw = sessionStorage.getItem('nr_current_user');
+        if (raw) {
+          try {
+            var u = JSON.parse(raw);
+            document.getElementById('hdr-user').textContent = u.name + ' <' + u.email + '> (ID: ' + u.id + ')';
+            document.getElementById('hdr-role').textContent = u.type || '-';
+            return;
+          } catch (e) {}
+        }
+        document.getElementById('hdr-user').textContent = 'Anônimo';
+        document.getElementById('hdr-role').textContent = '-';
+      }
+
+      async function ensureCsrf() {
+        if (!getCsrfToken()) {
+          try {
+            var r = await fetch(getBaseUrl() + '/api/csrf/', { method: 'GET', credentials: 'include' });
+            var d = await r.json();
+            if (d && d.csrfToken) sessionStorage.setItem('nr_csrf_token', d.csrfToken);
+          } catch (e) {}
+        }
+      }
+
+      async function sendRaw(method, path, bodyObj, outEl) {
+        var url = getBaseUrl() + path;
+        outEl.textContent = 'Enviando ' + method + ' ' + url + ' ...';
+        var headers = { 'Accept': 'application/json' };
+        if (method !== 'GET' && method !== 'HEAD') {
+          await ensureCsrf();
+          var csrf = getCsrfToken();
+          if (csrf) headers['X-CSRFToken'] = csrf;
+        }
+        var access = sessionStorage.getItem('nr_access_token');
+        if (access) headers['Authorization'] = 'Bearer ' + access;
+        var opts = { method: method, headers: headers, credentials: 'include' };
+        if (bodyObj !== null && bodyObj !== undefined && method !== 'GET' && method !== 'DELETE') {
+          headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(bodyObj);
+        }
+        try {
+          var res = await fetch(url, opts);
+          var text = await res.text();
+          var formatted = text;
+          try {
+            if (text) formatted = JSON.stringify(JSON.parse(text), null, 2);
+          } catch (e) {}
+          var hdrs = [];
+          ['content-type', 'www-authenticate', 'retry-after'].forEach(function (h) {
+            var v = res.headers.get(h);
+            if (v) hdrs.push(h + ': ' + v);
+          });
+          outEl.textContent =
+            method + ' ' + url + '\n' +
+            'Status: ' + res.status + ' ' + res.statusText + '\n' +
+            (hdrs.length ? 'Headers:\n  ' + hdrs.join('\n  ') + '\n' : '') +
+            '\nCorpo da resposta:\n' + (formatted || '(vazio)');
+        } catch (err) {
+          outEl.textContent = method + ' ' + url + '\nERRO DE REDE: ' + (err.message || String(err));
+        }
+      }
+
+      document.getElementById('form-upload-doc').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var outEl = document.getElementById('out-upload-doc');
+        var url = getBaseUrl() + '/api/uploads/documents/';
+        outEl.textContent = 'Enviando POST ' + url + ' (multipart/form-data)...';
+        await ensureCsrf();
+        var headers = { 'Accept': 'application/json' };
+        var csrf = getCsrfToken();
+        if (csrf) headers['X-CSRFToken'] = csrf;
+        var access = sessionStorage.getItem('nr_access_token');
+        if (access) headers['Authorization'] = 'Bearer ' + access;
+        var fd = new FormData(e.target);
+        try {
+          var res = await fetch(url, { method: 'POST', headers: headers, body: fd, credentials: 'include' });
+          var text = await res.text();
+          var parsed = null;
+          try { parsed = JSON.parse(text); } catch (err) {}
+          outEl.textContent =
+            'POST ' + url + '\nStatus: ' + res.status + ' ' + res.statusText +
+            '\ncontent-type: ' + (res.headers.get('content-type') || '') +
+            '\n\nCorpo da resposta:\n' + (parsed ? JSON.stringify(parsed, null, 2) : text);
+          if (parsed && parsed.attachment_key) {
+            var targetId = document.getElementById('doc-target-slot').value;
+            var targetInput = document.getElementById(targetId);
+            if (targetInput) targetInput.value = parsed.attachment_key;
+            document.getElementById('download-doc-key').value = parsed.attachment_key;
+          }
+        } catch (err) {
+          outEl.textContent = 'POST ' + url + '\nERRO DE REDE: ' + (err.message || String(err));
+        }
+      });
+
+      document.getElementById('form-download-doc').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var key = document.getElementById('download-doc-key').value.trim();
+        var url = getBaseUrl() + '/api/uploads/documents/' + encodeURIComponent(key) + '/download/';
+        var outEl = document.getElementById('out-download-doc');
+        outEl.textContent = 'Enviando GET ' + url + ' ...';
+        var headers = {};
+        var access = sessionStorage.getItem('nr_access_token');
+        if (access) headers['Authorization'] = 'Bearer ' + access;
+        try {
+          var res = await fetch(url, { method: 'GET', headers: headers, credentials: 'include' });
+          var ct = res.headers.get('content-type') || '';
+          if (res.ok && ct.indexOf('application/pdf') !== -1) {
+            var blob = await res.blob();
+            var blobUrl = URL.createObjectURL(blob);
+            outEl.textContent =
+              'GET ' + url + '\nStatus: ' + res.status + ' ' + res.statusText +
+              '\nHeaders:\n  content-type: ' + ct +
+              '\n  tamanho: ' + blob.size + ' bytes\n\nPDF recebido com sucesso. Abrindo em nova aba...';
+            window.open(blobUrl, '_blank');
+          } else {
+            var text = await res.text();
+            outEl.textContent =
+              'GET ' + url + '\nStatus: ' + res.status + ' ' + res.statusText +
+              '\nHeaders:\n  content-type: ' + ct + '\n\nCorpo da resposta:\n' + (text || '(vazio)');
+          }
+        } catch (err) {
+          outEl.textContent = 'GET ' + url + '\nERRO DE REDE: ' + (err.message || String(err));
+        }
+      });
+
+      document.getElementById('form-upload-img').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var outEl = document.getElementById('out-upload-img');
+        var url = getBaseUrl() + '/api/uploads/images/';
+        outEl.textContent = 'Enviando POST ' + url + ' (multipart/form-data)...';
+        await ensureCsrf();
+        var headers = { 'Accept': 'application/json' };
+        var csrf = getCsrfToken();
+        if (csrf) headers['X-CSRFToken'] = csrf;
+        var access = sessionStorage.getItem('nr_access_token');
+        if (access) headers['Authorization'] = 'Bearer ' + access;
+        var fd = new FormData(e.target);
+        try {
+          var res = await fetch(url, { method: 'POST', headers: headers, body: fd, credentials: 'include' });
+          var text = await res.text();
+          var parsed = null;
+          try { parsed = JSON.parse(text); } catch (err) {}
+          outEl.textContent =
+            'POST ' + url + '\nStatus: ' + res.status + ' ' + res.statusText +
+            '\ncontent-type: ' + (res.headers.get('content-type') || '') +
+            '\n\nCorpo da resposta:\n' + (parsed ? JSON.stringify(parsed, null, 2) : text);
+          if (parsed && parsed.attachment_key) {
+            document.getElementById('company-user-pic').value = parsed.attachment_key;
+          }
+        } catch (err) {
+          outEl.textContent = 'POST ' + url + '\nERRO DE REDE: ' + (err.message || String(err));
+        }
+      });
+
+      document.getElementById('form-create-company').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var fd = new FormData(e.target);
+        var userData = {};
+        var companyData = { user_data: userData };
+        fd.forEach(function (val, key) {
+          var s = String(val).trim();
+          if (key.indexOf('user__') === 0) {
+            var uKey = key.slice(6);
+            if (uKey === 'profile_picture' && s === '') return;
+            userData[uKey] = val;
+          } else {
+            companyData[key] = val;
+          }
+        });
+        sendRaw('POST', '/api/companies/', companyData, document.getElementById('out-create-company'));
+      });
+
+      document.querySelectorAll('form[data-endpoint]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var parts = form.getAttribute('data-endpoint').split(' ');
+          var method = parts[0];
+          var path = parts[1];
+          var omitEmpty = form.getAttribute('data-omit-empty') === 'true';
+          var query = [];
+          var body = {};
+          var hasBody = false;
+          var fd = new FormData(form);
+          fd.forEach(function (val, key) {
+            var s = String(val).trim();
+            if (key.indexOf('path__') === 0) {
+              path = path.replace('{' + key.slice(6) + '}', encodeURIComponent(s));
+            } else if (key.indexOf('query__') === 0) {
+              if (s !== '') query.push(encodeURIComponent(key.slice(7)) + '=' + encodeURIComponent(s));
+            } else {
+              if (omitEmpty && s === '') return;
+              hasBody = true;
+              body[key] = val;
+            }
+          });
+          if (query.length) path += '?' + query.join('&');
+          sendRaw(method, path, hasBody ? body : null, form.nextElementSibling);
+        });
+      });
+
+      renderHeader();
+    })();
+  </script>
+</body>
+</html>

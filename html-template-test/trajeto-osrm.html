@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>NextRouter — Trajetos e Otimização OSRM</title>
+</head>
+<body>
+  <p><a href="index.html">&larr; Voltar para index.html</a></p>
+  <h1>Trajetos com Paradas e OSRM</h1>
+  <p>URL Base: <strong id="hdr-base-url"></strong> | Usuário: <strong id="hdr-user"></strong> | Papel: <strong id="hdr-role"></strong></p>
+
+  <hr>
+
+  <h2>Parte 1: CRUD de Trajetos (/api/paths/)</h2>
+
+  <h3>GET /api/paths/</h3>
+  <form data-endpoint="GET /api/paths/">
+    <p><label>route_group (query ID): <input type="number" name="query__route_group" value=""></label></p>
+    <p><label>page (query): <input type="number" name="query__page" value="1" min="1"></label></p>
+    <p><label>page_size (query): <input type="number" name="query__page_size" value="10" min="1" max="100"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>POST /api/paths/ (Papel: Empresa Aprovada)</h3>
+  <form id="form-create-path">
+    <p><label>name: <input type="text" id="create-path-name" value="Ida Manhã" size="30" required></label></p>
+    <p><label>route_group (ID): <input type="number" id="create-path-group" value="1" min="1" required></label></p>
+    <p>
+      <label>points (JSON array de paradas iniciais, pode ser <code>[]</code>):<br>
+        <textarea id="create-path-points" rows="6" cols="80">[
+  {
+    "label": "Parada 1 - Ana Beatriz Souza",
+    "latitude": -26.9194,
+    "longitude": -49.0661
+  },
+  {
+    "label": "Parada 2 - Carlos Eduardo Lima",
+    "latitude": -26.9244,
+    "longitude": -49.0711
+  }
+]</textarea>
+      </label>
+    </p>
+    <button type="submit">Enviar POST /api/paths/</button>
+  </form>
+  <pre id="out-create-path">Aguardando envio...</pre>
+
+  <h3>GET /api/paths/{id}/</h3>
+  <form data-endpoint="GET /api/paths/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/paths/{id}/ (Papel: Empresa Dona)</h3>
+  <form id="form-patch-path">
+    <p><label>id (path): <input type="number" id="patch-path-id" value="1" min="1" required></label></p>
+    <p><label>name (opcional): <input type="text" id="patch-path-name" value="Ida Manhã Atualizada" size="30"></label></p>
+    <p><label>route_group (ID opcional): <input type="number" id="patch-path-group" value=""></label></p>
+    <p>
+      <label>points (JSON array opcional — deixe em branco para não alterar):<br>
+        <textarea id="patch-path-points" rows="4" cols="80"></textarea>
+      </label>
+    </p>
+    <button type="submit">Enviar PATCH /api/paths/{id}/</button>
+  </form>
+  <pre id="out-patch-path">Aguardando envio...</pre>
+
+  <h3>DELETE /api/paths/{id}/ (Papel: Empresa Dona)</h3>
+  <form data-endpoint="DELETE /api/paths/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <hr>
+
+  <h2>Parte 2: Cálculo de Rota Mais Eficiente via OSRM (/api/paths/{id}/optimize/)</h2>
+  <p>
+    A empresa escolhe os passageiros aprovados do grupo (<code>passenger_ids</code>) e/ou uma lista explícita de paradas (<code>stops</code>, por coordenadas ou endereço completo), o ponto de partida (<code>start</code>) e opcionalmente o ponto de chegada (<code>end</code>).
+    O backend geocodifica endereços pendentes, consulta o OSRM (ordem <code>longitude,latitude</code>) e devolve a melhor ordem de paradas, distância em metros, duração em segundos e geometria GeoJSON.
+  </p>
+
+  <h3>POST /api/paths/{id}/optimize/ (Papel: Empresa Dona)</h3>
+  <form id="form-optimize-path">
+    <p><label>id do trajeto (path): <input type="number" id="opt-path-id" value="1" min="1" required></label></p>
+    <p><label>passenger_ids (IDs separados por vírgula, opcional se informar stops): <input type="text" id="opt-passenger-ids" value="1, 2" size="30"></label></p>
+    <p>
+      <label>stops explícitos (JSON array de paradas com coordenadas ou endereço completo; deixe <code>[]</code> se usar apenas passenger_ids):<br>
+        <textarea id="opt-stops-json" rows="10" cols="80">[
+  {
+    "label": "Parada Rua XV",
+    "latitude": -26.9194,
+    "longitude": -49.0661
+  },
+  {
+    "label": "Parada Garcia",
+    "latitude": -26.9350,
+    "longitude": -49.0580
+  }
+]</textarea>
+      </label>
+    </p>
+    <p>
+      <label>start (JSON do ponto de partida — coordenadas ou endereço completo):<br>
+        <textarea id="opt-start-json" rows="5" cols="80">{
+  "label": "Garagem TransNorte",
+  "latitude": -26.9150,
+  "longitude": -49.0700
+}</textarea>
+      </label>
+    </p>
+    <p>
+      <label>end (JSON do ponto de chegada — opcional; deixe vazio se não houver ponto final fixo):<br>
+        <textarea id="opt-end-json" rows="5" cols="80">{
+  "label": "Destino Final Escola/FURB",
+  "latitude": -26.9055,
+  "longitude": -49.0785
+}</textarea>
+      </label>
+    </p>
+    <p>
+      <label>async_mode:
+        <select id="opt-async-mode">
+          <option value="false">false (Síncrono — devolve ordem, distância, duração e geometria imediatamente)</option>
+          <option value="true">true (Assíncrono — enfileira RouteOptimizationJob)</option>
+        </select>
+      </label>
+    </p>
+    <button type="submit">Calcular Melhor Rota no OSRM (POST /api/paths/{id}/optimize/)</button>
+  </form>
+  <h4>Resumo Extraído do Cálculo OSRM (Ordem, Distância, Duração e Geometria Crua):</h4>
+  <pre id="out-optimize-summary">Aguardando cálculo...</pre>
+  <h4>Resposta HTTP Completa:</h4>
+  <pre id="out-optimize-raw">Aguardando envio...</pre>
+
+  <h3>GET /api/paths/{id}/optimization/ (Status do Job de Otimização)</h3>
+  <form data-endpoint="GET /api/paths/{id}/optimization/">
+    <p><label>id do trajeto (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Consultar Status da Otimização</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <script>
+    (function () {
+      var defaultBase = 'http://' + (window.location.hostname || 'localhost') + ':8000';
+      function getBaseUrl() {
+        return (sessionStorage.getItem('nr_api_base') || defaultBase).replace(/\/+$/, '');
+      }
+      function getCookie(name) {
+        var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function getCsrfToken() {
+        return getCookie('csrftoken') || sessionStorage.getItem('nr_csrf_token') || '';
+      }
+      function renderHeader() {
+        document.getElementById('hdr-base-url').textContent = getBaseUrl();
+        var raw = sessionStorage.getItem('nr_current_user');
+        if (raw) {
+          try {
+            var u = JSON.parse(raw);
+            document.getElementById('hdr-user').textContent = u.name + ' <' + u.email + '> (ID: ' + u.id + ')';
+            document.getElementById('hdr-role').textContent = u.type || '-';
+            return;
+          } catch (e) {}
+        }
+        document.getElementById('hdr-user').textContent = 'Anônimo';
+        document.getElementById('hdr-role').textContent = '-';
+      }
+
+      async function sendRaw(method, path, bodyObj, outEl) {
+        var url = getBaseUrl() + path;
+        outEl.textContent = 'Enviando ' + method + ' ' + url + ' ...';
+        var headers = { 'Accept': 'application/json' };
+        if (method !== 'GET' && method !== 'HEAD') {
+          if (!getCsrfToken()) {
+            try {
+              var r = await fetch(getBaseUrl() + '/api/csrf/', { method: 'GET', credentials: 'include' });
+              var d = await r.json();
+              if (d && d.csrfToken) sessionStorage.setItem('nr_csrf_token', d.csrfToken);
+            } catch (e) {}
+          }
+          var csrf = getCsrfToken();
+          if (csrf) headers['X-CSRFToken'] = csrf;
+        }
+        var access = sessionStorage.getItem('nr_access_token');
+        if (access) headers['Authorization'] = 'Bearer ' + access;
+        var opts = { method: method, headers: headers, credentials: 'include' };
+        if (bodyObj !== null && bodyObj !== undefined && method !== 'GET' && method !== 'DELETE') {
+          headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(bodyObj);
+        }
+        try {
+          var res = await fetch(url, opts);
+          var text = await res.text();
+          var parsed = null;
+          var formatted = text;
+          try {
+            if (text) {
+              parsed = JSON.parse(text);
+              formatted = JSON.stringify(parsed, null, 2);
+            }
+          } catch (e) {}
+          var hdrs = [];
+          ['content-type', 'www-authenticate', 'retry-after'].forEach(function (h) {
+            var v = res.headers.get(h);
+            if (v) hdrs.push(h + ': ' + v);
+          });
+          outEl.textContent =
+            method + ' ' + url + '\n' +
+            'Status: ' + res.status + ' ' + res.statusText + '\n' +
+            (hdrs.length ? 'Headers:\n  ' + hdrs.join('\n  ') + '\n' : '') +
+            '\nCorpo da resposta:\n' + (formatted || '(vazio)');
+          return { ok: res.ok, status: res.status, data: parsed };
+        } catch (err) {
+          outEl.textContent = method + ' ' + url + '\nERRO DE REDE: ' + (err.message || String(err));
+          return { ok: false, status: 0, data: null };
+        }
+      }
+
+      document.getElementById('form-create-path').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var outEl = document.getElementById('out-create-path');
+        try {
+          var pts = JSON.parse(document.getElementById('create-path-points').value || '[]');
+          var payload = {
+            name: document.getElementById('create-path-name').value.trim(),
+            route_group: Number(document.getElementById('create-path-group').value),
+            points: pts
+          };
+          sendRaw('POST', '/api/paths/', payload, outEl);
+        } catch (err) {
+          outEl.textContent = 'JSON inválido em points: ' + err.message;
+        }
+      });
+
+      document.getElementById('form-patch-path').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var outEl = document.getElementById('out-patch-path');
+        var id = document.getElementById('patch-path-id').value.trim();
+        var name = document.getElementById('patch-path-name').value.trim();
+        var grp = document.getElementById('patch-path-group').value.trim();
+        var ptsRaw = document.getElementById('patch-path-points').value.trim();
+        var payload = {};
+        if (name !== '') payload.name = name;
+        if (grp !== '') payload.route_group = Number(grp);
+        if (ptsRaw !== '') {
+          try {
+            payload.points = JSON.parse(ptsRaw);
+          } catch (err) {
+            outEl.textContent = 'JSON inválido em points: ' + err.message;
+            return;
+          }
+        }
+        sendRaw('PATCH', '/api/paths/' + encodeURIComponent(id) + '/', payload, outEl);
+      });
+
+      document.getElementById('form-optimize-path').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var outSummary = document.getElementById('out-optimize-summary');
+        var outRaw = document.getElementById('out-optimize-raw');
+        var id = document.getElementById('opt-path-id').value.trim();
+        var idsStr = document.getElementById('opt-passenger-ids').value.trim();
+        var stopsRaw = document.getElementById('opt-stops-json').value.trim();
+        var startRaw = document.getElementById('opt-start-json').value.trim();
+        var endRaw = document.getElementById('opt-end-json').value.trim();
+        var asyncMode = document.getElementById('opt-async-mode').value === 'true';
+
+        var payload = { async_mode: asyncMode };
+        if (idsStr !== '') {
+          payload.passenger_ids = idsStr.split(',').map(function (x) { return Number(x.trim()); }).filter(function (n) { return !isNaN(n) && n > 0; });
+        }
+        try {
+          if (stopsRaw !== '') {
+            var stopsArr = JSON.parse(stopsRaw);
+            if (Array.isArray(stopsArr) && stopsArr.length > 0) payload.stops = stopsArr;
+          }
+          payload.start = JSON.parse(startRaw);
+          if (endRaw !== '') {
+            payload.end = JSON.parse(endRaw);
+          }
+        } catch (err) {
+          outSummary.textContent = 'Erro de sintaxe JSON nos campos stops/start/end: ' + err.message;
+          return;
+        }
+
+        outSummary.textContent = 'Calculando...';
+        var result = await sendRaw('POST', '/api/paths/' + encodeURIComponent(id) + '/optimize/', payload, outRaw);
+        if (result.ok && result.data) {
+          var d = result.data;
+          outSummary.textContent =
+            'Status do Job: ' + (d.status || '-') + ' (job_id: ' + (d.job_id || '-') + ')\n' +
+            'Melhor Ordem (índices de visita): ' + JSON.stringify(d.order || []) + '\n' +
+            'Distância Total (metros): ' + (d.distance_meters !== undefined ? d.distance_meters : '-') + '\n' +
+            'Duração Estimada (segundos): ' + (d.duration_seconds !== undefined ? d.duration_seconds : '-') + '\n\n' +
+            'Paradas Ordenadas (points):\n' + JSON.stringify(d.points || [], null, 2) + '\n\n' +
+            'Geometria (GeoJSON LineString):\n' + JSON.stringify(d.geometry || null, null, 2);
+        } else {
+          outSummary.textContent =
+            'Falha ou execução assíncrona (HTTP ' + result.status + '):\n' +
+            JSON.stringify(result.data, null, 2);
+        }
+      });
+
+      document.querySelectorAll('form[data-endpoint]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var parts = form.getAttribute('data-endpoint').split(' ');
+          var method = parts[0];
+          var path = parts[1];
+          var query = [];
+          var fd = new FormData(form);
+          fd.forEach(function (val, key) {
+            var s = String(val).trim();
+            if (key.indexOf('path__') === 0) {
+              path = path.replace('{' + key.slice(6) + '}', encodeURIComponent(s));
+            } else if (key.indexOf('query__') === 0) {
+              if (s !== '') query.push(encodeURIComponent(key.slice(7)) + '=' + encodeURIComponent(s));
+            }
+          });
+          if (query.length) path += '?' + query.join('&');
+          sendRaw(method, path, null, form.nextElementSibling);
+        });
+      });
+
+      renderHeader();
+    })();
+  </script>
+</body>
+</html>

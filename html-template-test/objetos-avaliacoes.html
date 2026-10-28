@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>NextRouter — Objetos Perdidos e Avaliações de Motoristas</title>
+</head>
+<body>
+  <p><a href="index.html">&larr; Voltar para index.html</a></p>
+  <h1>Objetos Perdidos e Avaliações de Motoristas</h1>
+  <p>URL Base: <strong id="hdr-base-url"></strong> | Usuário: <strong id="hdr-user"></strong> | Papel: <strong id="hdr-role"></strong></p>
+  <p>Regra de negócio: Somente quem efetivamente participou de uma viagem encerrada (<code>status = finished</code> e presença confirmada <code>confirm = true</code>, ou o motorista designado no caso de objetos perdidos) pode relatar um objeto perdido ou avaliar o motorista. Cada passageiro pode enviar no máximo 1 avaliação por viagem, com nota de <code>1</code> a <code>5</code>.</p>
+
+  <hr>
+
+  <h2>Parte 1: Objetos Perdidos (/api/lost-items/)</h2>
+
+  <h3>GET /api/lost-items/</h3>
+  <form data-endpoint="GET /api/lost-items/">
+    <p><label>travel (query ID): <input type="number" name="query__travel" value=""></label></p>
+    <p>
+      <label>status (query):
+        <select name="query__status">
+          <option value="">-- todos --</option>
+          <option value="reported">reported</option>
+          <option value="found">found</option>
+          <option value="returned">returned</option>
+        </select>
+      </label>
+    </p>
+    <p><label>page (query): <input type="number" name="query__page" value="1" min="1"></label></p>
+    <p><label>page_size (query): <input type="number" name="query__page_size" value="10" min="1" max="100"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>POST /api/lost-items/ (Relatar Objeto Perdido em Viagem Encerrada)</h3>
+  <form id="form-create-lost-item">
+    <p><label>travel (ID da viagem encerrada): <input type="number" id="lost-travel-id" value="1" min="1" required></label></p>
+    <p><label>item_description: <input type="text" id="lost-description" value="Mochila preta com caderno de cálculo" size="50" required></label></p>
+    <button type="submit">Enviar POST /api/lost-items/</button>
+  </form>
+  <pre id="out-create-lost-item">Aguardando envio...</pre>
+
+  <h3>GET /api/lost-items/{id}/</h3>
+  <form data-endpoint="GET /api/lost-items/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>PATCH /api/lost-items/{id}/ (Atualizar Descrição ou Status)</h3>
+  <form id="form-patch-lost-item">
+    <p><label>id (path): <input type="number" id="patch-lost-id" value="1" min="1" required></label></p>
+    <p><label>item_description (opcional — apenas autor): <input type="text" id="patch-lost-desc" value="" size="50"></label></p>
+    <p>
+      <label>status (opcional — empresa/motorista ou autor p/ returned):
+        <select id="patch-lost-status">
+          <option value="">-- manter --</option>
+          <option value="reported">reported</option>
+          <option value="found">found</option>
+          <option value="returned">returned</option>
+        </select>
+      </label>
+    </p>
+    <button type="submit">Enviar PATCH /api/lost-items/{id}/</button>
+  </form>
+  <pre id="out-patch-lost-item">Aguardando envio...</pre>
+
+  <h3>DELETE /api/lost-items/{id}/ (Papel: Autor do Relato)</h3>
+  <form data-endpoint="DELETE /api/lost-items/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <hr>
+
+  <h2>Parte 2: Avaliações de Motoristas (/api/driver-ratings/)</h2>
+
+  <h3>GET /api/driver-ratings/</h3>
+  <form data-endpoint="GET /api/driver-ratings/">
+    <p><label>driver (query ID): <input type="number" name="query__driver" value=""></label></p>
+    <p><label>travel (query ID): <input type="number" name="query__travel" value=""></label></p>
+    <p><label>page (query): <input type="number" name="query__page" value="1" min="1"></label></p>
+    <p><label>page_size (query): <input type="number" name="query__page_size" value="10" min="1" max="100"></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <h3>POST /api/driver-ratings/ (Avaliar Motorista de Viagem Encerrada — Papel: Passageiro)</h3>
+  <form id="form-create-rating">
+    <p><label>travel (ID da viagem encerrada): <input type="number" id="rate-travel-id" value="1" min="1" required></label></p>
+    <p><label>driver (ID do motorista — opcional, usa o motorista da viagem se vazio): <input type="number" id="rate-driver-id" value="1" min="1"></label></p>
+    <p><label>score (1 a 5): <input type="number" id="rate-score" value="5" min="1" max="5" required></label></p>
+    <p><label>comment (opcional): <input type="text" id="rate-comment" value="Motorista pontual e direção segura." size="50"></label></p>
+    <button type="submit">Enviar POST /api/driver-ratings/</button>
+  </form>
+  <pre id="out-create-rating">Aguardando envio...</pre>
+
+  <h3>GET /api/driver-ratings/{id}/</h3>
+  <form data-endpoint="GET /api/driver-ratings/{id}/">
+    <p><label>id (path): <input type="number" name="path__id" value="1" min="1" required></label></p>
+    <button type="submit">Enviar</button>
+  </form>
+  <pre>Aguardando envio...</pre>
+
+  <script>
+    (function () {
+      var defaultBase = 'http://' + (window.location.hostname || 'localhost') + ':8000';
+      function getBaseUrl() {
+        return (sessionStorage.getItem('nr_api_base') || defaultBase).replace(/\/+$/, '');
+      }
+      function getCookie(name) {
+        var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function getCsrfToken() {
+        return getCookie('csrftoken') || sessionStorage.getItem('nr_csrf_token') || '';
+      }
+      function renderHeader() {
+        document.getElementById('hdr-base-url').textContent = getBaseUrl();
+        var raw = sessionStorage.getItem('nr_current_user');
+        if (raw) {
+          try {
+            var u = JSON.parse(raw);
+            document.getElementById('hdr-user').textContent = u.name + ' <' + u.email + '> (ID: ' + u.id + ')';
+            document.getElementById('hdr-role').textContent = u.type || '-';
+            return;
+          } catch (e) {}
+        }
+        document.getElementById('hdr-user').textContent = 'Anônimo';
+        document.getElementById('hdr-role').textContent = '-';
+      }
+
+      async function sendRaw(method, path, bodyObj, outEl) {
+        var url = getBaseUrl() + path;
+        outEl.textContent = 'Enviando ' + method + ' ' + url + ' ...';
+        var headers = { 'Accept': 'application/json' };
+        if (method !== 'GET' && method !== 'HEAD') {
+          if (!getCsrfToken()) {
+            try {
+              var r = await fetch(getBaseUrl() + '/api/csrf/', { method: 'GET', credentials: 'include' });
+              var d = await r.json();
+              if (d && d.csrfToken) sessionStorage.setItem('nr_csrf_token', d.csrfToken);
+            } catch (e) {}
+          }
+          var csrf = getCsrfToken();
+          if (csrf) headers['X-CSRFToken'] = csrf;
+        }
+        var access = sessionStorage.getItem('nr_access_token');
+        if (access) headers['Authorization'] = 'Bearer ' + access;
+        var opts = { method: method, headers: headers, credentials: 'include' };
+        if (bodyObj !== null && bodyObj !== undefined && method !== 'GET' && method !== 'DELETE') {
+          headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(bodyObj);
+        }
+        try {
+          var res = await fetch(url, opts);
+          var text = await res.text();
+          var formatted = text;
+          try {
+            if (text) formatted = JSON.stringify(JSON.parse(text), null, 2);
+          } catch (e) {}
+          var hdrs = [];
+          ['content-type', 'www-authenticate', 'retry-after'].forEach(function (h) {
+            var v = res.headers.get(h);
+            if (v) hdrs.push(h + ': ' + v);
+          });
+          outEl.textContent =
+            method + ' ' + url + '\n' +
+            'Status: ' + res.status + ' ' + res.statusText + '\n' +
+            (hdrs.length ? 'Headers:\n  ' + hdrs.join('\n  ') + '\n' : '') +
+            '\nCorpo da resposta:\n' + (formatted || '(vazio)');
+        } catch (err) {
+          outEl.textContent = method + ' ' + url + '\nERRO DE REDE: ' + (err.message || String(err));
+        }
+      }
+
+      document.getElementById('form-create-lost-item').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var payload = {
+          travel: Number(document.getElementById('lost-travel-id').value),
+          item_description: document.getElementById('lost-description').value.trim()
+        };
+        sendRaw('POST', '/api/lost-items/', payload, document.getElementById('out-create-lost-item'));
+      });
+
+      document.getElementById('form-patch-lost-item').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var id = document.getElementById('patch-lost-id').value.trim();
+        var desc = document.getElementById('patch-lost-desc').value.trim();
+        var st = document.getElementById('patch-lost-status').value.trim();
+        var payload = {};
+        if (desc !== '') payload.item_description = desc;
+        if (st !== '') payload.status = st;
+        sendRaw('PATCH', '/api/lost-items/' + encodeURIComponent(id) + '/', payload, document.getElementById('out-patch-lost-item'));
+      });
+
+      document.getElementById('form-create-rating').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var payload = {
+          travel: Number(document.getElementById('rate-travel-id').value),
+          score: Number(document.getElementById('rate-score').value)
+        };
+        var drv = document.getElementById('rate-driver-id').value.trim();
+        if (drv !== '') payload.driver = Number(drv);
+        var comment = document.getElementById('rate-comment').value.trim();
+        if (comment !== '') payload.comment = comment;
+        sendRaw('POST', '/api/driver-ratings/', payload, document.getElementById('out-create-rating'));
+      });
+
+      document.querySelectorAll('form[data-endpoint]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var parts = form.getAttribute('data-endpoint').split(' ');
+          var method = parts[0];
+          var path = parts[1];
+          var query = [];
+          var fd = new FormData(form);
+          fd.forEach(function (val, key) {
+            var s = String(val).trim();
+            if (key.indexOf('path__') === 0) {
+              path = path.replace('{' + key.slice(6) + '}', encodeURIComponent(s));
+            } else if (key.indexOf('query__') === 0) {
+              if (s !== '') query.push(encodeURIComponent(key.slice(7)) + '=' + encodeURIComponent(s));
+            }
+          });
+          if (query.length) path += '?' + query.join('&');
+          sendRaw(method, path, null, form.nextElementSibling);
+        });
+      });
+
+      renderHeader();
+    })();
+  </script>
+</body>
+</html>
