@@ -170,11 +170,13 @@ poetry.toml
 
 # Ruff
 .ruff_cache/
+.serena/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
 # Pasta ignorada durante desenvolvimento
 /media/
+/private-documents/
 
 # Banco de dados
 db.sqlite3

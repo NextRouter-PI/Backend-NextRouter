@@ -1,1 +1,0 @@
-from authenticator.filters.compay import CompanyFilter as CompanyFilter

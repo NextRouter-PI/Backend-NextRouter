@@ -1,2 +1,3 @@
-web: daphne -b 0.0.0.0 -p $PORT app.asgi:application
-release: python manage.py migrate --noinput && python manage.py create_admin && python manage.py seed_demo_data
+web: env DJANGO_SETTINGS_MODULE=app.settings.prod daphne -b 0.0.0.0 -p $PORT app.asgi:application
+worker: env DJANGO_SETTINGS_MODULE=app.settings.prod python manage.py process_route_jobs
+release: env DJANGO_SETTINGS_MODULE=app.settings.prod python manage.py migrate --noinput

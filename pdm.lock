@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.1"
-content_hash = "sha256:cec22168ff31b26f3c5b933d79b36d07586f5ae08fe1295312f3dae6625681f7"
+content_hash = "sha256:7697ae4cbb4ac293721d88848ac633d52e5c8962bd957ff1fde9150f9ffe5646"
 
 [[metadata.targets]]
 requires_python = ">=3.13"
@@ -567,16 +567,31 @@ files = [
 
 [[package]]
 name = "django-filter"
-version = "26.1"
-requires_python = ">=3.10"
+version = "26.2"
+requires_python = ">=3.11"
 summary = "Django-filter is a reusable Django application for allowing users to filter querysets dynamically."
 groups = ["default"]
 dependencies = [
     "Django>=5.2",
 ]
 files = [
-    {file = "django_filter-26.1-py3-none-any.whl", hash = "sha256:7d98ef2899218e6242619b532cb1b95af14e09dfcf74844aecb550ad27b59ff2"},
-    {file = "django_filter-26.1.tar.gz", hash = "sha256:66ea04031b068c77c86e1ac26ced7a3f8f13ce797f5795751707e3deefc58054"},
+    {file = "django_filter-26.2-py3-none-any.whl", hash = "sha256:df8f737841d6359df00b84dda9b5ab59067fe60292091f1bdae1e3e6281cedb0"},
+    {file = "django_filter-26.2.tar.gz", hash = "sha256:fd5cc83995fbe9f5f07fb5dcda16fde0f04de1ecf8ef82628b6c0ec921b751af"},
+]
+
+[[package]]
+name = "django-ipware"
+version = "8.0.0"
+requires_python = ">=3.10"
+summary = "A Django application to retrieve a client's real IP address."
+groups = ["default"]
+dependencies = [
+    "django>=5.2",
+    "python-ipware<5,>=4.1.0",
+]
+files = [
+    {file = "django_ipware-8.0.0-py3-none-any.whl", hash = "sha256:63e9e589aa58c37fbcd3f7624d18a08e69d95b03c84bab7e5ad2a12b03f8c4ec"},
+    {file = "django_ipware-8.0.0.tar.gz", hash = "sha256:377cc7926ea377d8f544511b019cd32b28060e1c9caa3d0c43c3e5e923560f33"},
 ]
 
 [[package]]
@@ -1002,6 +1017,17 @@ files = [
 ]
 
 [[package]]
+name = "python-ipware"
+version = "4.1.1"
+requires_python = ">=3.9"
+summary = "A Python package to retrieve a client's real IP address."
+groups = ["default"]
+files = [
+    {file = "python_ipware-4.1.1-py3-none-any.whl", hash = "sha256:52eedd4cb7bb9e1bb6b9dd92db974e729fe54be22e1389703e21c60344b9f039"},
+    {file = "python_ipware-4.1.1.tar.gz", hash = "sha256:fd6102058e74c29112b4376f8abbae718852c95f8de6965801de88ca9780d22f"},
+]
+
+[[package]]
 name = "python-magic"
 version = "0.4.27"
 requires_python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
@@ -1352,6 +1378,30 @@ files = [
 ]
 
 [[package]]
+name = "ua-parser"
+version = "1.0.2"
+requires_python = ">=3.10"
+summary = "Python port of Browserscope's user agent parser"
+groups = ["default"]
+dependencies = [
+    "ua-parser-builtins",
+]
+files = [
+    {file = "ua_parser-1.0.2-py3-none-any.whl", hash = "sha256:0f8e6d0484af2a9ff804bba5a4fe696e87c028eaba98ad9a7dfae873fef7788a"},
+    {file = "ua_parser-1.0.2.tar.gz", hash = "sha256:bab404ad42fb37f943107da2f6003ffc79724d11cc95076a7a539513371779da"},
+]
+
+[[package]]
+name = "ua-parser-builtins"
+version = "202610"
+requires_python = ">=3.10"
+summary = "Precompiled rules for User Agent Parser"
+groups = ["default"]
+files = [
+    {file = "ua_parser_builtins-202610-py3-none-any.whl", hash = "sha256:ed4b7c4c665323a5f4b2f118af86369412a9bb92e349a120f58f210127e30586"},
+]
+
+[[package]]
 name = "ujson"
 version = "5.13.0"
 requires_python = ">=3.10"
@@ -1420,6 +1470,19 @@ groups = ["default"]
 files = [
     {file = "urllib3-2.7.0-py3-none-any.whl", hash = "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897"},
     {file = "urllib3-2.7.0.tar.gz", hash = "sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c"},
+]
+
+[[package]]
+name = "user-agents"
+version = "2.2.0"
+summary = "A library to identify devices (phones, tablets) and their capabilities by parsing browser user agent strings."
+groups = ["default"]
+dependencies = [
+    "ua-parser>=0.10.0",
+]
+files = [
+    {file = "user-agents-2.2.0.tar.gz", hash = "sha256:d36d25178db65308d1458c5fa4ab39c9b2619377010130329f3955e7626ead26"},
+    {file = "user_agents-2.2.0-py3-none-any.whl", hash = "sha256:a98c4dc72ecbc64812c4534108806fb0a0b3a11ec3fd1eafe807cee5b0a942e7"},
 ]
 
 [[package]]
