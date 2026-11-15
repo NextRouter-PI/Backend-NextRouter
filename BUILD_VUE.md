@@ -63,6 +63,12 @@ Nas mutações, obter CSRF pelo endpoint de bootstrap e enviar `X-CSRFToken`,
 incluindo os fluxos de autenticação conforme o contrato. Não guardar access/refresh
 em `localStorage`/`sessionStorage` nem tentar ler os cookies HttpOnly.
 
+Token CSRF e JWT são diferentes: o bootstrap pode devolver o primeiro ao JavaScript;
+access/refresh ficam apenas em cookies. A aplicação precisa tratar recarga/expiração
+consultando a sessão e renovando conforme o contrato, sem depender de token em memória
+para identificar o login. Coordenar renovações concorrentes entre abas/requisições;
+não repetir automaticamente uma mutação de negócio sem garantia de idempotência.
+
 Para WebSocket, derive o protocolo e o host da página (`https` → `wss`) e utilize
 o caminho do contrato. Não coloque JWT na URL.
 
@@ -108,13 +114,20 @@ Contrato proposto: copiar **o conteúdo** de `dist/` para `frontend_dist/` na ra
 do pacote do backend. Exemplo em um checkout de entrega novo, ainda sem essa pasta:
 
 ```sh
-# Substitua pelos caminhos reais dos dois repositórios.
-export FRONTEND_REPO=/caminho/para/frontend
-export BACKEND_REPO=/caminho/para/backend
-mkdir "$BACKEND_REPO/frontend_dist"
-cp -R "$FRONTEND_REPO/dist/." "$BACKEND_REPO/frontend_dist/"
+# Execute o bloco completo em shell compatível com sh, com os caminhos reais.
+(
+  set -eu
+  FRONTEND_REPO=/caminho/para/frontend
+  BACKEND_REPO=/caminho/para/backend
+  test -f "$FRONTEND_REPO/dist/index.html"
+  test -f "$BACKEND_REPO/manage.py"
+  mkdir "$BACKEND_REPO/frontend_dist"
+  cp -R "$FRONTEND_REPO/dist/." "$BACKEND_REPO/frontend_dist/"
+)
 ```
 
+O bloco interrompe na primeira falha. Um `mkdir` isolado que falha não impede o
+shell interativo de executar um `cp` na linha seguinte; por isso use o bloco completo.
 O `mkdir` sem `-p` falha se o destino já existir: não sobreponha uma entrega antiga
 deixando chunks obsoletos por acidente. Prepare uma nova área de build ou peça
 autorização para limpar apenas o artefato gerado. Não apague diretórios amplos.
@@ -155,6 +168,41 @@ deverá integrar o layout acima, em conjunto com as rotas e segurança da Etapa 
 8. Entregar tudo sob HTTPS/WSS e configurar cookies/CSRF/origins para a mesma origem.
 9. Manter documentos privados fora do diretório do Vue e da coleta pública.
 
+### Orientação de implementação para agentes
+
+- Same-origin significa mesmo esquema, host e porta pública. Dois processos atrás
+  do mesmo host são compatíveis; chamar a API pela URL interna do provedor não é.
+- Servir `index.html` como artefato, sem renderizar acidentalmente expressões Vue
+  como templates Django. Não criar um template por página Vue.
+- Definir fallback explicitamente para GET/HEAD de navegação HTML e rotas da SPA.
+  Excluir prefixos reservados também sem barra final (`/api`, `/admin`, `/assets`),
+  `/media`, downloads e arquivos públicos ausentes. POST desconhecido não recebe SPA.
+  Testar deep links e 404 com/sem barra, conteúdo JSON e arquivos sem extensão.
+- Se usar fallback amplo para navegação HTML, documentar que a página Vue pode
+  mostrar seu próprio 404; isso não autoriza mascarar 404 de API/assets. O contrato
+  de status para rotas desconhecidas da UI deve ser acordado com o frontend.
+- Não montar toda `frontend_dist/` como raiz pública sem filtrar seu conteúdo.
+  Permitir apenas assets e arquivos públicos aprovados; negar caminhos ocultos,
+  traversal, source maps não autorizados e arquivos de manifesto internos.
+- Preservar hashes emitidos pelo Vite. Django/admin podem continuar usando seu próprio
+  manifest em `/static/`. Se o mecanismo escolhido exigir outro prefixo público,
+  ajustar `base`, referências, router e testes juntos; o layout aqui é proposta.
+- Só assets realmente versionados recebem cache imutável. Favicon ou arquivo de
+  `public/` com nome fixo precisa revalidar. HTML pode usar `no-cache` para revalidação;
+  respostas sensíveis exigem política própria, em geral `private, no-store`.
+- Build limpo não significa remover indiscriminadamente assets de releases anteriores
+  ainda usados por abas abertas. Definir retenção curta por versão ou recuperação
+  de erro de chunk com recarga controlada; não criar loop de reload nem misturar
+  manualmente arquivos antigos no novo artefato.
+- Não registrar service worker/PWA por padrão: cache offline pode guardar respostas
+  privadas ou HTML incompatível com a API. Se já existir no Vue, inventariá-lo e
+  revisar cache e atualização antes de declarar integração concluída.
+- Cookies de access precisam alcançar `/ws/` e `/api/`. CORS pode ficar vazio em
+  produção, mas a origem pública ainda deve ser aceita pelo validador do WebSocket.
+  Não remover a allowlist WS junto com a configuração cross-origin antiga.
+- O teste da integração real é marco conjunto das Etapas 3 e 4. Uma fixture HTML
+  valida roteamento do backend, mas não prova funcionamento do Vue real.
+
 Não usar `runserver`, servidor Vite dev ou `vite preview` como servidor de produção.
 O processo ASGI atual é Daphne; o mecanismo escolhido para os estáticos deve ser
 validado com esse deploy real, não apenas em modo DEBUG.
@@ -189,3 +237,8 @@ explicitamente autorizadas, sem enfraquecer a configuração de produção.
 backend atual. O repositório Vue não foi inspecionado e nenhum comando npm/build
 ou deploy foi executado nesta tarefa; ferramentas e configuração do frontend
 precisam ser confirmadas antes da execução.
+
+Na revisão de ambiguidades de 2026-11-15, o bloco de cópia da seção 4 foi testado
+com arquivos fictícios em diretório temporário: a primeira execução copiou o HTML;
+a segunda falhou sem sobrescrevê-lo. Isso valida a proteção do exemplo de shell,
+não o build ou o deploy real.
