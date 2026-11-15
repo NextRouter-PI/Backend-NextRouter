@@ -4,6 +4,8 @@
 
 - Leia [PLANEJAMENTO.md](PLANEJAMENTO.md) antes de começar e atualize seu acompanhamento
   antes de encerrar. Ele substitui os antigos documentos de `docs/`.
+- Para o artefato frontend, consulte [BUILD_VUE.md](BUILD_VUE.md). É um tutorial
+  de preparação e integração planejada, não confirmação de suporte já implementado.
 - O plano aprovado **ainda não está implementado**. Não confundir regras-alvo com
   o código atual; conferir arquivos e registrar diferenças.
 - Frontend Vue em repositório separado, mas build servido pelo backend em produção,

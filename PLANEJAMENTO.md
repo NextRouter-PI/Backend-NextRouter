@@ -3,6 +3,8 @@
 **Decisões aprovadas em novembro de 2026; registro em 2026-11-15.**
 
 Este é o documento principal de produto, arquitetura-alvo e execução da adaptação.
+Para preparar os arquivos compilados do frontend, consulte o tutorial separado
+[BUILD_VUE.md](BUILD_VUE.md).
 Substitui `docs/DOMINIO.md`, `docs/ARQUITETURA.md`, `docs/DECISOES.md`,
 `docs/CONVENCOES.md` e `docs/PROGRESSO.md`. Distinguir sempre **decisão aprovada**,
 **proposta técnica a detalhar** e **comportamento já implementado**.
@@ -571,6 +573,7 @@ descrever como implementado algo que existe apenas como plano.
 | Marco | Situação |
 |---|---|
 | Registro do plano e substituição dos documentos anteriores | Concluído em 2026-11-15. |
+| Tutorial de build Vue separado | Registrado em BUILD_VUE.md; integração ainda não implementada. |
 | Etapa 0 — especificação técnica detalhada e estratégia de migrations | Pendente; decisões de produto acima aprovadas. |
 | Etapa 1 — modelagem | Não iniciada. |
 | Etapa 2 — regras | Não iniciada. |
@@ -583,3 +586,7 @@ passou (118 arquivos). Houve aviso de diretório `staticfiles/` ausente; não h�
 Vue implantado. Não executados nesta tarefa: schema, check-deploy, migrations,
 serviços persistentes ou testes PostgreSQL/Redis/navegador. Esses resultados não
 comprovam implementação nem cobertura do fluxo novo.
+
+Documentação: `git diff --check` passou; links locais e fechamento de blocos de
+código conferidos nos cinco documentos mantidos/criados. O tutorial não foi
+executado contra o frontend, cujo repositório não foi inspecionado nesta tarefa.
