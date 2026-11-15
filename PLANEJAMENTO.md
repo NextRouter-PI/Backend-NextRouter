@@ -9,7 +9,8 @@ Substitui `docs/DOMINIO.md`, `docs/ARQUITETURA.md`, `docs/DECISOES.md`,
 `docs/CONVENCOES.md` e `docs/PROGRESSO.md`. Distinguir sempre **decisão aprovada**,
 **proposta técnica a detalhar** e **comportamento já implementado**.
 
-**Estado:** plano registrado; nenhuma etapa de implementação iniciada nesta tarefa.
+**Estado:** Etapa 0 iniciada: inventário do código e baseline registrados na seção 10.
+Implementação do novo domínio ainda não iniciada; demais entregas da Etapa 0 pendentes.
 A aplicação ainda usa o domínio anterior e ainda não serve o build do Vue.
 Não interpretar exemplos de modelos, estados, caminhos ou serviços como código existente.
 
@@ -732,7 +733,7 @@ descrever como implementado algo que existe apenas como plano.
 |---|---|
 | Registro do plano e substituição dos documentos anteriores | Concluído em 2026-11-15. |
 | Tutorial de build Vue separado | Registrado em BUILD_VUE.md; integração ainda não implementada. |
-| Etapa 0 — especificação técnica detalhada e estratégia de migrations | Pendente; fluxo principal aprovado, decisões complementares na seção 3.4. |
+| Etapa 0 — especificação técnica detalhada e estratégia de migrations | Em andamento: inventário e baseline na seção 10; estados, ER, contrato final e autorização da estratégia de migrations pendentes. |
 | Etapa 1 — modelagem | Não iniciada. |
 | Etapa 2 — regras | Não iniciada. |
 | Etapa 3 — API/admin/integração | Não iniciada. |
@@ -758,3 +759,169 @@ mudaram. `git diff --check`, links locais e blocos de código dos cinco document
 passaram. O bloco de cópia do tutorial foi extraído e executado com arquivos fictícios
 em diretório temporário: cópia inicial correta e segunda execução interrompida sem
 sobrescrever o destino. Nenhum build Vue real executado; sem novo baseline funcional.
+
+## 10. Etapa 0 — inventário e preparação da transição
+
+### 10.1. Escopo e evidências desta execução (2026-11-15)
+
+Primeiro avanço da Etapa 0, sobre o código da revisão `78acfb3`, com árvore de
+trabalho inicialmente limpa. **Não é conclusão da Etapa 0 nem implementação do
+domínio novo.** Inventário estático e baseline executados nesta sessão; achados de
+concorrência abaixo são riscos identificados por leitura, não corridas reproduzidas.
+Nenhuma alteração de código, settings, dependências ou migrations neste avanço.
+O frontend separado não foi acessado.
+
+### 10.2. Mapa atual → alvo e dependentes
+
+Os caminhos das tabelas são relativos à raiz. Nomes de recursos futuros continuam
+conceituais; não constituem um contrato de URLs nem schema aprovado.
+
+| Área e evidência no código atual | Diferença para o alvo e dependentes da transição |
+|---|---|
+| `modules/organizations/models/passenger.py` e `driver.py`: cada perfil tem uma única FK `route_group` opcional e flags de aprovação/recusa no próprio perfil. | Empresa é inferida do grupo; não existe vínculo empresarial com ciclo de vida próprio. Separar vínculo, participação no grupo e autorização de serviços. Rever serializers, permissões, admin, filtros, otimização e WS que percorrem essa FK. |
+| `modules/organizations/api/views/passenger.py` e `driver.py`, ação `request_route_group`: novo pedido substitui o grupo atual e zera aprovação. Serializers de PATCH também resetam aprovação ao mudar grupo. | Pedido a outra empresa não pode sobrescrever o vínculo ativo. Mover grupo na mesma empresa não pode exigir nova aprovação empresarial. Regras de pedidos pendentes/troca dependem da seção 3.4. |
+| Views de passageiro/motorista admitem `destroy` pelo próprio usuário ou empresa proprietária do grupo, usando o fluxo padrão do viewset. | Encerrar vínculo deve ser uma ação distinta de apagar perfil/conta. Revisar ações, proteção de histórico e clientes; não assumir que todo DELETE atual será executável, pois FKs podem protegê-lo. |
+| `modules/organizations/models/company_route_group.py`: empresa, nome único por empresa, CEP comum e coordenadas de referência. | Falta destino operacional com endereço completo, elegibilidade e política por grupo. Coordenada de referência/CEP não equivale ao destino preciso. |
+| `modules/transport/models/company_route_schedule.py`: par obrigatório `go_hour`/`return_hour`, retorno maior que ida, unicidade por grupo/par de horas. | Substituir por serviços independentes, dias da semana, sentido, horário-alvo e escolhas habituais. Afeta API de horários, admin, estatísticas e seeds. |
+| `modules/transport/models/vehicle.py`: veículo pertence ao grupo, motorista responsável opcional, garagem só por CEP e capacidade anulável. | Propriedade deve ser da empresa; exigir capacidade conhecida e positiva para operar e ponto preciso da garagem. Ajustar ownership, serializers e start; manutenção não escolhe substituto automaticamente. |
+| `modules/transport/models/travel.py`: empresa, motorista obrigatório, veículo opcional, Path compartilhado, status de execução e horários reais. | Faltam data de atendimento, serviço, agenda planejada, revisão/preparação e publicação. `path` usa CASCADE; excluir um trajeto pode alcançar viagens e seus dependentes. Revisar exclusão/histórico antes de remover relações antigas. |
+| `modules/transport/api/views/travel.py` e serializer correspondente: criação gera confirmações de todos os alunos aprovados do grupo; criação/start usam total do grupo para capacidade. | Resposta diária deve anteceder viagem publicada; capacidade deve usar alocações concretas. Start/finish/cancel estão na view, não num serviço comum ao admin/worker. |
+| `modules/transport/models/confirm_passenger_route.py`, serializers e views: registro por viagem/usuário com booleano `confirm`; POST faz `update_or_create`, action `confirm` só muda para verdadeiro. | Não distingue sem resposta, negativa, pedido, alocação e embarque. Substituir pelos registros separados, sem reinterpretar confirmação antecipada como prova de embarque. POST pode voltar de verdadeiro para falso; manter caso de regressão. |
+| `modules/transport/models/path.py`, `optimization.py` e API de paths: geometria e paradas mutáveis por grupo, sem snapshot de viagem/revisão. | Separar configuração habitual e resultado concreto versionado. `optimize` bloqueia viagem ativa, mas PATCH/admin não passam pela mesma regra de operação. Start não exige percurso pronto/atual/publicado. |
+| `modules/transport/services.py`: localização transacional e broadcast pós-commit; também helpers de trajeto automático/geocodificação. | Reaproveitar validação de localização e pós-commit; converter o arquivo em pacote somente junto com todos os imports afetados. Helpers existentes não provam que sincronização automática seja o novo fluxo aprovado. |
+| `modules/transport/signals.py`: alterações/remoção de passageiro e endereço do usuário invalidam Path; `Path.save` invalida por mudança de pontos/grupo. | Alterar endereço pessoal ainda afeta planejamento; não existe ponto operacional independente. Adotar invalidação explícita por revisão. Escritas em massa não têm a mesma cobertura dos hooks. |
+| `modules/transport/models/route_optimization_job.py`, `optimization.py`, management command `process_route_jobs.py`: job por Path, IDs de passageiros, origem/fim, tentativas e timeout. | Não há jobs de geração/fechamento, revisão de viagem ou identificador de claim. As coordenadas dos passageiros são lidas do perfil no processamento, não congeladas na solicitação. Último ID de job por Path não substitui revisão + claim. |
+| `modules/organizations/mixins/is_approved.py`: aprovação transacional na API; e-mail via executor após commit e deduplicação temporária em cache por perfil/grupo. | Substituir aviso operacional por persistência interna atômica com a decisão; não remover e-mail de autenticação. Não existe entidade de aviso/lido. Falha na submissão ao executor é silenciada. |
+| `modules/transport/api/serializers/driver_rating.py`: exige viagem finalizada e `confirm=True`; participação é validada antes do lock, não revalidada no create. | Rever elegibilidade por evento operacional efetivo e histórico, na mesma transação. Não concluir que confirmação atual prova viagem realizada. |
+| `modules/transport/api/serializers/lost_item.py`: relato exige viagem encerrada e confirmação ou motorista aprovado; PATCH controla papel, mas não uma tabela completa de transições. | Definir custódia/reabertura e acesso histórico antes de substituir as regras. Admin e API precisam compartilhar a mesma transição. |
+| `modules/organizations/api/views/company.py`, ação `stats`: hoje usa `started_at` ou qualquer viagem agendada; presenças são cruzadas com os horários do grupo. | Estatísticas novas devem usar data/serviço concretos; todas as agendadas atuais não equivalem a atendimentos de hoje. |
+
+**Ausências confirmadas no inventário de models/rotas:** não há entidades próprias
+para vínculo empresarial histórico, serviço semanal independente, política/janela,
+atendimento por data, resposta diária por grupo/data, pedido de alteração, participação
+com eventos reais, convite de substituição ou aviso persistente. Os conceitos da
+seção 4.2 não podem ser tratados como enums já existentes.
+
+### 10.3. Entradas de escrita, acesso e integração
+
+| Superfície | Evidência e trabalho necessário |
+|---|---|
+| API e contrato | `app/api.py` agrega routers de accounts/organizations/transport e uploads. `modules/organizations/urls.py` e `modules/transport/urls.py` registram os recursos legados; a geração OpenAPI atual é baseline, não contrato do domínio novo. |
+| Vínculos e configuração | `/api/passengers/` e `/api/drivers/`, `request-route-group`, `approve`, `reject` precisam separar identidade e vínculo. `/api/company-route-groups/`, `/api/route-schedules/` e `/api/vehicles/` precisam de participação/autorização, serviço independente e propriedade empresarial. Os nomes finais serão fechados com a modelagem. |
+| Operação | `/api/confirmations/` será substituído por resposta/pedido/participação; `/api/travels/` e suas ações precisarão de data/revisão/publicação/eventos. `/api/paths/` e `optimize`/`optimization` precisarão distinguir configuração habitual e cálculo por revisão de viagem. |
+| Dependentes | `/api/companies/me/stats/`, `/api/driver-ratings/` e `/api/lost-items/` precisam usar atendimento/participação efetiva. Preservar funcionalidades até tratar seus callers; não manter duas escritas autoritativas para o mesmo conceito. |
+| Querysets/permissões | `modules/organizations/permissions.py` infere ownership pelo grupo. Views de viagens e consumers liberam aluno aprovado no grupo, sem alocação concreta. Há branches de listagem/leitura ampla para staff; revisar separadamente leitura e escrita, sem transformar isso em bypass de domínio. |
+| Admin | `modules/organizations/admin.py` tem review de empresa por `queryset.update` e escrita de perfil com lógica própria de e-mail. `modules/transport/admin.py` permite editar status/relacionamentos/horários de viagem e dados operacionais sem chamar as ações da API. A extração de services deve cobrir formulários e ações, não só serializers. |
+| HTTP/cookies | `modules/accounts/api/views/auth.py` já fornece bootstrap CSRF, login/refresh/logout com CSRF, cookies HttpOnly e sessões revogáveis. Ainda retorna access/refresh no JSON; produção usa SameSite=None. `authenticate.py` também aceita Bearer, que evita a ramificação CSRF por cookie. Contrato cookie-only da UI ainda não implementado. |
+| Códigos/senhas | `api/serializers/email_token.py` e `user.py` validam força da senha antes do código; `api/views/email_change.py` verifica senha atual antes de `check_email_token`. Corrigir posteriormente com regressão de tentativas persistidas/antienumeração. |
+| WebSocket | `app/asgi.py` usa `OriginValidator` com `CORS_ALLOWED_ORIGINS`. `modules/accounts/ws_auth.py` aceita cookie e fallback Bearer; `modules/transport/consumers.py` usa grupo e revalida sessão/expiração nas mensagens. Acesso inicial a posição exige viagem ativa; há fechamento após finish. Migrar acesso para participação/designação e separar allowlist WS de CORS. Não houve teste WS nesta execução. |
+| Uploads/downloads | `modules/uploads/api/views.py` permite upload público pré-cadastro, sem listagem; download de documento exige titular ou admin. `models/document.py` usa storage privado em `PRIVATE_DOCUMENT_ROOT`, fora da mídia pública. Preservar isso ao mudar vínculos e minimizar os dados serializados. |
+| SPA/estáticos | `app/urls.py` só registra admin/API e mídia em DEBUG; nenhum build/fallback Vue. WhiteNoise e coleta já existem em settings. Seguir `BUILD_VUE.md` como proposta de artefato, não comportamento implementado. |
+
+### 10.4. Jobs, fixtures e clientes que não podem ficar esquecidos
+
+- `process_route_jobs.py` executa apenas otimização. Mantê-lo como ponto de partida
+  do worker por management command; não há agendamento semanal/fechamento hoje.
+- `claim_job` usa timeout de cinco minutos e três tentativas; `_retry` grava por
+  ID/status, sem token da tentativa. São valores **atuais**, não escolhas aprovadas
+  para o novo worker. Um processamento antigo não é isolado de um claim recuperado;
+  testar e corrigir esse risco ao implementar revisão/titularidade, sem alegar
+  comprovação de concorrência com o baseline SQLite.
+- `modules/transport/management/commands/seed_data.py`, `seed_demo_data.py` e
+  `backfill_user_data.py` dependem do domínio legado. Adaptar por marco, sem executar
+  seeds/backfill em dados reais ou acoplá-los ao startup.
+- `tests/helpers.py` cria grupos por CEP e passageiros por `route_group`; importa
+  utilitários dos seeds/backfill. Atualizá-lo junto das primeiras mudanças de schema,
+  incluindo fixtures de empresa/vínculo/grupo separados.
+- A suíte atual cobre autenticação/códigos, cadastro, review, privacidade/downloads,
+  isolamento de alguns filtros e schema. `modules/transport/tests/__init__.py` está
+  vazio: não há uma suíte própria de geração, prazos, publicação, embarque, OSRM ou
+  concorrência do novo domínio. Existem testes de privacidade com viagens em
+  `modules/organizations/tests/test_privacy.py`; não confundir a ausência de testes
+  próprios de transport com ausência absoluta de testes que usam Travel.
+- `html-template-test/` contém clientes locais para contas, empresas, vínculos,
+  grupos/horários, veículos, trajetos/OSRM, viagens/presença, localização WS e
+  objetos/avaliações. `COBERTURA.md` descreve o contrato legado, mas não substitui
+  o código: por exemplo, lista status `inactive` de veículo, ausente nas choices
+  atuais (`active`, `maintenance`). Conferir cada cliente ao trocar o contrato.
+  Não publicar essa pasta nem usar seu catálogo como especificação do alvo.
+
+### 10.5. Migrations: inventário, sem autorização de mudança
+
+Há 8 migrations de accounts, 3 de organizations, 7 de transport e 3 de uploads.
+Labels continuam `authenticator`, `organizations`, `router` e `uploader`; nomes de
+tabelas conservam prefixos antigos. Pontos críticos do histórico:
+
+- `modules/accounts/migrations/0001_initial.py` cria também os perfis/empresa/grupo
+  antigos; `0003_driverrating.py` cria a avaliação antiga.
+- `modules/organizations/migrations/0001_initial.py` transfere estado dos modelos
+  por `SeparateDatabaseAndState`, sem recriar suas tabelas. Depende de
+  `authenticator.0005_usersession` e `uploader.0003`.
+- `modules/transport/migrations/0005_modular_boundaries.py` altera estado de FKs e
+  assume DriverRating, também sem recriar tabelas. Depende de `organizations.0001`.
+- `modules/accounts/migrations/0006_modular_boundaries.py` remove esses modelos
+  apenas do estado de accounts e move ContentTypes preservando IDs. Depende de
+  `router.0005`; as branches não podem ser descartadas isoladamente.
+- As folhas locais são accounts `0008`, organizations `0003`, transport `0007` e
+  uploads `0003`. O baseline de testes conseguiu construir seu banco temporário;
+  isso não informa quais migrations estão aplicadas em bancos de desenvolvimento.
+
+**Proposta técnica para revisão, ainda não autorizada:** conservar o histórico e
+adicionar migrations incrementais por subetapa; validar instalação desde zero em
+banco novo isolado. Não é necessário reescrever migrations antigas apenas porque
+dados demo são dispensáveis. Fechar ER/transição antes de solicitar autorização
+concreta para criar/aplicar novas migrations. Não consultar nem descartar o banco
+habitual para este inventário.
+
+### 10.6. Baseline desta execução e limites
+
+Comandos executados da raiz com variáveis de shell sobrescrevendo eventual `.env`:
+
+```sh
+export DATABASE_URL=sqlite:////tmp/opencode/nextrouter-etapa0.sqlite3
+export REDIS_URL=
+export GEOCODING_URL=
+export OSRM_URL=
+export EMAIL_HOST=
+export CLOUDINARY_URL=
+export PRIVATE_DOCUMENT_ROOT=/tmp/opencode/nextrouter-etapa0-documents
+pdm run test
+pdm run lint
+pdm run check
+pdm run schema
+```
+
+- `test`: **46/46 passaram**, 115,705 s na execução completa. A primeira tentativa
+  foi interrompida pelo limite de 120 s após 43 pontos de progresso e não conta
+  como sucesso; a repetição com limite de 300 s concluiu. Django criou/destruiu o
+  banco de teste; nenhum `migrate` foi executado sobre o banco habitual.
+- `lint`: passou; 115 arquivos já formatados. O número desta execução difere do
+  registro inicial; não usar a contagem antiga como resultado novo.
+- `check`: sem problemas de sistema e sem mudanças de models detectadas pelo
+  `makemigrations --check --dry-run`. Nenhuma migration criada/aplicada manualmente.
+- `schema`: passou, com validação e `--fail-on-warn`; artefato somente em
+  `/tmp/opencode/nextrouter-schema.yaml`, fora do commit.
+- Aviso durante os testes: diretório `staticfiles/` ausente. Não foi criado um
+  build Vue nem executado collectstatic para ocultar esse aviso.
+- Documentação: `git diff --check`, links locais, fechamento dos blocos de código
+  e contagem dos arquivos de migrations conferidos, sem problemas. Após esta
+  mudança exclusivamente documental, não foi repetida a suíte funcional.
+- Não executados: PostgreSQL, Redis, worker persistente, navegador/Vue, chamadas
+  reais a geocodificação/OSRM/SMTP, check-deploy ou deploy. Baseline não comprova
+  locks, recuperação multiprocesso, WS nem o novo fluxo aprovado.
+
+### 10.7. Próximo recorte da Etapa 0
+
+1. Fechar com o dono as decisões que afetam vínculo e participação: vários grupos
+   ativos por aluno na empresa e regras de solicitação/troca de empresa enquanto
+   já vinculado (quantidade de pedidos, encerramento e momento da troca).
+2. Com essas respostas, detalhar estados/transições e catálogo de entidades do
+   primeiro recorte de organizações, incluindo autoria, histórico e ownership.
+   Não implementar pedido que sobrescreva vínculo ativo nem escolher limite de
+   grupos silenciosamente.
+3. Continuar ER e tabelas dos demais eixos conforme suas decisões bloqueantes
+   (seção 3.4), contrato de integração e mapa final de endpoints. Não fixar enums
+   completos, unicidade de viagem/serviço ou regras de encerramento antes disso.
+4. Submeter o conjunto concreto de migrations/settings/dependências necessário
+   ao primeiro marco de código. Este inventário não autoriza essas operações e
+   não marca a modelagem como iniciada.
