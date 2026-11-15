@@ -1,5 +1,9 @@
 # Cobertura de Endpoints — `html-template-test/`
 
+> **Inventário legado**, anterior à adaptação descrita em
+> [PLANEJAMENTO.md](../PLANEJAMENTO.md). Cobertura manual não equivale a teste
+> automatizado nem à garantia do contrato futuro. Revisar junto da substituição da API.
+
 Lista completa de todos os endpoints HTTP e WebSocket descobertos no código do backend (`app/urls.py`, `app/api.py`, `modules/accounts/urls.py`, `modules/organizations/urls.py`, `modules/transport/urls.py`, `modules/uploads/urls.py` e `modules/transport/routing.py`).
 
 ## 1. Autenticação, Sessões, Códigos por E-mail e Usuários (`modules/accounts` + `registration/confirm/`)
