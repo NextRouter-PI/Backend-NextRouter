@@ -13,6 +13,23 @@ Substitui `docs/DOMINIO.md`, `docs/ARQUITETURA.md`, `docs/DECISOES.md`,
 A aplicação ainda usa o domínio anterior e ainda não serve o build do Vue.
 Não interpretar exemplos de modelos, estados, caminhos ou serviços como código existente.
 
+### Como interpretar este documento
+
+- **Aprovado:** fluxo de programação habitual, resposta diária, políticas por grupo,
+  prorrogação com aprovação manual, desistência permitida, motorista habitual e aceite
+  de substituto, geração semanal, avisos internos, uma empresa por perfil e produção
+  Vue/Django na mesma origem. São decisões tomadas com o dono nesta sessão.
+- **Orientação técnica:** nomes, decomposição de entidades, estados sugeridos,
+  organização dos serviços, transações e layout de build. Podem ser refinados com
+  justificativa, sem alterar o comportamento aprovado.
+- **Pendente de decisão:** limites do produto não respondidos explicitamente estão
+  na seção 3.4. Uma sugestão deste documento não é autorização para decidir pelo dono.
+- O código é a evidência do comportamento **atual**; este plano é a especificação
+  **alvo**. `AGENTS.md` disciplina execução; `BUILD_VUE.md` detalha apenas o artefato
+  frontend. Se uma regra de negócio divergir entre documentos, corrigir a divergência
+  usando a decisão registrada, em vez de escolher silenciosamente uma interpretação.
+- Horários como 22h/06h/08h/12h/17h são exemplos configuráveis, não constantes globais.
+
 ## 1. Objetivo e limites
 
 Adaptar o protótipo de gestão de transporte para uma operação previsível: programação
@@ -132,13 +149,16 @@ operacionais. O envio atual de aprovação de vínculo deverá ser alinhado ao n
 ### 3.2. Prazos, publicação e revisão
 
 - Respostas livres terminam no prazo normal; solicitações de inclusão/troca terminam
-  no fim da prorrogação, se habilitada. Revalidar o prazo no aceite, não só no envio.
+  no fim da prorrogação, se habilitada. A proposta é exigir também aceite dentro
+  dela; confirmar essa regra na Etapa 0 (seção 3.4) e então revalidá-la no serviço.
 - Não aceitar inclusão/troca depois do início da viagem nem permitir que a empresa
   contorne o prazo por um PATCH genérico. Exceções futuras exigem regra explícita.
 - Desistência continua permitida antes do embarque, inclusive com viagem ativa.
   Atualiza a lista e gera aviso; não exige recálculo global automático em movimento.
-- Na primeira versão, aceitar pedido exige resolução operacional imediata; não criar
-  uma segunda fila implícita de redistribuição automática de alunos sem lugar.
+- Aceitar um pedido não significa concluir imediatamente uma chamada externa ou
+  publicar o novo percurso. Validar/reservar capacidade e manter estado explícito
+  de preparação; a proposta transacional está na seção 4.1. Não criar redistribuição
+  automática de alunos sem lugar.
 - Publicação depende de motorista apto, aceite do substituto quando necessário,
   veículo disponível com capacidade conhecida, participantes válidos e percurso atual.
 - Separar estado do atendimento/respostas, planejamento, execução, pedido e convite.
@@ -170,6 +190,32 @@ de ponto por viagem e tratamento automatizado de emergências ficam fora do MVP.
 Não presumir que uma aplicação web envia GPS de forma contínua com celular bloqueado
 ou aba suspensa; validar no dispositivo-alvo e informar essa limitação.
 
+### 3.4. Decisões que a Etapa 0 deve fechar com o dono
+
+Perguntar apenas quando a decisão afetar a próxima subetapa; avançar em trabalhos
+independentes. Não tratar as recomendações abaixo como regras já aprovadas.
+
+| Questão ainda não fechada | Recomendação a apresentar e impacto |
+|---|---|
+| Pedido enviado no prazo pode ser aprovado depois do fim da prorrogação? | Recomendar expiração no fim da janela. A sessão aprovou prazo de prorrogação, mas não distinguiu explicitamente prazo de envio e de decisão. Bloqueia definição final de estados/worker. |
+| Pode haver mais de um grupo ativo para um aluno na mesma empresa? | Não confundir uma empresa com um grupo. Se permitir vários grupos, validar conflitos de agenda entre eles; se limitar, registrar a restrição. |
+| Pode solicitar outra empresa enquanto possui vínculo ativo? | Preservar vínculo atual até troca explícita; decidir quantidade de pedidos pendentes e encerramento. Não sobrescrever empresa atual com um novo pedido. |
+| Alteração de política/programação afeta dias já gerados, ainda abertos? | Recomendar snapshot na geração e ação explícita para futuras datas ainda editáveis, nunca atualização silenciosa de dias publicados. |
+| Aprovação de troca com falha no novo cálculo mantém qual alocação? | Recomendar manter a alocação transferida em revisão pendente e exigir resolução da empresa, sem rollback tardio invisível. Confirmar antes de implementar a seção 4.1. |
+| Pode publicar cada viagem independentemente ou o dia é publicado em bloco? | Recomendar por viagem, com painel agregado do dia. Uma pendência do meio-dia não deve impedir automaticamente uma ida pronta. |
+| Como reorganizar um serviço lotado? | Empresa escolhe passageiros e viagem adicional explicitamente; confirmar suporte a mais de uma viagem por serviço/data antes de definir unicidade. Não adotar ordem de confirmação como prioridade sem decisão. |
+| Desistência da ida também cancela retorno? | Recomendar desistência por trecho; ida e volta independentes. Definir interação com pedido pendente e impedir que um aceite antigo reinsira aluno que desistiu. |
+| Cancelamento do dia com alguma viagem já iniciada | Não cancelar retroativamente viagens ativas/finalizadas. Confirmar cancelamento apenas das ainda não iniciadas e indicação de cancelamento parcial. |
+| Encerrar viagem com aluno ainda marcado como embarcado; erro de marcação | Definir correção auditada e regra de fechamento, sem fabricar desembarque automático. |
+| Desaprovação/desativação durante viagem ativa | Definir quem conclui a ocorrência operacional e como controlar acesso; não manter nem bloquear implicitamente ações essenciais sem regra. |
+| Pesquisa pública por região/destino | Definir filtros mínimos (por exemplo, cidade atendida e destino), sem presumir busca por raio ou geocodificação pública. Aprovação cadastral não implementa descoberta geográfica. |
+| Histórico, retenção, avaliações e objetos perdidos | Precisar acesso de ex-vinculados, tempo de retenção e elegibilidade por embarque/viagem finalizada; reabertura de objeto continua pendente. |
+
+Detalhes técnicos a registrar na mesma etapa: horizonte de geração e frequência do
+worker, limites de espera, margem de agenda e modelo de horário planejado; nenhum
+valor numérico foi aprovado como padrão universal. Esses detalhes não justificam
+introduzir módulos de folha de pagamento, contratos financeiros ou emergência.
+
 ## 4. Arquitetura de implementação
 
 Manter os módulos existentes; evitar uma reestruturação geral sem necessidade.
@@ -195,12 +241,107 @@ planejamento, execução), sem concentrar tudo em um único `services.py`. API, 
 e worker compartilham esses caminhos. Publicação WS e outras entregas externas
 ocorrem após commit; avisos persistentes são gravados atomicamente com a decisão.
 
+### 4.1. Receita técnica para alteração e publicação (proposta)
+
+Esta receita esclarece o trabalho assíncrono; a decisão de negócio sobre falha após
+aceite ainda depende da seção 3.4. Não implementar uma transação de banco aberta
+durante geocodificação/OSRM.
+
+1. Serviço recebe ator, ID do pedido e revisão esperada; não depende de `request`
+   ou `Response` do DRF. Reobtém objetos do banco e valida autorização de domínio.
+2. Na transação, bloqueia pedido, participação e viagens envolvidas em ordem
+   consistente. Revalida elegibilidade, prazo, execução e capacidade atual.
+3. Aceite transfere a participação e atualiza a escolha vigente atomicamente.
+   Remove a alocação antiga e ocupa a nova vaga na mesma transação. Uma tentativa
+   repetida do mesmo aceite não pode transferir de novo nem duplicar avisos.
+4. Incrementa a revisão das viagens afetadas, marca preparação pendente, grava jobs
+   com entradas congeladas e avisos mínimos. A decisão aceita é distinta do estado
+   do percurso e da publicação; informar “alteração aceita, programação em atualização”.
+5. Worker calcula fora dos locks. Na gravação, verifica revisão, estado, cancelamento
+   e titularidade do processamento; descarta resultado obsoleto. Falha gera pendência
+   observável, nunca sucesso nem reconstrução usando dados atuais de outra revisão.
+6. Empresa publica a revisão pronta; grava aviso de publicação. `start` exige que
+   revisão publicada, revisão atual e percurso pronto sejam compatíveis. Enquanto
+   houver revisão pendente, uma publicação anterior não autoriza iniciar a viagem.
+
+Manter histórico da publicação anterior com rótulo de desatualizada; não mostrá-la
+como instrução vigente. Transferências e alterações de percurso estão bloqueadas
+em viagens já iniciadas. Desistência em viagem ativa atualiza a lista de execução
+e pode pular parada sem ninguém a atender, sem editar retroativamente o snapshot
+nem invalidar a viagem em curso como se precisasse ser iniciada novamente.
+
+### 4.2. Estados separados e geração determinística
+
+Mapa conceitual para fechar na Etapa 0 (não impõe nomes de enums):
+
+| Eixo | Estados/conceitos a distinguir |
+|---|---|
+| Janela de respostas | Ainda não aberta, normal, prorrogação, encerrada; calculada por prazos e cancelamento. |
+| Atendimento por data | Ativo/cancelado e motivo; não usar somente ausência de viagens para representar cancelamento. |
+| Pedido | Pendente, aceito, recusado, retirado, expirado/substituído. |
+| Planejamento | Rascunho, preparando, com pendência, pronto; revisão publicada em campo/relação separado. |
+| Execução | Não iniciada, em andamento, finalizada, cancelada antes do início. |
+| Participação | Alocada, desistiu, não compareceu, embarcou, desembarcou; eventos auditáveis. |
+| Convite | Pendente, aceito, recusado, expirado, substituído/revogado. |
+
+- “Uma resposta diária” significa um registro lógico editável no período normal,
+  não uma única submissão irreversível. Não exigir vínculo com viagem já publicada
+  para responder; a demanda antecede a alocação.
+- Copiar motorista, veículo e serviços habituais para a programação gerada **não é
+  escolher automaticamente**: é executar a configuração humana. Se forem inválidos,
+  registrar pendência, sem procurar substituto ou veículo por heurística.
+- Destino comum, serviço (sentido/horário/semana), viagem datada e percurso geométrico
+  são diferentes. Não reutilizar `Path` para representar todos eles nem criar uma
+  tabela extra para cada substantivo sem necessidade de identidade/ciclo de vida.
+- Sugestão de limite temporal: `agora < prazo` permite a operação; `agora >= prazo`
+  encerra. Confirmar/documentar no contrato e testar igualdade e virada de data.
+- Guardar elegibilidade ou seu histórico para saber quem era esperado naquele dia;
+  “sem resposta” não pode mudar retroativamente ao incluir novo aluno no grupo.
+- Geração usa chave única de atendimento `(grupo, data)`. A chave da viagem habitual
+  deve distinguir geração automática de viagens adicionais manuais caso estas sejam
+  aprovadas; não impor `(serviço, data)` único cegamente.
+- Cancelamento de data futura deve existir mesmo antes de suas viagens serem geradas.
+  Geração consulta esse registro e nunca usa um `update_or_create` que zere decisões.
+
+### 4.3. Serviços, snapshots e testes: orientações práticas
+
+- Proposta de módulos: regras de vínculo em `organizations/services/`; programação,
+  respostas, planejamento e execução em `transport/services/`. Ao converter o atual
+  `transport/services.py` em pacote, migrar imports/callers no mesmo commit; não deixar
+  arquivo e pacote homônimos coexistindo. Não há exigência de framework de services.
+- Models validam dados locais; services fazem escrita autorizada e transacional;
+  serializers e formulários traduzem erros. Evitar service retornar resposta HTTP
+  ou conhecer o admin. Adotar códigos de erro estáveis para conflitos, prazo e permissão.
+- Constraints não fazem comparação arbitrária entre tabelas: ownership e capacidade
+  precisam também de validação sob lock. Documentar uma ordem global dos locks por
+  tipo/ID, inclusive start, aceite e publicação, para não introduzir deadlocks.
+- Snapshots guardam apenas dados operacionais necessários. Alterar endereço/configuração
+  não muda uma viagem passada; snapshot não é autorização para reter PII indefinidamente.
+- Jobs precisam de revisão de entrada e identificação da tentativa/claim; um worker
+  antigo que termina após timeout não pode gravar sobre o novo. Definir deduplicação
+  para jobs e avisos, tentativas máximas e recuperação de tarefas abandonadas.
+- Publicação de aviso é persistência interna; marcar “lido” é uma operação distinta.
+  Consulta periódica paginada é suficiente para o MVP. WS de notificações separado
+  não foi solicitado. “Lembrete” no exemplo não promete push com aplicativo fechado.
+- Testar services sem HTTP, permissões por HTTP e admin, relógio controlado para
+  prazos, e falhas externas simuladas. Concorrência usa conexões/transações realmente
+  distintas em PostgreSQL, não apenas duas chamadas sequenciais no mesmo TestCase.
+- Refresh e logout devem ser testados com cookies/CSRF reais; testes que só injetam
+  autenticação não verificam o contrato do navegador.
+
 ## 5. Trilha por camadas, com marcos
 
 As etapas seguem a preferência por camadas, não por funcionalidades completas.
 Cada subetapa é pequena, testada, documentada e commitada por mudança lógica.
 Não deixar imports/admin/schema quebrados entre marcos nem antecipar toda a API
 antes das regras. Configurações indispensáveis podem entrar antes da Etapa 4.
+
+“Por camadas” não significa apagar todos os modelos antigos de uma vez. Dentro de
+uma subetapa, adicionar a estrutura nova, ajustar dependentes e remover a antiga
+somente quando os callers forem tratados. Se coexistência temporária for necessária,
+registrar um único caminho de escrita autoritativo e o marco de remoção; não manter
+dois domínios divergentes. Permitir adaptações mecânicas de serializers/admin nas
+Etapas 1/2 para manter o projeto carregável, sem antecipar regras ainda pendentes.
 
 ### Etapa 0 — Especificação e preparação da transição
 
@@ -220,6 +361,8 @@ antes das regras. Configurações indispensáveis podem entrar antes da Etapa 4.
 8. Inspecionar migrations e confirmar estratégia para banco novo antes de criar,
    aplicar, reconstruir migrations ou descartar qualquer dado.
 9. Rodar baseline seguro e registrar resultados reais e limitações.
+10. Resolver as decisões da seção 3.4 que afetam modelagem e registrar a resposta
+    do dono; não converter recomendações em “aprovado” apenas por criar as tabelas.
 
 **Marco:** o fluxo SuperTransporte e as exceções têm representação sem contradições;
 estados, decisões pendentes e contrato de integração estão explícitos. Documento
@@ -311,7 +454,8 @@ Ainda não é entrega funcional completa da operação.
 
 - Bloquear inclusão/troca se não houver prorrogação ou se ela acabou.
 - Pedido pendente conserva escolha anterior. Aprovar revalida prazo, vaga,
-  pertencimento, agenda, estado e revisão da viagem sob transação.
+  pertencimento, agenda, estado e revisão da viagem sob transação; o prazo para
+  decisão deve seguir a definição fechada na seção 3.4.
 - Transferir retorno numa operação atômica; recusas/expirações preservam o anterior.
 - Desistência antes do embarque é imediata e visível, mesmo após prazo e com viagem ativa.
 
@@ -379,6 +523,11 @@ PostgreSQL nos pontos críticos; admin/worker/API não possuem regras divergente
   e limpeza dos cookies; preservar sessão administrativa e validar fluxo completo.
 - Endpoint de bootstrap CSRF; enviar token CSRF no cabeçalho de mutações, inclusive
   login, refresh e logout conforme contrato. Não desabilitar CSRF por usar JWT.
+- O token CSRF pode ser exposto ao JavaScript pelo bootstrap; não é o JWT nem o
+  segredo de sessão. A proibição de tokens no JSON refere-se a access/refresh.
+- Cookies de autenticação devem ser host-only (sem Domain amplo). O path do access
+  precisa cobrir API **e** `/ws/`; restringi-lo a `/api/` quebra WS. Limitar refresh
+  exige considerar também logout/revogação; limpar com os mesmos atributos utilizados.
 - Tratar expiração, refresh concorrente, rotação, múltiplas abas, revogação e logout.
   Definir comportamento de 401/403, sem loops infinitos de renovação.
 - Bearer deixa de ser requisito do navegador. Decidir explicitamente se permanece
@@ -411,13 +560,21 @@ PostgreSQL nos pontos críticos; admin/worker/API não possuem regras divergente
   fora dos diretórios públicos; revisar tipo de conteúdo, download e uploads hostis.
 - CORS não é necessário para a UI em produção. Desenvolvimento pode usar proxy local
   `/api` e `/ws`; não liberar `*` nem previews genéricos de provedores.
+- Não derivar mais a allowlist de Origin do WS exclusivamente de CORS: CORS pode
+  ficar vazio em produção enquanto a origem pública legítima deve continuar aceita
+  no handshake. `ALLOWED_HOSTS` usa host; Origin/CSRF usam esquema e host/porta.
 - Cabeçalhos contra XSS/clickjacking, política de conteúdo compatível com mapas/WS
   quando aplicável, limites de abuso e segredos fora do bundle público.
 
-**Marco:** fluxo HTTP completo e integração em navegador real na mesma origem,
-inclusive com cookies de terceiros bloqueados; autenticação, CSRF, logout, WS,
-downloads, isolamento e navegação direta da SPA testados. Contrato OpenAPI válido
-não substitui testes comportamentais. Trabalho no repositório Vue exige coordenação.
+**Marco de código:** HTTP/admin/WS e contrato de integração testados, com assets
+mínimos de teste quando o build real ainda não estiver disponível. Não declarar
+integração Vue real validada com uma página de teste.
+
+**Marco integrado, compartilhado com a Etapa 4:** build real em navegador na mesma
+origem, inclusive com cookies de terceiros bloqueados; autenticação, CSRF, logout,
+WS, downloads, isolamento e recarga da SPA testados. A Etapa 4 pode iniciar para
+fornecer esse ambiente sem esperar este marco integrado. OpenAPI não substitui
+testes comportamentais. Trabalho no repositório Vue exige coordenação.
 
 ### Etapa 4 — Ambiente, build e operação
 
@@ -462,7 +619,8 @@ smoke de HTTPS/WSS/proxy/storage feito no provedor escolhido.
 4. Sem resposta não é negativa. Dois retornos simultâneos são rejeitados.
 5. Geração repetida não duplica nem altera dados já publicados; dia cancelado não reaparece.
 6. Fechamento ocorre sem prorrogar prazo por atraso do worker; modo rígido bloqueia inclusão.
-7. Prorrogação recebe pedidos, não confirma alterações automaticamente; aceite fora do prazo falha.
+7. Prorrogação recebe pedidos, não confirma alterações automaticamente; envio/aceite
+   respeitam os prazos definidos com o dono na seção 3.4.
 8. Pedro mantém 17h enquanto pede 12h; aprovação transfere atomicamente; recusa preserva 17h.
 9. Duas aprovações disputam a última vaga sem ultrapassar capacidade.
 10. Motorista habitual não confirma todo dia; substituto precisa aceitar convite vigente.
@@ -574,13 +732,13 @@ descrever como implementado algo que existe apenas como plano.
 |---|---|
 | Registro do plano e substituição dos documentos anteriores | Concluído em 2026-11-15. |
 | Tutorial de build Vue separado | Registrado em BUILD_VUE.md; integração ainda não implementada. |
-| Etapa 0 — especificação técnica detalhada e estratégia de migrations | Pendente; decisões de produto acima aprovadas. |
+| Etapa 0 — especificação técnica detalhada e estratégia de migrations | Pendente; fluxo principal aprovado, decisões complementares na seção 3.4. |
 | Etapa 1 — modelagem | Não iniciada. |
 | Etapa 2 — regras | Não iniciada. |
 | Etapa 3 — API/admin/integração | Não iniciada. |
 | Etapa 4 — ambiente/build/operação | Não iniciada. |
 
-**Validações desta tarefa de documentação (2026-11-15):** `pdm run test` passou
+**Validações do registro inicial (2026-11-15, antes da revisão de ambiguidades):** `pdm run test` passou
 46/46 com SQLite de teste isolado e integrações externas desabilitadas; `pdm run lint`
 passou (118 arquivos). Houve aviso de diretório `staticfiles/` ausente; não há build
 Vue implantado. Não executados nesta tarefa: schema, check-deploy, migrations,
@@ -590,3 +748,13 @@ comprovam implementação nem cobertura do fluxo novo.
 Documentação: `git diff --check` passou; links locais e fechamento de blocos de
 código conferidos nos cinco documentos mantidos/criados. O tutorial não foi
 executado contra o frontend, cujo repositório não foi inspecionado nesta tarefa.
+
+**Revisão de ambiguidades (2026-11-15):** distinguidas decisões aprovadas de
+recomendações, explicitadas pendências de produto, receita de revisão assíncrona,
+geração determinística, limites entre camadas e marco conjunto 3/4. Ajustados guia
+dos agentes e tutorial para cookies/WS, cópia segura e contrato de assets. Somente
+documentação; testes de aplicação não repetidos porque código/dependências não
+mudaram. `git diff --check`, links locais e blocos de código dos cinco documentos
+passaram. O bloco de cópia do tutorial foi extraído e executado com arquivos fictícios
+em diretório temporário: cópia inicial correta e segunda execução interrompida sem
+sobrescrever o destino. Nenhum build Vue real executado; sem novo baseline funcional.

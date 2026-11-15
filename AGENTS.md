@@ -8,6 +8,10 @@
   de preparação e integração planejada, não confirmação de suporte já implementado.
 - O plano aprovado **ainda não está implementado**. Não confundir regras-alvo com
   o código atual; conferir arquivos e registrar diferenças.
+- Leia a legenda inicial e a seção 3.4 do planejamento: fluxo principal aprovado
+  não significa que todas as recomendações técnicas ou regras de exceção estejam
+  aprovadas. Feche as pendências que bloqueiam a subetapa antes de implementá-las;
+  avance no trabalho independente sem inventar decisões de produto.
 - Frontend Vue em repositório separado, mas build servido pelo backend em produção,
   na mesma origem de API/admin/WS. Não planejar Vercel/BFF/cookies de terceiros como
   dependência. Não editar o outro repositório sem acesso e escopo autorizados.
@@ -40,6 +44,9 @@
   Resposta diária, pedido, alocação e embarque são conceitos distintos.
 - Política por grupo: prazo normal + prorrogação opcional com aceite manual.
   Desistência antes do embarque é permitida após prazo. Detalhes no planejamento.
+- Preparar viagens a partir da configuração habitual não é escolher motorista por
+  algoritmo. Copiar escolhas humanas é permitido; selecionar substitutos por
+  heurística não. Aceite de pedido, cálculo e publicação são operações distintas.
 - Isolar querysets por empresa/participação antes de filtros; permissões de objeto
   não protegem listas. Revalidar invariantes nos services, inclusive com concorrência.
 - Alunos podem ser menores: não expor identidade, endereço ou localização sem
@@ -48,6 +55,8 @@
   divergências atuais listadas no planejamento. Preservar tentativas e antienumeração.
 - Produção-alvo: cookies HttpOnly/Secure e CSRF, mesma origem, sem JWT em JSON/storage/URL.
   Não desabilitar CSRF/CORS/origin checks para fazer a integração funcionar.
+- CSRF não é JWT: seu token de bootstrap pode ser entregue ao Vue. Cookie de access
+  precisa alcançar `/api/` e `/ws/`. CORS vazio não implica allowlist WS vazia.
 - Novas FK de usuário usam `settings.AUTH_USER_MODEL`. URLs em inglês, mensagens em
   português, fuso America/Sao_Paulo com USE_TZ. Documentar OpenAPI e testar negações.
 
@@ -75,6 +84,12 @@ pdm run schema
 - Rode baseline antes de implementação e validações pertinentes após cada mudança.
   Registre o que não foi executado. PostgreSQL para concorrência; Redis para múltiplos
   processos. SQLite não comprova locks. Não inicie worker com dados reais.
+- Em mudanças exclusivamente documentais, verificar links, consistência, blocos e
+  `git diff --check`; não repetir testes funcionais já aprovados sem alteração ou
+  dúvida nova. Não apresentar um baseline anterior como executado na revisão atual.
+- A autorização para executar uma subetapa deve explicitar as mudanças previstas
+  de schema/settings/dependências. Pergunte uma vez pelo conjunto concreto, não a
+  cada chamada já autorizada; autorização para documentar não autoriza implementar.
 - `pdm run check` inclui makemigrations somente check/dry-run; `pdm run format`
   modifica arquivos. `check-deploy` exige variáveis obrigatórias: ver planejamento
   e `app/settings/prod.py`, sem gravar credenciais reais.
