@@ -6,8 +6,8 @@
   antes de encerrar. Ele substitui os antigos documentos de `docs/`.
 - Para o artefato frontend, consulte [BUILD_VUE.md](BUILD_VUE.md). É um tutorial
   de preparação e integração planejada, não confirmação de suporte já implementado.
-- A adaptação **ainda não está concluída**. Há estrutura parcial de vínculos novos,
-  mas o caminho operacional continua legado (seção 10.9 do planejamento). Não
+- A adaptação **ainda não está concluída**. Há estrutura parcial de vínculos,
+  grupos e pontos, mas o caminho operacional continua legado (seções 10.9/10.10). Não
   confundir regras-alvo com o código atual; conferir arquivos e registrar diferenças.
 - Leia a legenda inicial e a seção 3.4 do planejamento: fluxo principal aprovado
   não significa que todas as recomendações técnicas ou regras de exceção estejam
@@ -47,9 +47,14 @@
   grupos do motorista. Um ciclo empresarial pendente ou ativo por perfil; só
   solicitar outra empresa após encerrar. Titular retira pedido pendente; titular
   ou empresa encerram vínculo, bloqueado durante participação operacional ativa.
-- `CompanyMembership`/`MembershipEvent` ainda são estrutura sem escrita operacional.
+- `CompanyMembership`/`MembershipEvent` e `OperationalPoint`/`PassengerGroupMembership`
+  ainda são estrutura sem escrita operacional; `destination` do grupo segue opcional
+  na transição e não é escrito pelo admin/API legados.
   Não habilitar caminho novo mantendo API/admin/WS legados com outra fonte de verdade;
   substituição de callers e remoção do legado têm marco explícito no planejamento.
+- O dono quer regenerar atendimentos e aplicar mudanças de configuração. Escopo de
+  datas, acionamento e preservação de respostas/alocações/publicações ainda precisam
+  ser fechados antes do gerador; isso não autoriza zerar decisões ou recriar cancelados.
 - Política por grupo: prazo normal + prorrogação opcional com aceite manual.
   Desistência antes do embarque é permitida após prazo. Detalhes no planejamento.
 - Preparar viagens a partir da configuração habitual não é escolher motorista por

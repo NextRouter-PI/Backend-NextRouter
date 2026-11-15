@@ -6,7 +6,16 @@ from django.contrib import admin
 from django.utils import timezone
 
 from .mixins.is_approved import clear_approval_notification_key, dispatch_approval_email_on_commit
-from .models import Company, CompanyMembership, CompanyRouteGroup, Driver, MembershipEvent, Passenger
+from .models import (
+    Company,
+    CompanyMembership,
+    CompanyRouteGroup,
+    Driver,
+    MembershipEvent,
+    OperationalPoint,
+    Passenger,
+    PassengerGroupMembership,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +172,7 @@ class CompanyRouteGroupAdmin(admin.ModelAdmin):
         js = ('core/js/name_mask.js', 'core/js/cep_mask.js')
 
 
-class MembershipReadOnlyAdmin(admin.ModelAdmin):
+class OrganizationStructureReadOnlyAdmin(admin.ModelAdmin):
     """Sem escrita administrativa antes de existir o serviço de domínio comum."""
 
     actions = None
@@ -182,7 +191,7 @@ class MembershipReadOnlyAdmin(admin.ModelAdmin):
 
 
 @admin.register(CompanyMembership)
-class CompanyMembershipAdmin(MembershipReadOnlyAdmin):
+class CompanyMembershipAdmin(OrganizationStructureReadOnlyAdmin):
     list_display = ('id', 'company', 'passenger', 'driver', 'status', 'created_at')
     list_filter = ('status', 'company')
     list_select_related = (
@@ -198,7 +207,22 @@ class CompanyMembershipAdmin(MembershipReadOnlyAdmin):
 
 
 @admin.register(MembershipEvent)
-class MembershipEventAdmin(MembershipReadOnlyAdmin):
+class MembershipEventAdmin(OrganizationStructureReadOnlyAdmin):
     list_display = ('id', 'membership', 'action', 'actor', 'occurred_at')
     list_filter = ('action',)
     list_select_related = ('membership', 'actor')
+
+
+@admin.register(OperationalPoint)
+class OperationalPointAdmin(OrganizationStructureReadOnlyAdmin):
+    # Endereço e coordenadas só aparecem na consulta individual autorizada.
+    list_display = ('id', 'company', 'created_at')
+    list_filter = ('company',)
+    list_select_related = ('company__user', 'created_by')
+
+
+@admin.register(PassengerGroupMembership)
+class PassengerGroupMembershipAdmin(OrganizationStructureReadOnlyAdmin):
+    list_display = ('id', 'membership', 'route_group', 'started_at', 'ended_at')
+    list_filter = ('route_group__company',)
+    list_select_related = ('membership', 'route_group__company', 'transport_point', 'assigned_by', 'ended_by')

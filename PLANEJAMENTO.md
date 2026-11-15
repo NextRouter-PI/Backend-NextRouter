@@ -9,8 +9,9 @@ Substitui `docs/DOMINIO.md`, `docs/ARQUITETURA.md`, `docs/DECISOES.md`,
 `docs/CONVENCOES.md` e `docs/PROGRESSO.md`. Distinguir sempre **decisão aprovada**,
 **proposta técnica a detalhar** e **comportamento já implementado**.
 
-**Estado:** Etapa 0 em andamento; primeiro marco estrutural da Etapa 1.1 autorizado
-e implementado: vínculos empresariais e eventos, sem ativação operacional (seção 10.9).
+**Estado:** Etapa 0 em andamento; marcos estruturais 1.1a e 1.2a autorizados e
+implementados: vínculos/eventos, pontos e participação em grupos (seções 10.9/10.10).
+Ainda sem ativação operacional do domínio novo.
 A API/admin legados ainda operam com o domínio anterior; o backend não serve o build Vue.
 Não interpretar exemplos de modelos, estados, caminhos ou serviços como código existente.
 
@@ -207,7 +208,7 @@ independentes. Não tratar as recomendações abaixo como regras já aprovadas.
 | Questão ainda não fechada | Recomendação a apresentar e impacto |
 |---|---|
 | Pedido enviado no prazo pode ser aprovado depois do fim da prorrogação? | Recomendar expiração no fim da janela. A sessão aprovou prazo de prorrogação, mas não distinguiu explicitamente prazo de envio e de decisão. Bloqueia definição final de estados/worker. |
-| Alteração de política/programação afeta dias já gerados, ainda abertos? | Recomendar snapshot na geração e ação explícita para futuras datas ainda editáveis, nunca atualização silenciosa de dias publicados. |
+| Como delimitar a regeneração após mudar grupo/ponto/serviços/política? | O dono respondeu “Gerar novamente e aplicar as mudanças.” Registrar essa intenção, mas ainda fechar se é automática ou ação da empresa, quais dias podem ser atualizados e como preservar respostas/alocações/revisões. Não interpretar como autorização para apagar decisões, recriar cancelados ou reescrever viagens passadas/em andamento. Ver 10.10. |
 | Aprovação de troca com falha no novo cálculo mantém qual alocação? | Recomendar manter a alocação transferida em revisão pendente e exigir resolução da empresa, sem rollback tardio invisível. Confirmar antes de implementar a seção 4.1. |
 | Pode publicar cada viagem independentemente ou o dia é publicado em bloco? | Recomendar por viagem, com painel agregado do dia. Uma pendência do meio-dia não deve impedir automaticamente uma ida pronta. |
 | Como reorganizar um serviço lotado? | Empresa escolhe passageiros e viagem adicional explicitamente; confirmar suporte a mais de uma viagem por serviço/data antes de definir unicidade. Não adotar ordem de confirmação como prioridade sem decisão. |
@@ -372,8 +373,8 @@ Etapas 1/2 para manter o projeto carregável, sem antecipar regras ainda pendent
      do dono; não converter recomendações em “aprovado” apenas por criar as tabelas.
 
 **Avanço registrado:** inventário e baseline na seção 10; decisões do recorte de
-vínculos/grupo na seção 10.8. Primeiro marco estrutural da Etapa 1.1 autorizado
-separadamente e registrado na seção 10.9; não representa conclusão da Etapa 0,
+vínculos/grupo na seção 10.8. Marcos estruturais 1.1a/1.2a autorizados separadamente
+e registrados nas seções 10.9/10.10; não representam conclusão da Etapa 0,
 ER completo ou estados definitivos de todo o domínio.
 
 **Marco:** o fluxo SuperTransporte e as exceções têm representação sem contradições;
@@ -756,8 +757,8 @@ descrever como implementado algo que existe apenas como plano.
 |---|---|
 | Registro do plano e substituição dos documentos anteriores | Concluído em 2026-11-15. |
 | Tutorial de build Vue separado | Registrado em BUILD_VUE.md; integração ainda não implementada. |
-| Etapa 0 — especificação técnica detalhada e estratégia de migrations | Em andamento: inventário/baseline e decisões de vínculos na seção 10.8. ER completo, demais estados/regras e contrato final pendentes. Estratégia incremental autorizada apenas para o marco 10.9. |
-| Etapa 1 — modelagem | Iniciada parcialmente: CompanyMembership/MembershipEvent e migration aditiva 0004 de organizations, com admin somente de leitura e testes. Marco 1.1 ainda incompleto; caminho operacional continua legado. Ver 10.9. |
+| Etapa 0 — especificação técnica detalhada e estratégia de migrations | Em andamento: inventário/baseline, decisões de vínculos em 10.8 e intenção de regeneração em 10.10. ER completo, demais estados/regras e contrato final pendentes. Estratégia incremental autorizada somente para os conjuntos 10.9/10.10. |
+| Etapa 1 — modelagem | Parcial: vínculos/eventos (0004), pontos/participação em grupo e destination opcional (0005), com admin somente de leitura para modelos novos e testes. Subetapas 1.1/1.2 ainda incompletas; caminho operacional continua legado. Ver 10.9/10.10. |
 | Etapa 2 — regras | Não iniciada. |
 | Etapa 3 — API/admin/integração | Não iniciada. |
 | Etapa 4 — ambiente/build/operação | Não iniciada. |
@@ -872,8 +873,8 @@ seção 4.2 não podem ser tratados como enums já existentes.
 ### 10.5. Migrations: inventário, sem autorização de mudança
 
 No inventário da revisão `78acfb3`, havia 8 migrations de accounts, 3 de
-organizations, 7 de transport e 3 de uploads. A nova `organizations.0004`, criada
-posteriormente com autorização, está registrada na seção 10.9.
+organizations, 7 de transport e 3 de uploads. As adições `organizations.0004` e
+`0005`, criadas posteriormente com autorização, estão nas seções 10.9/10.10.
 Labels continuam `authenticator`, `organizations`, `router` e `uploader`; nomes de
 tabelas conservam prefixos antigos. Pontos críticos do histórico:
 
@@ -893,7 +894,7 @@ tabelas conservam prefixos antigos. Pontos críticos do histórico:
 
 **Proposta no inventário inicial:** conservar o histórico e adicionar migrations
 incrementais por subetapa; validar instalação desde zero em banco novo isolado.
-Posteriormente autorizada **somente para o conjunto 10.9**. Não é necessário
+Posteriormente autorizada **somente para os conjuntos 10.9/10.10**. Não é necessário
 reescrever migrations antigas apenas porque dados demo são dispensáveis. Fechar
 o recorte de ER/transição antes de solicitar autorização concreta para cada novo
 conjunto. Não consultar nem descartar o banco habitual para este inventário.
@@ -940,14 +941,15 @@ pdm run schema
 1. Recorte de vínculo respondido pelo dono: grupo único, um ciclo pendente/ativo,
    retirada pelo titular, encerramento por titular/empresa e bloqueio em operação
    ativa. Regras registradas na seção 10.8; estrutura parcial implementada em 10.9.
-2. Antes de ativar o novo caminho, detalhar participação/grupo/serviços e fechar
-   vigência sobre dias gerados e efeitos em viagens futuras. Implementar a regra
-   de bloqueio de encerramento com a participação real, não com o booleano legado.
+2. Participação em grupo e pontos têm estrutura parcial na seção 10.10. Antes de
+   ativar o novo caminho, detalhar serviços/autorização e fechar regras de regeneração
+   de dias gerados, preservação de respostas/alocações e efeitos em viagens futuras.
+   Implementar bloqueio de encerramento com participação real, não o booleano legado.
 3. Continuar ER e tabelas dos demais eixos conforme suas decisões bloqueantes
    (seção 3.4), contrato de integração e mapa final de endpoints. Não fixar enums
    completos, unicidade de viagem/serviço ou regras de encerramento antes disso.
-4. O conjunto estrutural de 10.9 foi autorizado expressamente; isso não autoriza
-   outras migrations, settings/dependências, backfill ou aplicação no banco habitual.
+4. Os conjuntos estruturais de 10.9/10.10 foram autorizados expressamente; isso não
+   autoriza outras migrations, settings/dependências, backfill ou aplicação no banco habitual.
    Cada próximo conjunto deve ter seu escopo concreto revisado antes da execução.
 
 ### 10.8. Primeiro recorte de organizações: decisões e especificação preliminar
@@ -983,8 +985,8 @@ coluna `company` e conservar as flags/grupo atuais como uma segunda fonte de ver
 | Perfil Passageiro/Motorista existente | Identidade do usuário obrigatória; CNH opcional no motorista, como hoje. | Não pertence à empresa. Aprovação empresarial e grupo saem do perfil no marco que tratar todos os dependentes. Novas relações de usuário usam `settings.AUTH_USER_MODEL`; não alterar label da identidade incidentalmente. |
 | Vínculo empresarial (tentativa/ciclo) | Empresa obrigatória; exatamente um perfil proprietário (passageiro **ou** motorista); estado, solicitante e criação obrigatórios; decisão/revisor, retirada/autor e encerramento/autor opcionais enquanto o evento não ocorreu. | Estrutura implementada em `CompanyMembership` (10.9). Unicidade condicional de um ciclo **pendente ou ativo** por perfil, não uma unicidade independente para cada estado. Checks de proprietário exclusivo e coerência estado/timestamps; aprovação, ownership e impedimento de novo pedido exigem serviço transacional. FKs históricas protegidas contra cascata; retenção continua pendente. |
 | Evento de vínculo | Vínculo obrigatório; ação, autor e instante obrigatórios; motivo opcional, limitado a 500 caracteres. | Estrutura implementada em `MembershipEvent` (10.9), com uma ação de cada tipo por ciclo para deduplicação. Trilho append-only será garantido nos services e superfícies expostas, não por triggers ou por sobrescrever save. Aviso persistente será gravado na mesma transação quando essa entidade estiver disponível. Payload não replica CPF, endereço ou documentos. Exclusão/anonimização administrativa depende de retenção, não de DELETE empresarial. |
-| Participação do aluno no grupo | Vínculo de passageiro e grupo obrigatórios; início obrigatório; fim opcional enquanto vigente; autoria de inclusão/encerramento. | No máximo uma participação vigente por vínculo; com um único vínculo ativo por perfil, impede dois grupos ativos. Serviço deve exigir vínculo ativo, empresa do grupo igual à do vínculo e nenhuma participação vigente em vínculo encerrado. Esses checks entre tabelas não são garantidos apenas pela unicidade. Não usar essa relação para o motorista. |
-| Ponto operacional/autorização de serviço | Participação de grupo como referência; endereço completo/ponto e serviços serão detalhados no recorte 1.2. | Não copiar automaticamente alterações posteriores do perfil. Troca de grupo não reescreve snapshots de dias/viagens passados; vigência de dias futuros depende da seção 3.4. |
+| Participação do aluno no grupo | `PassengerGroupMembership`, implementado em 10.10: vínculo e grupo obrigatórios, ponto habitual opcional durante configuração, início/autor e fim/autor. | No máximo uma participação aberta por vínculo no banco. Validação local rejeita motorista, falta de aprovação, grupo/ponto de outra empresa e participação fora do ciclo empresarial. Serviço deverá revalidar sob lock; não usar essa relação para o motorista nem presumir que constraints entre tabelas existem. |
+| Ponto operacional/autorização de serviço | `OperationalPoint`, implementado em 10.10: empresa, endereço completo, coordenadas e autor/data. Destino opcional no grupo durante transição; serviços/autorização ainda pendentes. | Não copia alterações posteriores do perfil nem faz cálculo em save. FK para ponto não é snapshot da viagem; congelamento/versionamento concreto virá nos próximos recortes. Regeneração de dias futuros tem intenção aprovada, mas limites pendentes na seção 3.4. |
 
 Essa decomposição preserva uma identidade por usuário e histórico por ciclo de
 vínculo. A tabela compartilhada `CompanyMembership` usa uma relação explícita com
@@ -1086,8 +1088,9 @@ dados ou aplicar no banco habitual. A autorização não abrange os próximos sc
   helpers e clientes manuais. Nesse marco, remover flags/grupo antigos como fonte
   de vínculo; não habilitar um endpoint novo deixando caminhos antigos escreverem
   uma interpretação concorrente. Remoção de schema/backfill requer nova autorização.
-- A participação histórica em grupo/ponto/serviços não foi criada. Também não foram
-  implementados avisos persistentes, encerramento/retirada operacionais, snapshots,
+- Neste marco 1.1a, participação histórica em grupo/ponto/serviços não foi criada;
+  a estrutura de grupo/ponto foi acrescentada depois em 10.10, ainda sem serviços.
+  Também não foram implementados avisos persistentes, encerramento/retirada operacionais, snapshots,
   mudanças em viagens futuras ou a regra real de bloqueio durante viagem ativa.
   Por isso a subetapa 1.1, a Etapa 0 e o novo fluxo funcional **não estão concluídos**.
 
@@ -1111,3 +1114,105 @@ negação inicial de lint por linha longa no teste, corrigida. Validação compl
 - Continua o aviso de `staticfiles/` ausente. Não executados PostgreSQL, Redis,
   navegador/Vue, worker persistente, serviços externos reais, check-deploy ou deploy.
   Os testes de constraints SQLite **não comprovam locks nem corridas concorrentes**.
+
+### 10.10. Marco estrutural 1.2a — grupos e pontos, sem ativação operacional
+
+**Decisão de produto nesta continuação (2026-11-15):** à pergunta sobre alterações
+de grupo, ponto habitual, serviços ou política em atendimentos futuros já gerados,
+o dono respondeu **“Gerar novamente e aplicar as mudanças.”** Não escolheu entre
+atualização automática ou ação explícita nem delimitou dias não publicados versus
+publicados. Registrar a intenção de reaplicação por regeneração; fechar os limites
+antes de implementar o gerador. Isso não autoriza zerar respostas/pedidos/alocações,
+recriar cancelados ou reescrever viagens passadas/em andamento. Publicação continua
+exigindo revisão atual pronta, decisão da empresa e aviso quando revisada.
+
+**Autorização expressa:** criar `OperationalPoint` e `PassengerGroupMembership`,
+adicionar `destination` opcional ao grupo, incluir constraints/validações locais,
+testes e admin somente de leitura para os novos modelos; gerar migration incremental
+e aplicá-la apenas em bancos temporários de teste. Sem endpoints novos, alteração
+de settings/dependências, backfill, descarte de dados ou aplicação no banco habitual.
+
+**Implementado neste conjunto:**
+
+- `modules/organizations/models/operational_point.py`: ponto da empresa, com nome,
+  logradouro, número, complemento opcional, bairro, cidade, UF, CEP, coordenadas,
+  autor e criação. Não tem FK para o endereço pessoal, mixin de geocodificação,
+  chamada HTTP, signals de sincronização ou geração de Path em save.
+- Banco exige coordenadas não nulas e dentro dos limites geográficos; nome/campos
+  obrigatórios de endereço não podem ser strings vazias. `clean` também rejeita
+  campos só com espaços, coordenadas inválidas/não finitas. Isso não comprova que
+  o endereço exista, que CEP/UF estejam corretos ou que o ponto seja seguro para parar.
+- `modules/organizations/models/passenger_group_membership.py`: referência ao ciclo
+  empresarial, grupo e ponto habitual opcional enquanto a configuração estiver
+  incompleta; início/autor e fim/autor. Não é participação/embarque de viagem.
+- Constraints: uma participação aberta (`ended_at IS NULL`) por vínculo; fim exige
+  autor e vice-versa; fim não pode anteceder início. Ciclos encerrados preservam
+  histórico e permitem nova participação, inclusive no mesmo grupo. Não existe
+  unicidade do ponto: vários alunos podem compartilhar a mesma parada física.
+- Validação local via `clean`/`full_clean`: vínculo precisa ser de passageiro e
+  possuir aprovação (ativo, ou encerrado apenas para histórico fechado); grupo,
+  vínculo e ponto devem ser da mesma empresa; início não pode anteceder aprovação
+  empresarial e fim não pode ultrapassar encerramento do vínculo. Instantes sem
+  fuso e IDs inválidos são tratados como erro de validação, não falha de comparação
+  ou de acesso à relação. Nenhum desses checks entre tabelas substitui lock no serviço.
+- `CompanyRouteGroup.destination`: FK opcional para ponto, com exclusão protegida.
+  `clean` valida mesma empresa. Continua opcional **para preservar a transição**;
+  operação nova ainda deverá exigir destino completo. `common_cep` e coordenadas
+  de referência legados não foram removidos, reinterpretados ou sincronizados.
+- `modules/organizations/migrations/0005_operational_points_and_group_memberships.py`:
+  cria as duas tabelas/constraints e adiciona FK anulável, sem backfill nem destruição
+  de tabelas/colunas. Depende da `organizations.0004` e do usuário configurado.
+- Admin: `OrganizationStructureReadOnlyAdmin` compartilhado por todos os modelos
+  novos; novos pontos/participações também negam add/change/delete e ações em massa,
+  inclusive ao superusuário. Listagem de pontos não inclui endereço/coordenadas;
+  consulta individual permanece restrita a staff autorizado. O admin legado do grupo
+  não expõe `destination` para escrita nem recebeu uma ação de configuração paralela.
+- Fixtures fictícias: helper `tests/helpers.py:create_operational_point`; novos testes
+  em `test_operational_points.py` e `test_passenger_group_membership.py`, além dos
+  testes HTTP de admin ampliados para os quatro modelos estruturais.
+
+**Limites e coexistência — não declarar entrega operacional:**
+
+- API/admin/worker antigos continuam o único caminho operacional, conforme 10.9.
+  Nenhum novo endpoint ou serialização de ponto/endereço foi acrescentado. Teste
+  verifica que a API legada não expõe nem escreve `destination`; seu comportamento
+  atual de ignorar campo fora do serializer não é o contrato-alvo de uma nova API.
+- `save` não chama `full_clean`. ORM direto/bulk/update não garantem mesma empresa,
+  papel, aprovação, cronologia entre tabelas, autoria autorizada ou encerramento
+  coordenado de grupos ao encerrar o vínculo. As constraints são defesa estrutural;
+  o futuro serviço deverá revalidar tudo na transação, inclusive sob concorrência.
+- A unicidade de uma participação aberta é **por vínculo**, não uma constraint
+  SQL arbitrária entre perfil/estado empresarial/grupo. Proibir grupo aberto em
+  ciclo encerrado é validação local e deverá ser invariante transacional do serviço.
+  Também não foi implementada agenda de mudanças futuras nem exclusão de sobreposição
+  de todos os intervalos históricos; não prometer isso com essa unicidade parcial.
+- FK de participação para ponto não congela o conteúdo do endereço. Snapshots de
+  atendimento/viagem, revisão de pontos, serviços habituais/autorizados e regeneração
+  continuam fora deste conjunto. Alterar perfil pessoal não muda o ponto, mas isso
+  não autoriza alterar silenciosamente um ponto já usado por viagem publicada.
+- Ponto nulo representa configuração incompleta, não autorização para operar sem
+  local de transporte. Ainda falta o serviço que valide prontidão operacional.
+- FKs protegidas preservam referências; política de retenção/anonimização continua
+  pendente. Grupo único não significa limitar serviços/retornos nem grupos do motorista.
+- A Etapa 0 e as subetapas 1.1/1.2 continuam parciais. Próximo recorte: detalhar
+  serviços independentes, autorizações e propriedade da frota; fechar as decisões
+  bloqueantes antes de definir suas unicidades e criar outro conjunto de migrations.
+
+**Validações desta continuação:** baseline antes do código: **74/74** testes em
+124,648 s e lint (119 arquivos) passaram. Depois, **44/44** testes específicos
+(incluindo admin ampliado) passaram em 15,230 s; suíte completa **113/113** passou
+em 135,346 s. Após ajustar a ordem dos métodos e acrescentar duas regressões de
+admin (permissão somente de leitura para staff e destino não editável no formulário
+legado), validação final: **115/115** testes em 136,757 s; lint passou (123 arquivos),
+check sem problemas ou alterações de models pendentes, schema validado sem novos
+recursos de API. A primeira checagem de formatação apontou dois testes para ajuste;
+o primeiro lint da suíte completa apontou a ordem de métodos de dois models, corrigida.
+
+Ambiente forçado: `DATABASE_URL=sqlite:////tmp/opencode/nextrouter-group-points.sqlite3`,
+`REDIS_URL=`, `GEOCODING_URL=`, `OSRM_URL=`, `EMAIL_HOST=`, `CLOUDINARY_URL=` e,
+nos testes, `PRIVATE_DOCUMENT_ROOT=/tmp/opencode/nextrouter-group-point-documents`.
+Runner criou/destruiu banco temporário com a migration nova. Nenhuma aplicação no
+banco habitual; sem PostgreSQL, Redis, navegador, worker persistente, serviços externos
+reais, check-deploy ou deploy. SQLite não comprova locks. Continua o aviso de
+`staticfiles/` ausente. Referência consultada: documentação Django 6.0 de validação
+de instâncias via Context7. Links, blocos de código e `git diff --check` conferidos.
