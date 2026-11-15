@@ -9,9 +9,9 @@ Substitui `docs/DOMINIO.md`, `docs/ARQUITETURA.md`, `docs/DECISOES.md`,
 `docs/CONVENCOES.md` e `docs/PROGRESSO.md`. Distinguir sempre **decisão aprovada**,
 **proposta técnica a detalhar** e **comportamento já implementado**.
 
-**Estado:** Etapa 0 iniciada: inventário do código e baseline registrados na seção 10.
-Implementação do novo domínio ainda não iniciada; demais entregas da Etapa 0 pendentes.
-A aplicação ainda usa o domínio anterior e ainda não serve o build do Vue.
+**Estado:** Etapa 0 em andamento; primeiro marco estrutural da Etapa 1.1 autorizado
+e implementado: vínculos empresariais e eventos, sem ativação operacional (seção 10.9).
+A API/admin legados ainda operam com o domínio anterior; o backend não serve o build Vue.
 Não interpretar exemplos de modelos, estados, caminhos ou serviços como código existente.
 
 ### Como interpretar este documento
@@ -19,7 +19,7 @@ Não interpretar exemplos de modelos, estados, caminhos ou serviços como códig
 - **Aprovado:** fluxo de programação habitual, resposta diária, políticas por grupo,
   prorrogação com aprovação manual, desistência permitida, motorista habitual e aceite
   de substituto, geração semanal, avisos internos, uma empresa por perfil e produção
-  Vue/Django na mesma origem. São decisões tomadas com o dono nesta sessão.
+  Vue/Django na mesma origem. Complementos de vínculo/grupo aprovados na seção 10.8.
 - **Orientação técnica:** nomes, decomposição de entidades, estados sugeridos,
   organização dos serviços, transações e layout de build. Podem ser refinados com
   justificativa, sem alterar o comportamento aprovado.
@@ -56,6 +56,9 @@ as decisões da empresa.
 - **Complemento aprovado nesta execução:** um único grupo ativo por aluno na
   empresa. Aluno/motorista só solicita outra empresa após encerrar o vínculo atual;
   não há pedido de troca para outra empresa enquanto o vínculo estiver ativo.
+- Sem vínculo ativo, há no máximo um pedido empresarial pendente por perfil.
+  O titular pode retirá-lo. Titular ou empresa podem encerrar vínculo ativo,
+  mas o encerramento é bloqueado durante participação operacional em andamento.
 - Não há produção nem necessidade de preservar dados atuais. O contrato da API
   pode ser substituído, documentando a transição e coordenando o frontend.
 - Isso **não autoriza automaticamente** apagar bancos, reescrever migrations
@@ -204,7 +207,6 @@ independentes. Não tratar as recomendações abaixo como regras já aprovadas.
 | Questão ainda não fechada | Recomendação a apresentar e impacto |
 |---|---|
 | Pedido enviado no prazo pode ser aprovado depois do fim da prorrogação? | Recomendar expiração no fim da janela. A sessão aprovou prazo de prorrogação, mas não distinguiu explicitamente prazo de envio e de decisão. Bloqueia definição final de estados/worker. |
-| Sem vínculo ativo, quantos pedidos de vínculo podem ficar pendentes? Quem pode encerrar/retirar? | Já decidido: aluno/motorista só solicita outra empresa após encerrar o vínculo atual. Falta definir quantidade de pedidos sem vínculo ativo, retirada e autorização de encerramento pelo titular; a empresa encerra vínculo, não apaga conta. Ver seção 10.8. |
 | Alteração de política/programação afeta dias já gerados, ainda abertos? | Recomendar snapshot na geração e ação explícita para futuras datas ainda editáveis, nunca atualização silenciosa de dias publicados. |
 | Aprovação de troca com falha no novo cálculo mantém qual alocação? | Recomendar manter a alocação transferida em revisão pendente e exigir resolução da empresa, sem rollback tardio invisível. Confirmar antes de implementar a seção 4.1. |
 | Pode publicar cada viagem independentemente ou o dia é publicado em bloco? | Recomendar por viagem, com painel agregado do dia. Uma pendência do meio-dia não deve impedir automaticamente uma ida pronta. |
@@ -212,7 +214,7 @@ independentes. Não tratar as recomendações abaixo como regras já aprovadas.
 | Desistência da ida também cancela retorno? | Recomendar desistência por trecho; ida e volta independentes. Definir interação com pedido pendente e impedir que um aceite antigo reinsira aluno que desistiu. |
 | Cancelamento do dia com alguma viagem já iniciada | Não cancelar retroativamente viagens ativas/finalizadas. Confirmar cancelamento apenas das ainda não iniciadas e indicação de cancelamento parcial. |
 | Encerrar viagem com aluno ainda marcado como embarcado; erro de marcação | Definir correção auditada e regra de fechamento, sem fabricar desembarque automático. |
-| Desaprovação/desativação durante viagem ativa | Definir quem conclui a ocorrência operacional e como controlar acesso; não manter nem bloquear implicitamente ações essenciais sem regra. |
+| Desaprovação/desativação durante viagem ativa | Encerramento comum de vínculo já foi decidido: bloquear durante participação operacional em andamento (seção 10.8). Ainda definir efeitos de desaprovação empresarial/desativação de conta, quem conclui a operação e acesso residual; não presumir que esse bloqueio resolve todos esses eventos. |
 | Pesquisa pública por região/destino | Definir filtros mínimos (por exemplo, cidade atendida e destino), sem presumir busca por raio ou geocodificação pública. Aprovação cadastral não implementa descoberta geográfica. |
 | Histórico, retenção, avaliações e objetos perdidos | Precisar acesso de ex-vinculados, tempo de retenção e elegibilidade por embarque/viagem finalizada; reabertura de objeto continua pendente. |
 
@@ -369,10 +371,10 @@ Etapas 1/2 para manter o projeto carregável, sem antecipar regras ainda pendent
 10. Resolver as decisões da seção 3.4 que afetam modelagem e registrar a resposta
      do dono; não converter recomendações em “aprovado” apenas por criar as tabelas.
 
-**Avanço registrado:** inventário e baseline na seção 10; decisões de grupo único
-por aluno e solicitação de outra empresa somente após encerramento aprovadas pelo
-dono nesta execução. Catálogo/transições preliminares do recorte de organizações
-na seção 10.8; não representam ER ou estados definitivos de todo o domínio.
+**Avanço registrado:** inventário e baseline na seção 10; decisões do recorte de
+vínculos/grupo na seção 10.8. Primeiro marco estrutural da Etapa 1.1 autorizado
+separadamente e registrado na seção 10.9; não representa conclusão da Etapa 0,
+ER completo ou estados definitivos de todo o domínio.
 
 **Marco:** o fluxo SuperTransporte e as exceções têm representação sem contradições;
 estados, decisões pendentes e contrato de integração estão explícitos. Documento
@@ -386,6 +388,9 @@ de planejamento registrado não significa que toda esta etapa esteja concluída.
   e revisão do vínculo independentemente dos grupos. Uma empresa ativa por perfil.
 - Bloquear solicitação a outra empresa enquanto houver vínculo ativo; encerrá-lo
   primeiro, sem sobrescrever a empresa atual ao receber um pedido.
+- No máximo um ciclo pendente ou ativo por perfil. Titular retira pedido pendente;
+  titular ou empresa encerram vínculo, bloqueado durante participação em viagem
+  em andamento conforme a seção 10.8.
 - Preservar identidade do usuário e documentos; empresa encerra vínculo, não apaga
   conta ou histórico do aluno/motorista como se fossem dados de sua propriedade.
 - Definir preservação das viagens passadas quando muda vínculo, grupo ou aprovação.
@@ -653,6 +658,8 @@ smoke de HTTPS/WSS/proxy/storage feito no provedor escolhido.
 22. Worker interrompido se recupera sem duplicação; avisos persistem mesmo se broadcast falhar.
 23. Segundo grupo ativo do mesmo aluno na empresa é rejeitado; troca de grupo preserva aprovação empresarial.
 24. Aluno/motorista com vínculo ativo não solicita outra empresa; tentativa não muda o vínculo atual.
+25. Segundo pedido empresarial pendente é rejeitado; retirada pelo titular impede aprovação posterior.
+26. Encerramento por titular/empresa preserva identidade e histórico; participação operacional em andamento o bloqueia.
 
 ## 7. Convenções de implementação e validação
 
@@ -749,8 +756,8 @@ descrever como implementado algo que existe apenas como plano.
 |---|---|
 | Registro do plano e substituição dos documentos anteriores | Concluído em 2026-11-15. |
 | Tutorial de build Vue separado | Registrado em BUILD_VUE.md; integração ainda não implementada. |
-| Etapa 0 — especificação técnica detalhada e estratégia de migrations | Em andamento: inventário/baseline e duas decisões de produto registrados na seção 10; catálogo/transições preliminares de organizações na seção 10.8. ER completo, contrato final e autorização de migrations pendentes. |
-| Etapa 1 — modelagem | Não iniciada. |
+| Etapa 0 — especificação técnica detalhada e estratégia de migrations | Em andamento: inventário/baseline e decisões de vínculos na seção 10.8. ER completo, demais estados/regras e contrato final pendentes. Estratégia incremental autorizada apenas para o marco 10.9. |
+| Etapa 1 — modelagem | Iniciada parcialmente: CompanyMembership/MembershipEvent e migration aditiva 0004 de organizations, com admin somente de leitura e testes. Marco 1.1 ainda incompleto; caminho operacional continua legado. Ver 10.9. |
 | Etapa 2 — regras | Não iniciada. |
 | Etapa 3 — API/admin/integração | Não iniciada. |
 | Etapa 4 — ambiente/build/operação | Não iniciada. |
@@ -864,7 +871,9 @@ seção 4.2 não podem ser tratados como enums já existentes.
 
 ### 10.5. Migrations: inventário, sem autorização de mudança
 
-Há 8 migrations de accounts, 3 de organizations, 7 de transport e 3 de uploads.
+No inventário da revisão `78acfb3`, havia 8 migrations de accounts, 3 de
+organizations, 7 de transport e 3 de uploads. A nova `organizations.0004`, criada
+posteriormente com autorização, está registrada na seção 10.9.
 Labels continuam `authenticator`, `organizations`, `router` e `uploader`; nomes de
 tabelas conservam prefixos antigos. Pontos críticos do histórico:
 
@@ -882,12 +891,12 @@ tabelas conservam prefixos antigos. Pontos críticos do histórico:
   uploads `0003`. O baseline de testes conseguiu construir seu banco temporário;
   isso não informa quais migrations estão aplicadas em bancos de desenvolvimento.
 
-**Proposta técnica para revisão, ainda não autorizada:** conservar o histórico e
-adicionar migrations incrementais por subetapa; validar instalação desde zero em
-banco novo isolado. Não é necessário reescrever migrations antigas apenas porque
-dados demo são dispensáveis. Fechar ER/transição antes de solicitar autorização
-concreta para criar/aplicar novas migrations. Não consultar nem descartar o banco
-habitual para este inventário.
+**Proposta no inventário inicial:** conservar o histórico e adicionar migrations
+incrementais por subetapa; validar instalação desde zero em banco novo isolado.
+Posteriormente autorizada **somente para o conjunto 10.9**. Não é necessário
+reescrever migrations antigas apenas porque dados demo são dispensáveis. Fechar
+o recorte de ER/transição antes de solicitar autorização concreta para cada novo
+conjunto. Não consultar nem descartar o banco habitual para este inventário.
 
 ### 10.6. Baseline desta execução e limites
 
@@ -928,18 +937,18 @@ pdm run schema
 
 ### 10.7. Próximo recorte da Etapa 0
 
-1. Decisões de grupo único e pedido a outra empresa somente após encerramento
-   respondidas pelo dono nesta execução; registradas na seção 10.8. Ainda fechar
-   quantidade de pedidos quando não há vínculo ativo e ações de retirada/encerramento.
-2. Refinar o catálogo/transições preliminares da seção 10.8 com essas respostas;
-   não implementar rotas de encerramento que decidam implicitamente o acesso de
-   quem está em viagem ativa (pendência operacional já listada na seção 3.4).
+1. Recorte de vínculo respondido pelo dono: grupo único, um ciclo pendente/ativo,
+   retirada pelo titular, encerramento por titular/empresa e bloqueio em operação
+   ativa. Regras registradas na seção 10.8; estrutura parcial implementada em 10.9.
+2. Antes de ativar o novo caminho, detalhar participação/grupo/serviços e fechar
+   vigência sobre dias gerados e efeitos em viagens futuras. Implementar a regra
+   de bloqueio de encerramento com a participação real, não com o booleano legado.
 3. Continuar ER e tabelas dos demais eixos conforme suas decisões bloqueantes
    (seção 3.4), contrato de integração e mapa final de endpoints. Não fixar enums
    completos, unicidade de viagem/serviço ou regras de encerramento antes disso.
-4. Submeter o conjunto concreto de migrations/settings/dependências necessário
-   ao primeiro marco de código. Este inventário não autoriza essas operações e
-   não marca a modelagem como iniciada.
+4. O conjunto estrutural de 10.9 foi autorizado expressamente; isso não autoriza
+   outras migrations, settings/dependências, backfill ou aplicação no banco habitual.
+   Cada próximo conjunto deve ter seu escopo concreto revisado antes da execução.
 
 ### 10.8. Primeiro recorte de organizações: decisões e especificação preliminar
 
@@ -953,8 +962,15 @@ pdm run schema
 - À pergunta sobre solicitar outra empresa com vínculo ativo, respondeu
   **“Só após encerrar”**. Vale para aluno e motorista. Solicitar outra empresa
   deve falhar enquanto existir vínculo ativo; não trocar empresa nem zerar sua
-  aprovação. A resposta não define, por si só, quem pode encerrar o vínculo,
-  quantos pedidos podem coexistir sem vínculo ativo ou regras durante viagem ativa.
+  aprovação. Os detalhes complementares foram respondidos na continuação abaixo.
+- Na continuação, confirmou **um pedido pendente por perfil** quando não há vínculo
+  ativo; **retirada pelo titular** antes da decisão; **encerramento pelo titular ou
+  empresa**, sem apagar identidade/histórico; e **bloqueio do encerramento** quando
+  há participação operacional em viagem em andamento.
+- Para esse bloqueio, a pergunta definiu participação operacional como motorista
+  designado ou aluno alocado ainda sem desistência/ausência/desembarque. A regra
+  será aplicada pelo serviço com a modelagem concreta de participação; `confirm`
+  do legado não comprova esses estados. Não foi aprovado encerramento agendado.
 
 **Orientação técnica preliminar:** separar o ciclo do vínculo da configuração de
 grupo; nomes/campos abaixo ainda serão revisados antes do schema. Não criar uma
@@ -965,33 +981,33 @@ coluna `company` e conservar as flags/grupo atuais como uma segunda fonte de ver
 | Entidade conceitual | Campos/relações propostos e nulabilidade | Integridade, ciclo e exclusão |
 |---|---|---|
 | Perfil Passageiro/Motorista existente | Identidade do usuário obrigatória; CNH opcional no motorista, como hoje. | Não pertence à empresa. Aprovação empresarial e grupo saem do perfil no marco que tratar todos os dependentes. Novas relações de usuário usam `settings.AUTH_USER_MODEL`; não alterar label da identidade incidentalmente. |
-| Vínculo empresarial (tentativa/ciclo) | Empresa obrigatória; exatamente um perfil proprietário (passageiro **ou** motorista); estado e criação obrigatórios; decisão/revisor e encerramento/autor opcionais enquanto o evento não ocorreu. | Histórico de solicitações/decisões distinto da identidade. Unicidade condicional de um vínculo ativo por perfil. Checks de proprietário exclusivo e coerência estado/timestamps; aprovação, ownership e impedimento de novo pedido exigem serviço transacional. Não apagar empresa/perfil por encerrar vínculo. Proposta de proteger FKs históricas contra exclusão em cascata, sujeita à política de retenção. |
-| Evento de vínculo | Vínculo obrigatório; ação, autor e instante obrigatórios; motivo conforme ação; identificador de operação para deduplicação. | Proposta de trilha append-only para solicitação/decisão/encerramento. Aviso persistente será gravado na mesma transação quando essa entidade estiver disponível. Payload não replica CPF, endereço ou documentos. Exclusão/anonimização administrativa depende de retenção, não de DELETE empresarial. |
+| Vínculo empresarial (tentativa/ciclo) | Empresa obrigatória; exatamente um perfil proprietário (passageiro **ou** motorista); estado, solicitante e criação obrigatórios; decisão/revisor, retirada/autor e encerramento/autor opcionais enquanto o evento não ocorreu. | Estrutura implementada em `CompanyMembership` (10.9). Unicidade condicional de um ciclo **pendente ou ativo** por perfil, não uma unicidade independente para cada estado. Checks de proprietário exclusivo e coerência estado/timestamps; aprovação, ownership e impedimento de novo pedido exigem serviço transacional. FKs históricas protegidas contra cascata; retenção continua pendente. |
+| Evento de vínculo | Vínculo obrigatório; ação, autor e instante obrigatórios; motivo opcional, limitado a 500 caracteres. | Estrutura implementada em `MembershipEvent` (10.9), com uma ação de cada tipo por ciclo para deduplicação. Trilho append-only será garantido nos services e superfícies expostas, não por triggers ou por sobrescrever save. Aviso persistente será gravado na mesma transação quando essa entidade estiver disponível. Payload não replica CPF, endereço ou documentos. Exclusão/anonimização administrativa depende de retenção, não de DELETE empresarial. |
 | Participação do aluno no grupo | Vínculo de passageiro e grupo obrigatórios; início obrigatório; fim opcional enquanto vigente; autoria de inclusão/encerramento. | No máximo uma participação vigente por vínculo; com um único vínculo ativo por perfil, impede dois grupos ativos. Serviço deve exigir vínculo ativo, empresa do grupo igual à do vínculo e nenhuma participação vigente em vínculo encerrado. Esses checks entre tabelas não são garantidos apenas pela unicidade. Não usar essa relação para o motorista. |
 | Ponto operacional/autorização de serviço | Participação de grupo como referência; endereço completo/ponto e serviços serão detalhados no recorte 1.2. | Não copiar automaticamente alterações posteriores do perfil. Troca de grupo não reescreve snapshots de dias/viagens passados; vigência de dias futuros depende da seção 3.4. |
 
 Essa decomposição preserva uma identidade por usuário e histórico por ciclo de
-vínculo. Usar uma relação explícita com cada tipo de perfil (com exclusividade)
-evita referência genérica sem integridade referencial; a escolha final entre uma
-tabela compartilhada e tabelas específicas por papel permanece orientação técnica.
+vínculo. A tabela compartilhada `CompanyMembership` usa uma relação explícita com
+cada tipo de perfil e check de exclusividade, evitando referência genérica sem
+integridade referencial. Essa escolha técnica foi implementada no marco autorizado.
 Não impor unicidade apenas `(perfil, empresa)` sobre todo o histórico, pois isso
 impediria representar outro ciclo sem sobrescrever uma decisão anterior.
 
 #### Transições do vínculo: o que já é conhecido e o que falta fechar
 
-Vocabulário conceitual proposto: `pending`, `active`, `rejected`, `ended` e,
-**se retirada for aprovada**, `withdrawn`. Empresa não aprovada é uma condição
-de aptidão independente: não transformar automaticamente um vínculo ativo em
-encerrado nem definir acesso à viagem ativa por acidente.
+Estados representados no modelo do marco 10.9: `pending`, `active`, `rejected`,
+`withdrawn` e `ended`. Ainda não há serviço que execute essas transições no domínio
+novo. Empresa não aprovada é uma condição de aptidão independente: não transformar
+automaticamente vínculo ativo em encerrado nem definir acesso em viagem por acidente.
 
 | Operação | Origem → destino conceitual | Regra conhecida / limite pendente |
 |---|---|---|
-| Solicitar empresa | Sem vínculo ativo → novo registro pendente | Perfil solicita empresa aprovada; pedido de outra empresa com vínculo ativo é bloqueado. Quantidade de pedidos sem vínculo ativo ainda precisa ser decidida. Não modificar tentativa recusada/encerrada para apagar seu histórico. |
-| Aprovar pedido | Pendente → ativo | Empresa aprovada dona do pedido decide. Revalidar ausência de vínculo ativo sob lock; aprovação não exige que o grupo já esteja designado e não publica viagens. Resolver eventual coexistência de pedidos conforme decisão pendente. |
+| Solicitar empresa | Sem ciclo pendente/ativo → novo registro pendente | Titular solicita empresa aprovada; vínculo ativo ou outro pedido pendente bloqueia nova solicitação. Repetição da mesma operação retorna seu resultado sem criar outro ciclo. Não modificar tentativa terminal para apagar seu histórico. |
+| Aprovar pedido | Pendente → ativo | Empresa aprovada dona do pedido decide. Revalidar ciclo/ownership sob lock; aprovação não exige que o grupo já esteja designado e não publica viagens. Pedido retirado, recusado ou encerrado não pode ser aprovado. |
 | Recusar pedido | Pendente → recusado | Empresa dona decide; preservar identidade, decisão e autoria. Recusa de um pedido não encerra automaticamente outro vínculo nem pode ser usada como desativação genérica de vínculo ativo. |
 | Repetir mesma decisão | Mesmo estado e mesma operação | Proposta técnica de idempotência: retornar decisão sem duplicar evento/aviso. Uma decisão oposta sobre pedido já decidido é conflito, não PATCH de estado. |
-| Encerrar vínculo | Ativo → encerrado | Empresa encerra vínculo sem apagar conta/histórico; autorização do próprio titular e comportamento durante viagem ativa ainda pendentes. Encerramento não é aprovação automática da próxima empresa. |
-| Retirar pedido | Pendente → retirado | Proposta a confirmar, inclusive ator e número de pedidos. Não implementar estado/ação final antes da decisão. |
+| Encerrar vínculo | Ativo → encerrado | Titular ou empresa encerra sem apagar conta/histórico; rejeitar durante participação operacional em andamento conforme definição acima. Encerramento não é aprovação automática da próxima empresa. Efeitos nas viagens futuras precisam do recorte de vigência. |
+| Retirar pedido | Pendente → retirado | Somente titular retira pedido ainda pendente; a empresa não pode aprová-lo depois. Preservar autoria/instante. Nova solicitação depois de retirada cria outro ciclo. |
 | Trocar grupo interno | Vínculo continua ativo; participação antiga termina e nova começa | Empresa mantém a aprovação empresarial e limita o aluno a um grupo ativo. Serviço transacional encerra/inclui participações sem dois grupos vigentes. Vigência sobre atendimentos já gerados e execução ativa permanece pendente. |
 
 #### Fronteira transacional e testes previstos para esse recorte
@@ -1011,10 +1027,87 @@ encerrado nem definir acesso à viagem ativa por acidente.
 - Testar duas aprovações concorrentes para o mesmo perfil e duas atribuições de
   grupo com conexões distintas em PostgreSQL. Não considerar duas chamadas
   sequenciais ou SQLite como evidência de exclusão mútua.
-- Esse catálogo é entrega parcial de especificação, **não autorização para criar
-  migrations**, implementar todos os estados sugeridos ou declarar a Etapa 1 iniciada.
+- A autorização inicial deste catálogo era apenas documental. A continuação
+  autorizou expressamente o primeiro marco estrutural da seção 10.9; não usar
+  essa autorização para implementar outros eixos ou declarar a Etapa 1 concluída.
 
 **Validação deste segundo avanço:** somente documentação; `git diff --check`, links
 locais e blocos de código conferidos. Sem repetição de testes funcionais após as
 decisões, pois nenhum código/settings/dependência mudou. O baseline da seção 10.6
 foi executado nesta sessão, antes desses dois avanços documentais.
+
+### 10.9. Marco estrutural 1.1a — vínculo e auditoria, sem ativação operacional
+
+**Autorização expressa do dono nesta continuação (2026-11-15):** criar
+`CompanyMembership` e `MembershipEvent`, gerar migration incremental e aplicá-la
+somente nos bancos temporários de teste; incluir constraints/testes e admin somente
+de leitura. Sem alterar settings/dependências, reescrever migrations, copiar/apagar
+dados ou aplicar no banco habitual. A autorização não abrange os próximos schemas.
+
+**Implementado neste marco:**
+
+- `modules/organizations/models/company_membership.py`: empresa e um único perfil
+  (passageiro ou motorista), estados, solicitante, revisão, retirada, encerramento
+  e seus horários/autores. Todas as novas FKs de usuário usam `settings.AUTH_USER_MODEL`.
+- Constraints de banco: exatamente um perfil; no máximo um ciclo `pending` **ou**
+  `active` por perfil, inclusive entre empresas distintas; estados válidos e
+  coerência de status com pares autor/horário; revisão/retirada não anteriores à
+  solicitação e encerramento não anterior à revisão. Igualdade temporal é aceita.
+  Ciclos terminais preservados não impedem outra solicitação, inclusive à mesma empresa.
+- `modules/organizations/models/membership_event.py`: evento com autor, instante,
+  ação e motivo opcional. Ações válidas e uma ocorrência por `(vínculo, ação)`;
+  cada novo ciclo tem seus próprios eventos. Não há PII replicada automaticamente.
+- FKs com PROTECT preservam empresa/perfil/atores referenciados; eventos impedem
+  exclusão acidental do ciclo. Isso não define retenção ilimitada: descarte ou
+  anonimização controlados continuam dependentes da política ainda pendente.
+- `modules/organizations/migrations/0004_company_memberships.py`: apenas cria
+  essas tabelas/constraints. Não altera os modelos/tabelas antigos, não faz backfill
+  e não reescreve o histórico de migrations. A nova folha de organizations é `0004`.
+- `modules/organizations/admin.py`: ambos os novos modelos só para consulta por
+  staff com permissão de leitura. Add/change/delete e ações em massa desabilitados,
+  inclusive para superusuário; empresa comum não recebe acesso ao admin.
+- Testes em `test_membership_models.py` e `test_membership_admin.py` de organizations:
+  estados/horários, unicidade entre empresas/perfis, histórico, autoria, FKs protegidas,
+  `full_clean`, negações de `create`/`bulk_create`/`update` e admin por HTTP.
+
+**Coexistência transitória e marco de remoção — obrigatório:**
+
+- Único caminho **operacional** continua sendo a API/admin/worker legados, que usam
+  `route_group`, `is_approved` e `is_rejected` dos perfis. Não há endpoint novo,
+  escrita de produção nos modelos novos, sincronização automática ou espelhamento.
+  As tabelas novas são estrutura ainda não ativada; não servem para autorizar REST/WS.
+- Teste de regressão comprova que criar estrutura nova em banco de teste não muda
+  flags/grupo do legado e não fabrica eventos. Constraints não são máquina de
+  transições: não validam ator, empresa aprovada, correspondência do autor ao
+  perfil, estado anterior, coerência evento/vínculo ou participação em viagem ativa.
+  Essas regras exigem o serviço autorizado e transacional, ainda não implementado.
+- A substituição operacional ocorrerá num marco coordenado de services/callers:
+  API, admin, permissions, filtros, viagens, otimização, WS, estatísticas, seeds,
+  helpers e clientes manuais. Nesse marco, remover flags/grupo antigos como fonte
+  de vínculo; não habilitar um endpoint novo deixando caminhos antigos escreverem
+  uma interpretação concorrente. Remoção de schema/backfill requer nova autorização.
+- A participação histórica em grupo/ponto/serviços não foi criada. Também não foram
+  implementados avisos persistentes, encerramento/retirada operacionais, snapshots,
+  mudanças em viagens futuras ou a regra real de bloqueio durante viagem ativa.
+  Por isso a subetapa 1.1, a Etapa 0 e o novo fluxo funcional **não estão concluídos**.
+
+**Validações desta continuação:** baseline antes do código: 46/46 testes em
+115,316 s e lint (115 arquivos) passaram, com serviços externos desabilitados.
+Após a implementação, 28/28 testes específicos passaram em 9,907 s. Houve uma
+negação inicial de lint por linha longa no teste, corrigida. Validação completa:
+
+- `pdm run test`: **74/74 passaram**, 132,310 s; banco de teste construído desde
+  zero com a migration nova e destruído pelo runner. Sem aplicação no banco habitual.
+- `pdm run lint`: passou; 119 arquivos já formatados.
+- `pdm run check`: sem problemas de sistema, sem mudanças de models pendentes.
+- `pdm run schema`: passou com validação/`--fail-on-warn`, sem expor recursos novos;
+  artefato somente em `/tmp/opencode/nextrouter-schema.yaml`.
+- Shell forçou `DATABASE_URL=sqlite:////tmp/opencode/nextrouter-memberships.sqlite3`,
+  `REDIS_URL=`, `GEOCODING_URL=`, `OSRM_URL=`, `EMAIL_HOST=`, `CLOUDINARY_URL=` e,
+  nos testes, `PRIVATE_DOCUMENT_ROOT=/tmp/opencode/nextrouter-membership-documents`.
+- Documentação e diff: links locais, blocos de código e `git diff --check` conferidos.
+  Referências consultadas: documentação oficial Django 6.0 de constraints e
+  permissões/ações de ModelAdmin via Context7.
+- Continua o aviso de `staticfiles/` ausente. Não executados PostgreSQL, Redis,
+  navegador/Vue, worker persistente, serviços externos reais, check-deploy ou deploy.
+  Os testes de constraints SQLite **não comprovam locks nem corridas concorrentes**.

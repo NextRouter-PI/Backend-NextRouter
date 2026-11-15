@@ -6,7 +6,7 @@ from django.contrib import admin
 from django.utils import timezone
 
 from .mixins.is_approved import clear_approval_notification_key, dispatch_approval_email_on_commit
-from .models import Company, CompanyRouteGroup, Driver, Passenger
+from .models import Company, CompanyMembership, CompanyRouteGroup, Driver, MembershipEvent, Passenger
 
 logger = logging.getLogger(__name__)
 
@@ -161,3 +161,44 @@ class CompanyRouteGroupAdmin(admin.ModelAdmin):
 
     class Media:
         js = ('core/js/name_mask.js', 'core/js/cep_mask.js')
+
+
+class MembershipReadOnlyAdmin(admin.ModelAdmin):
+    """Sem escrita administrativa antes de existir o serviço de domínio comum."""
+
+    actions = None
+
+    def get_readonly_fields(self, request, obj=None):
+        return tuple(field.name for field in self.model._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(CompanyMembership)
+class CompanyMembershipAdmin(MembershipReadOnlyAdmin):
+    list_display = ('id', 'company', 'passenger', 'driver', 'status', 'created_at')
+    list_filter = ('status', 'company')
+    list_select_related = (
+        'company__user',
+        'passenger__user',
+        'driver__user',
+        'driver__route_group__company__user',
+        'requested_by',
+        'reviewed_by',
+        'withdrawn_by',
+        'ended_by',
+    )
+
+
+@admin.register(MembershipEvent)
+class MembershipEventAdmin(MembershipReadOnlyAdmin):
+    list_display = ('id', 'membership', 'action', 'actor', 'occurred_at')
+    list_filter = ('action',)
+    list_select_related = ('membership', 'actor')
