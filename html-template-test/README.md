@@ -1,5 +1,9 @@
 # `html-template-test/` — Páginas HTML para Teste Manual da API NextRouter
 
+> **Cliente legado:** descreve o contrato anterior à adaptação. Não é a especificação
+> do fluxo aprovado; consulte [PLANEJAMENTO.md](../PLANEJAMENTO.md). Será revisado
+> quando a API mudar. O storage de tokens usado aqui não é o padrão do frontend Vue de produção.
+
 > **AVISO DE SEGURANÇA**: Esta pasta é uma ferramenta exclusiva para ambiente de desenvolvimento local. Não a exponha em produção, não a inclua em `STATIC_ROOT`/coleta de arquivos estáticos nem grave senhas, tokens ou segredos reais nos arquivos.
 
 ## 1. Como Servir e Abrir as Páginas
