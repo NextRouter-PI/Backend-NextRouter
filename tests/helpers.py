@@ -16,7 +16,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from modules.accounts.models import User
-from modules.organizations.models import Company, CompanyRouteGroup, Passenger
+from modules.organizations.models import Company, CompanyRouteGroup, OperationalPoint, Passenger
 from modules.transport.management.commands.backfill_user_data import _placeholder_pdf
 from modules.transport.management.commands.seed_demo_data import make_cnpj, make_cpf
 
@@ -71,6 +71,24 @@ def create_route_group(company, name='Rota Centro'):
 
 def create_passenger(email, route_group=None, *, approved=True):
     return Passenger.objects.create(user=create_user(email), route_group=route_group, is_approved=approved)
+
+
+def create_operational_point(company, **extra):
+    defaults = {
+        'company': company,
+        'name': 'Ponto fictício',
+        'street': 'Rua Fictícia',
+        'number': '100',
+        'neighborhood': 'Centro',
+        'city': 'Blumenau',
+        'state': 'SC',
+        'cep': '89010-000',
+        'latitude': -26.3,
+        'longitude': -48.8,
+        'created_by': company.user,
+    }
+    defaults.update(extra)
+    return OperationalPoint.objects.create(**defaults)
 
 
 class BaseAPITestCase(APITestCase):
