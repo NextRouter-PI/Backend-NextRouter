@@ -181,6 +181,10 @@ def end_membership(*, actor_id, membership_id, reason=''):
         occurred_at=now,
         reason=reason,
     )
+    from modules.transport.services.calendar import regenerate_future_days
+
+    for group in groups:
+        regenerate_future_days(group.route_group)
     return membership
 
 

@@ -2,8 +2,10 @@ import logging
 import re
 
 from django import forms
-from django.contrib import admin
-from django.utils import timezone
+from django.contrib import admin, messages
+
+from modules.transport.services.common import DomainError
+from modules.transport.services.governance import review_company
 
 from .mixins.is_approved import clear_approval_notification_key, dispatch_approval_email_on_commit
 from .models import (
@@ -84,13 +86,20 @@ class CompanyAdmin(admin.ModelAdmin):
 
     @admin.action(description='Aprovar empresas selecionadas')
     def approve_companies(self, request, queryset):
-        queryset.update(is_approved=True, is_rejected=False, reviewed_by=request.user, reviewed_at=timezone.now())
+        self._review(request, queryset, approve=True)
         logger.info('company_review decision=approved reviewer_id=%s', request.user.pk)
 
     @admin.action(description='Recusar empresas selecionadas')
     def reject_companies(self, request, queryset):
-        queryset.update(is_approved=False, is_rejected=True, reviewed_by=request.user, reviewed_at=timezone.now())
+        self._review(request, queryset, approve=False)
         logger.info('company_review decision=rejected reviewer_id=%s', request.user.pk)
+
+    def _review(self, request, queryset, *, approve):
+        for company_id in queryset.order_by('pk').values_list('pk', flat=True):
+            try:
+                review_company(actor_id=request.user.pk, company_id=company_id, approve=approve)
+            except DomainError as exc:
+                self.message_user(request, ' '.join(exc.messages), level=messages.ERROR)
 
     class Media:
         js = ('core/js/cnpj_mask.js', 'core/js/phone_mask.js')

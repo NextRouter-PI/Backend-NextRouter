@@ -16,6 +16,50 @@ class OSRMError(ValueError):
         super().__init__(message)
 
 
+def route_coordinates(coordinates):
+    """Segmento fixo de dois pontos; sem fabricar geometria quando não há paradas."""
+    if not settings.OSRM_URL:
+        raise OSRMError('Serviço de rotas indisponível.')
+    if len(coordinates) != 2 or any(
+        len(point) != 2
+        or not all(type(value) in (int, float) and isfinite(value) for value in point)
+        or not (-180 <= point[0] <= 180 and -90 <= point[1] <= 90)
+        for point in coordinates
+    ):
+        raise OSRMError('Coordenadas inválidas.', status_code=400)
+    encoded = ';'.join(f'{lon},{lat}' for lon, lat in coordinates)
+    try:
+        response = requests.get(
+            f'{settings.OSRM_URL.rstrip("/")}/route/v1/driving/{encoded}',
+            params={'overview': 'full', 'geometries': 'geojson'},
+            timeout=settings.OSRM_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if payload['code'] != 'Ok' or len(payload['routes']) != 1 or len(payload['waypoints']) != 2:
+            raise ValueError
+        if any(point['distance'] > settings.OSRM_MAX_SNAP_DISTANCE_METERS for point in payload['waypoints']):
+            raise ValueError
+        route = payload['routes'][0]
+        distance, duration, geometry = float(route['distance']), float(route['duration']), route['geometry']
+        if not (
+            isfinite(distance)
+            and isfinite(duration)
+            and distance >= 0
+            and duration >= 0
+            and geometry['type'] == 'LineString'
+            and len(geometry['coordinates']) >= 2
+        ):
+            raise ValueError
+        from modules.transport.models.planning import valid_coordinate_pair
+
+        if not all(valid_coordinate_pair(point) for point in geometry['coordinates']):
+            raise ValueError
+    except (requests.RequestException, ValueError, KeyError, TypeError, IndexError):
+        raise OSRMError('Serviço de rotas não retornou um segmento válido.') from None
+    return {'order': [0, 1], 'distance_meters': distance, 'duration_seconds': duration, 'geometry': geometry}
+
+
 def optimize_coordinates(coordinates, *, has_fixed_end=True):
     if not settings.OSRM_URL:
         raise OSRMError('Serviço de otimização indisponível.', status_code=503)

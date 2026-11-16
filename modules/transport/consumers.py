@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from modules.transport.models.travel import Travel
-from modules.transport.services import LocationRejected, save_travel_location
+from modules.transport.services.legacy import LocationRejected, save_travel_location
 
 
 class TravelLocationConsumer(AsyncWebsocketConsumer):

@@ -20,6 +20,8 @@ from user_agents import parse
 from modules.accounts.authenticate import CustomAuthentication, enforce_csrf
 from modules.accounts.models import User, UserSession
 from modules.accounts.services import revoke_session, revoke_sessions
+from modules.transport.services.common import DomainError
+from modules.transport.services.governance import deactivate_account
 from shared.openapi import RESP_400_VALIDATION, RESP_401_UNAUTHORIZED, RESP_403_FORBIDDEN, RESP_429_THROTTLED
 
 
@@ -328,7 +330,8 @@ class DeactivateSelfView(APIView):
     def post(self, request):
         if request.user.is_staff and User.objects.filter(is_staff=True, is_active=True).count() <= 1:
             raise ValidationError('Não é possível desativar o último administrador ativo.')
-        request.user.is_active = False
-        request.user.save(update_fields=['is_active'])
-        revoke_sessions(request.user)
+        try:
+            deactivate_account(actor_id=request.user.pk, user_id=request.user.pk)
+        except DomainError as exc:
+            raise ValidationError(exc.messages) from exc
         return clear_auth_cookies(Response({'detail': 'Conta desativada.'}))
