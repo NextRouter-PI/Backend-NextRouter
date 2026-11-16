@@ -5,7 +5,7 @@
 - Leia [PLANEJAMENTO.md](PLANEJAMENTO.md) antes de começar e atualize seu acompanhamento
   antes de encerrar. Ele substitui os antigos documentos de `docs/`.
 - Para o artefato frontend, consulte [BUILD_VUE.md](BUILD_VUE.md). É um tutorial
-  de preparação e integração planejada, não confirmação de suporte já implementado.
+  do contrato reconhecido pelo backend; não comprova build Vue real/navegador/deploy.
 - A adaptação **ainda não está concluída**. Modelagem 1.1–1.6 e serviços da Etapa 2
   têm validação PostgreSQL. A Etapa 3 substituiu callers por HTTP/admin/WS/worker
   datados (seção 13); build Vue real/navegador/entrega continuam pendentes. Seções
@@ -55,8 +55,10 @@
 - A escrita operacional autoritativa passa pelos serviços de organizations/transport,
   compartilhados por API, ações explícitas do admin e worker de snapshots/claim/lease.
   Callers legados foram removidos; não reativá-los nem criar espelhamento por signals.
-  Schema legado ainda congelado até remoção incremental; não usá-lo para autorizar
-  acesso ou configurar o domínio datado. Admin não aceita escrita genérica de estados.
+  Schema legado retirado por `organizations.0002_retire_legacy` e
+  `router.0003_retire_legacy`, testados só em bancos temporários. Guards bloqueiam
+  conteúdo legado sem limpar/converter registros; não usar `--fake` nem aplicar
+  em banco habitual sem autorização concreta. Admin não aceita PATCH de estados.
   Worker exige empresa/lease/tentativas/retry explícitos; agendamento persistente é Etapa 4.
 - Regeneração aprovada: automática somente para datas futuras não publicadas;
   publicadas exigem revisão explícita. Preservar respostas/decisões/histórico e

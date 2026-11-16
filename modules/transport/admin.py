@@ -32,9 +32,5 @@ for model in (
     models.RouteOptimizationJob,
     models.DriverRating,
     models.LostItemEvent,
-    # Schema legado permanece congelado até a migration de remoção: nenhum caller escreve nele.
-    models.CompanyRouteSchedule,
-    models.ConfirmPassengerRoute,
-    models.Path,
 ):
     admin.site.register(model, ReadOnlyAdmin)

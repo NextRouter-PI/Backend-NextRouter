@@ -74,7 +74,7 @@ class ConfigurationServiceTests(ServiceTestCase):
         )
         self.assertEqual(vehicle.company_id, self.company.pk)
         self.assertEqual(vehicle.garage_point_id, point.pk)
-        self.assertIsNone(vehicle.route_group_id)
+        self.assertNotIn('route_group', {field.name for field in vehicle._meta.fields})
 
     def test_service_authorization_is_scoped_and_habitual_only_for_outbound(self):
         self.assert_domain(

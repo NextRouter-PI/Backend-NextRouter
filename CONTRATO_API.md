@@ -53,7 +53,7 @@ Schema executável em `/api/schema/`, interface em `/api/doc/`.
 
 | Recurso | Leitura | Escrita explícita |
 |---|---|---|
-| `memberships/` | Titular e empresa dona; cadastro mínimo do solicitante. | POST `{company_id, profile: passenger|driver}`; `/{id}/approve/`, `reject/`, `withdraw/`, `end/` com `{reason?}`. Sem PATCH/DELETE. |
+| `memberships/` | Titular e empresa dona; cadastro mínimo do solicitante. | POST `{company_id, profile: passenger\|driver}`; `/{id}/approve/`, `reject/`, `withdraw/`, `end/` com `{reason?}`. Sem PATCH/DELETE. |
 | `membership-events/` | Mesmo escopo do ciclo. | Somente serviço de vínculo. |
 | `group-memberships/` | Titular ativo e empresa dona. | Atribuição via `memberships/{id}/assign-group/` com `{route_group_id, transport_point_id}`; `group-memberships/{id}/authorize-services/` com `{service_ids, habitual_outbound_id}`. |
 | `operational-points/` | Somente empresa dona aprovada. | POST/PATCH de endereço operacional completo e coordenadas; empresa/autor inferidos, não aceitos do cliente. |
@@ -71,10 +71,10 @@ Schema executável em `/api/schema/`, interface em `/api/doc/`.
 | `route-snapshots/`, `route-stops/` | Somente empresa/motorista designado, nunca por mera associação ao grupo. | Snapshot só por cálculo; `route-stops/{id}/handle/` com `{skipped}`. |
 | `travel-publications/` | Mesmo escopo de viagem, incluindo revisões antigas identificáveis. | Somente publicação por serviço. |
 | `optimization-jobs/` | Somente empresa dona; estado/erro estático, sem claim, tokens ou entradas congeladas. | Worker, não HTTP. |
-| `driver-invitations/` | Empresa e convidado com vínculo ativo. Não concede acesso ao percurso antes da designação. | `/{id}/respond/` com `{accept: true|false}`. |
+| `driver-invitations/` | Empresa e convidado com vínculo ativo. Não concede acesso ao percurso antes da designação. | `/{id}/respond/` com `{accept: true\|false}`. |
 | `notifications/` | Somente destinatário, inclusive para staff. Payload mínimo não concede acesso ao recurso. | `/{id}/read/` com corpo vazio; idempotente. |
 | `driver-ratings/` | Participantes autorizados da viagem; aluno vê apenas sua avaliação. | POST `{travel_id, score: 1..5, comment?}`; repetição igual retorna registro, mudança conflitante é recusada. Sem PATCH/DELETE. |
-| `lost-items/` | Empresa/motorista da viagem e autor ainda vinculado; outros alunos não veem relatos. | POST `{travel_id, item_description, operation_id}`; `/{id}/transition/` com `{target_status: found|returned, operation_id}`, somente empresa. Eventos de custódia persistentes e atômicos. |
+| `lost-items/` | Empresa/motorista da viagem e autor ainda vinculado; outros alunos não veem relatos. | POST `{travel_id, item_description, operation_id}`; `/{id}/transition/` com `{target_status: found\|returned, operation_id}`, somente empresa. Eventos de custódia persistentes e atômicos. |
 
 `passengers/` e `drivers/` agora representam **identidade**, não vínculo: titular
 edita apenas seu perfil; empresa ativa lê dados mínimos de vinculados. Não há
@@ -172,6 +172,19 @@ Códigos: 4001 sessão, 4003 acesso, 4009 operação encerrada/inacessível, 100
   representam este contrato e nunca são servidos/coletados como assets.
 
 ## SPA e marco integrado
+
+### Schema necessário antes de usar o contrato
+
+O código atual depende de `router.0002_lost_item_audit`,
+`organizations.0002_retire_legacy` e `router.0003_retire_legacy`, além das quatro
+migrations iniciais UUID. Nesta tarefa foram aplicadas **somente em bancos
+descartáveis de teste**. Não executar o código novo sobre o SQLite habitual ainda
+sem esses incrementos, nem aplicá-los ali sem autorização concreta. Conteúdo legado
+faz a retirada abortar antes de apagar/converter dados; inclusive metadata redundante
+de versões intermediárias exige estratégia autorizada. Guards são irreversíveis,
+não um plano de rollback ou conversão. Nunca usar `--fake` para contornar isso.
+
+### Entrega do artefato
 
 `frontend_dist/index.html` é servido sem interpolação Django, somente GET/HEAD de
 navegação com `Accept: text/html`. Deep links sem extensão recebem HTML; o Vue

@@ -99,7 +99,7 @@ class GroupAndEndServiceTests(DayModelTestCase):
 
     def test_switch_group_preserves_approval_identity_eligibility_and_response(self):
         response = DailyResponse.objects.create(eligibility=self.eligibility, outbound_service=self.service)
-        initial = (self.passenger.route_group_id, self.passenger.is_approved)
+        initial = (self.passenger.pk, self.passenger.user_id)
         result = self.assign()
         result.full_clean()
         self.participation.refresh_from_db()
@@ -114,7 +114,7 @@ class GroupAndEndServiceTests(DayModelTestCase):
         self.assertEqual(self.participation.ended_at, result.started_at)
         self.assertEqual(self.eligibility.group_membership_id, self.participation.pk)
         self.assertEqual(response.outbound_service_id, self.service.pk)
-        self.assertEqual((self.passenger.route_group_id, self.passenger.is_approved), initial)
+        self.assertEqual((self.passenger.pk, self.passenger.user_id), initial)
         self.assertEqual(self.membership.passenger_group_memberships.filter(ended_at=None).count(), 1)
         self.assertFalse(result.service_authorizations.exists())
         notice = Notification.objects.get()

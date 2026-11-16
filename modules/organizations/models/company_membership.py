@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 class CompanyMembership(models.Model):
-    """Ciclo de vínculo; ainda não substitui o caminho operacional legado."""
+    """Ciclo empresarial autoritativo, separado da identidade e do grupo."""
 
     class Status(models.TextChoices):
         PENDING = 'pending', _('Pendente')

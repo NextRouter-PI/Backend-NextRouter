@@ -33,7 +33,7 @@ class DatedTravelModelTests(DayModelTestCase):
         travel = Travel.objects.create(**self.travel_data())
         travel.full_clean()
         self.assertIsNone(travel.driver_id)
-        self.assertIsNone(travel.path_id)
+        self.assertNotIn('path', {field.name for field in travel._meta.fields})
 
     def test_only_one_travel_per_service_and_day(self):
         Travel.objects.create(**self.travel_data())

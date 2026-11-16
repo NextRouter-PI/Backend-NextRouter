@@ -132,7 +132,7 @@ class GroupDestinationTests(TestCase):
         cls.point = create_operational_point(cls.company)
         cls.other_point = create_operational_point(cls.other_company)
 
-    def test_legacy_group_can_exist_without_destination(self):
+    def test_incomplete_group_can_exist_without_destination(self):
         self.assertIsNone(self.group.destination_id)
         self.group.full_clean()
 

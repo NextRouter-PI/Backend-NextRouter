@@ -4,7 +4,6 @@ from django.utils.translation import gettext_lazy as _
 
 from modules.organizations.models.company import Company
 from modules.organizations.models.driver import Driver
-from modules.transport.models.path import Path
 from modules.transport.models.vehicle import Vehicle
 
 
@@ -22,14 +21,10 @@ class Travel(models.Model):
         related_name='travels',
     )
 
-    service_day = models.ForeignKey(
-        'router.ServiceDay', on_delete=models.PROTECT, null=True, blank=True, related_name='travels'
-    )
-    service = models.ForeignKey(
-        'router.RecurringService', on_delete=models.PROTECT, null=True, blank=True, related_name='travels'
-    )
-    planned_start = models.DateTimeField(null=True, blank=True)
-    planned_end = models.DateTimeField(null=True, blank=True)
+    service_day = models.ForeignKey('router.ServiceDay', on_delete=models.PROTECT, related_name='travels')
+    service = models.ForeignKey('router.RecurringService', on_delete=models.PROTECT, related_name='travels')
+    planned_start = models.DateTimeField()
+    planned_end = models.DateTimeField()
     revision = models.PositiveIntegerField(default=1)
     planning_status = models.CharField(
         max_length=10,
@@ -48,15 +43,6 @@ class Travel(models.Model):
         Driver,
         on_delete=models.PROTECT,
         verbose_name=_('Motorista'),
-        related_name='travels',
-        null=True,
-        blank=True,
-    )
-
-    path = models.ForeignKey(
-        Path,
-        on_delete=models.PROTECT,
-        verbose_name=_('Rota (Path)'),
         related_name='travels',
         null=True,
         blank=True,
@@ -112,56 +98,30 @@ class Travel(models.Model):
         ordering = ('-started_at',)
         constraints = (
             models.CheckConstraint(
-                condition=models.Q(service_day__isnull=False)
-                | models.Q(
-                    current_snapshot__isnull=True, published_snapshot__isnull=True, published_revision__isnull=True
-                ),
-                name='legacy_travel_no_snapshot_pointers',
-            ),
-            models.CheckConstraint(
                 condition=models.Q(published_snapshot__isnull=True, published_revision__isnull=True)
                 | models.Q(published_snapshot__isnull=False, published_revision__isnull=False),
                 name='travel_publication_pointer_pair',
             ),
             models.CheckConstraint(
-                condition=models.Q(service_day__isnull=True)
-                | ~models.Q(planning_status='ready')
-                | models.Q(current_snapshot__isnull=False),
+                condition=~models.Q(planning_status='ready') | models.Q(current_snapshot__isnull=False),
                 name='dated_travel_ready_has_snapshot',
             ),
             models.CheckConstraint(
-                condition=models.Q(service_day__isnull=True)
-                | ~models.Q(status='in_progress')
-                | models.Q(current_snapshot=models.F('published_snapshot')),
+                condition=~models.Q(status='in_progress') | models.Q(current_snapshot=models.F('published_snapshot')),
                 name='dated_travel_start_published_snapshot',
             ),
             models.CheckConstraint(
-                condition=models.Q(service_day__isnull=False) | models.Q(path__isnull=False, driver__isnull=False),
-                name='legacy_travel_route_driver_required',
-            ),
-            models.CheckConstraint(
-                condition=models.Q(service_day__isnull=True)
-                | models.Q(status__in=['scheduled', 'in_progress', 'finished', 'canceled']),
+                condition=models.Q(status__in=['scheduled', 'in_progress', 'finished', 'canceled']),
                 name='dated_travel_execution_state_valid',
             ),
             models.CheckConstraint(
-                condition=models.Q(service_day__isnull=True)
-                | ~models.Q(status='finished')
+                condition=~models.Q(status='finished')
                 | models.Q(finished_at__isnull=False, finished_at__gte=models.F('started_at')),
                 name='dated_travel_finish_after_start',
             ),
             models.CheckConstraint(
-                condition=models.Q(service_day__isnull=True)
-                | ~models.Q(planning_status='ready')
-                | models.Q(driver__isnull=False, vehicle__isnull=False),
+                condition=~models.Q(planning_status='ready') | models.Q(driver__isnull=False, vehicle__isnull=False),
                 name='dated_travel_ready_designation',
-            ),
-            models.CheckConstraint(
-                condition=(
-                    models.Q(service_day__isnull=True, service__isnull=True)
-                    | models.Q(service_day__isnull=False, service__isnull=False)
-                ),
-                name='travel_day_service_pair',
             ),
             models.UniqueConstraint(fields=['service_day', 'service'], name='travel_one_per_service_day'),
             models.CheckConstraint(condition=models.Q(revision__gte=1), name='travel_revision_positive'),
@@ -175,21 +135,18 @@ class Travel(models.Model):
                 name='travel_publication_revision_order',
             ),
             models.CheckConstraint(
-                condition=models.Q(service_day__isnull=True)
-                | models.Q(
+                condition=models.Q(
                     planned_start__isnull=False, planned_end__isnull=False, planned_end__gt=models.F('planned_start')
                 ),
                 name='dated_travel_planned_period',
             ),
             models.CheckConstraint(
-                condition=models.Q(service_day__isnull=True)
-                | ~models.Q(status__in=['in_progress', 'finished'])
+                condition=~models.Q(status__in=['in_progress', 'finished'])
                 | models.Q(driver__isnull=False, vehicle__isnull=False, started_at__isnull=False),
                 name='dated_travel_execution_designation',
             ),
             models.CheckConstraint(
-                condition=models.Q(service_day__isnull=True)
-                | ~models.Q(status='in_progress')
+                condition=~models.Q(status='in_progress')
                 | models.Q(
                     planning_status='ready', published_revision__isnull=False, published_revision=models.F('revision')
                 ),
@@ -211,8 +168,6 @@ class Travel(models.Model):
         super().clean()
         from .validation import related_values, same_company
 
-        if self.service_day_id is None:
-            return
         errors = {}
         day = related_values(self, 'service_day', 'route_group_id', 'route_group__company_id')
         service = related_values(self, 'service', 'route_group_id')

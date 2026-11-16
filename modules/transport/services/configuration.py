@@ -164,8 +164,6 @@ def configure_group(*, actor_id, company_id, group_id=None, name, destination_id
         else CompanyRouteGroup(company=company)
     )
     group.name, group.destination = name, point
-    if not group.pk:
-        group.common_cep = point.cep
     group.full_clean()
     group.save()
     from .calendar import regenerate_future_days

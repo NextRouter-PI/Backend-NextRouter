@@ -33,7 +33,7 @@ wss://nextrouter.provedor.com/ws/...        WebSocket
 
 No Vite, preserve as opções/plugins já existentes e configure `base: '/'`. Não
 aponte para o domínio antigo da API nem use `/static/` como base só porque o
-backend é Django. O contrato proposto mantém os assets Vue em `/assets/` e os
+backend é Django. O contrato atual mantém os assets Vue em `/assets/` e os
 estáticos do Django/admin em `/static/`.
 
 ```js
@@ -57,8 +57,9 @@ const response = await fetch('/api/users/me/', {
 })
 ```
 
-Os endpoints serão revisados na adaptação; não trate este exemplo como contrato
-definitivo. Cookies HttpOnly são enviados pelo navegador, não lidos pelo Vue.
+Os endpoints vigentes estão em [CONTRATO_API.md](CONTRATO_API.md) e no OpenAPI;
+este exemplo não substitui o contrato. Cookies HttpOnly são enviados pelo navegador,
+não lidos pelo Vue.
 Nas mutações, obter CSRF pelo endpoint de bootstrap e enviar `X-CSRFToken`,
 incluindo os fluxos de autenticação conforme o contrato. Não guardar access/refresh
 em `localStorage`/`sessionStorage` nem tentar ler os cookies HttpOnly.
@@ -141,10 +142,9 @@ o build de imagem deverá obter uma revisão fixada do frontend, compilar e mont
 o artefato automaticamente. Registrar commits do backend e frontend no release;
 não baixar uma branch mutável durante o startup do servidor.
 
-Arquivos gerados não devem entrar no Git por padrão. A implementação deverá
-adicionar a regra adequada de ignore e garantir que o artefato entre no pacote
-ou imagem por um passo explícito de build. Node pode ficar só no estágio de build,
-fora do runtime Python.
+Arquivos gerados não entram no Git (`/frontend_dist/` já está ignorado). A entrega
+deve garantir que o artefato entre no pacote ou imagem por passo explícito de build.
+Node pode ficar só no estágio de build, fora do runtime Python.
 
 ## 5. Contrato implementado no backend e pendências de entrega
 
@@ -160,7 +160,7 @@ fora do runtime Python.
   nunca recebem fallback HTML. API/admin e respostas com cookies são `private, no-store`.
 - HTML usa `no-cache`; assets/favicons usam revalidação por ETag/Last-Modified. Não
   se presume fingerprint por regex de nome. Cache longo/imutável só deverá ser
-  habilitado quando o pipeline real comprovar versionamento/retensão dos assets.
+   habilitado quando o pipeline real comprovar versionamento/retenção dos assets.
 - Produção exige `PUBLIC_ORIGIN=https://host[:porta]`, sem barra final, com host em
   `ALLOWED_HOSTS`. CORS vazio, cookies Lax/HttpOnly/Secure e allowlists WS/CSRF
   independentes. Não mudar isso para contornar integração.
@@ -187,7 +187,7 @@ em navegador. Nenhum build real foi executado nesta implementação.
   traversal, source maps não autorizados e arquivos de manifesto internos.
 - Preservar hashes emitidos pelo Vite. Django/admin podem continuar usando seu próprio
   manifest em `/static/`. Se o mecanismo escolhido exigir outro prefixo público,
-  ajustar `base`, referências, router e testes juntos; o layout aqui é proposta.
+  ajustar `base`, referências, router e testes juntos; o layout acima já é reconhecido.
 - Só assets realmente versionados devem receber cache imutável na entrega futura. Favicon ou arquivo de
   `public/` com nome fixo precisa revalidar. HTML pode usar `no-cache` para revalidação;
   respostas sensíveis exigem política própria, em geral `private, no-store`.
