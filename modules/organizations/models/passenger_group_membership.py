@@ -22,7 +22,7 @@ def _related_values(model, pk, *fields):
 
 
 class PassengerGroupMembership(models.Model):
-    """Histórico de participação; ainda não autoriza acesso nem substitui o legado."""
+    """Histórico do grupo; acesso exige também vínculo e participação operacional."""
 
     membership = models.ForeignKey(
         CompanyMembership, on_delete=models.PROTECT, related_name='passenger_group_memberships'

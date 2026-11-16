@@ -16,7 +16,7 @@ class CompanyMembershipModelTests(TestCase):
         cls.company = create_company('membership-company@example.com')
         cls.other_company = create_company('membership-other@example.com')
         cls.group = create_route_group(cls.company)
-        cls.passenger = create_passenger('membership-passenger@example.com', cls.group)
+        cls.passenger = create_passenger('membership-passenger@example.com')
         cls.driver = Driver.objects.create(user=create_user('membership-driver@example.com'))
         cls.created_at = timezone.now() - timedelta(days=1)
 
@@ -198,12 +198,13 @@ class CompanyMembershipModelTests(TestCase):
             with self.subTest(model=type(target).__name__), self.assertRaises(ProtectedError):
                 target.delete()
 
-    def test_new_structure_does_not_change_or_mirror_legacy_state(self):
+    def test_membership_does_not_change_identity_or_fabricate_events_through_save(self):
         self.assertFalse(CompanyMembership.objects.exists())
+        user_id = self.passenger.user_id
         CompanyMembership.objects.create(**self.membership_data(status=CompanyMembership.Status.REJECTED))
         self.passenger.refresh_from_db()
-        self.assertTrue(self.passenger.is_approved)
-        self.assertEqual(self.passenger.route_group_id, self.group.pk)
+        self.assertEqual(self.passenger.user_id, user_id)
+        self.assertNotIn('route_group', {field.name for field in self.passenger._meta.fields})
         self.assertFalse(MembershipEvent.objects.exists())
 
 

@@ -20,7 +20,7 @@ class PassengerGroupMembershipTests(TestCase):
         cls.other_group = create_route_group(cls.other_company)
         cls.point = create_operational_point(cls.company)
         cls.other_point = create_operational_point(cls.other_company)
-        cls.passenger = create_passenger('group-member-passenger@example.com', cls.group)
+        cls.passenger = create_passenger('group-member-passenger@example.com')
         cls.started_at = timezone.now() - timedelta(hours=1)
         cls.reviewed_at = cls.started_at - timedelta(hours=1)
         cls.membership = CompanyMembership.objects.create(
@@ -241,11 +241,13 @@ class PassengerGroupMembershipTests(TestCase):
                 target.delete()
         self.assertEqual(participation.assigned_by, author)
 
-    def test_new_participation_does_not_mirror_legacy_group_or_approval(self):
+    def test_participation_does_not_change_identity_or_company_approval(self):
+        user_id = self.passenger.user_id
         PassengerGroupMembership.objects.create(**self.participation_data(route_group=self.second_group))
         self.passenger.refresh_from_db()
-        self.assertEqual(self.passenger.route_group, self.group)
-        self.assertTrue(self.passenger.is_approved)
+        self.membership.refresh_from_db()
+        self.assertEqual(self.passenger.user_id, user_id)
+        self.assertEqual(self.membership.status, 'active')
 
     def test_string_representation_only_uses_ids(self):
         participation = PassengerGroupMembership.objects.create(**self.participation_data())

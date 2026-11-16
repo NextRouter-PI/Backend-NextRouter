@@ -4,14 +4,14 @@ from unittest import mock
 
 from django.contrib import admin
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from django.test import RequestFactory
 
 from modules.organizations.models import CompanyMembership, Driver, PassengerGroupMembership
 from modules.transport import models
-from modules.transport.optimization import claim_job, process_optimization
-from modules.transport.osrm import OSRMError
 from tests.helpers import create_passenger, create_user
 
 from .helpers import DayModelTestCase
@@ -212,17 +212,16 @@ class PlanningModelTests(PlanningModelTestCase):
         with self.assertRaises(ValidationError):
             job.full_clean()
 
-    def test_old_worker_does_not_claim_or_calculate_new_jobs(self):
+    def test_worker_requires_explicit_limits_before_claiming_jobs(self):
         job = models.RouteOptimizationJob.objects.create(
             snapshot=self.snapshot,
             input_revision=1,
             frozen_input=self.snapshot.input_data,
         )
-        self.assertIsNone(claim_job())
-        with mock.patch('modules.transport.optimization.optimize_coordinates') as osrm:
-            with self.assertRaises(OSRMError):
-                process_optimization(job)
-            osrm.assert_not_called()
+        with mock.patch('modules.transport.management.commands.process_route_jobs.claim_snapshot_job') as claim:
+            with self.assertRaises(CommandError):
+                call_command('process_route_jobs', once=True)
+            claim.assert_not_called()
         job.refresh_from_db()
         self.assertEqual(job.status, 'pending')
 

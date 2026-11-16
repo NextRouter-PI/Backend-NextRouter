@@ -64,11 +64,11 @@ def create_company(email, *, approved=True):
 
 
 def create_route_group(company, name='Rota Centro'):
-    return CompanyRouteGroup.objects.create(company=company, name=name, common_cep='89010-000')
+    return CompanyRouteGroup.objects.create(company=company, name=name)
 
 
-def create_passenger(email, route_group=None, *, approved=True):
-    return Passenger.objects.create(user=create_user(email), route_group=route_group, is_approved=approved)
+def create_passenger(email):
+    return Passenger.objects.create(user=create_user(email))
 
 
 def create_operational_point(company, **extra):

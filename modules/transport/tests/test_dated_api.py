@@ -28,7 +28,7 @@ class DatedApiTests(ServiceTestCase):
         self.assertEqual(result.status_code, expected, getattr(result, 'data', result.content))
         return result
 
-    def test_membership_http_lifecycle_does_not_mutate_legacy_profile(self):
+    def test_membership_http_lifecycle_preserves_identity(self):
         passenger = create_passenger('new-api-member@example.com')
         self.as_user(passenger.user)
         result = self.post('/api/memberships/', {'company_id': self.company.pk, 'profile': 'passenger'}, expected=201)

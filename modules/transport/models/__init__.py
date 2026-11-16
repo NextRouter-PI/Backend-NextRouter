@@ -1,4 +1,3 @@
-from .company_route_schedule import CompanyRouteSchedule as CompanyRouteSchedule
 from .communication import DriverInvitation as DriverInvitation
 from .communication import Notification as Notification
 from .planning import RouteSnapshot as RouteSnapshot
@@ -10,11 +9,9 @@ from .calendar import ServiceDay as ServiceDay
 from .calendar import ServiceDayEligibility as ServiceDayEligibility
 from .demand import DailyResponse as DailyResponse
 from .demand import DailyChangeRequest as DailyChangeRequest
-from .confirm_passenger_route import ConfirmPassengerRoute as ConfirmPassengerRoute
 from .driver_rating import DriverRating as DriverRating
 from .lost_item import LostItem as LostItem
 from .lost_item import LostItemEvent as LostItemEvent
-from .path import Path as Path
 from .participation import ParticipationEvent as ParticipationEvent
 from .participation import SeatReservation as SeatReservation
 from .participation import TravelParticipation as TravelParticipation

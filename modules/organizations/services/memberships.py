@@ -2,7 +2,7 @@
 
 Ordem de locks deste recorte: empresa, perfil estável, vínculo, usuários por PK.
 Todas as operações disputam o perfil, mesmo quando ainda não existe um ciclo.
-Nenhum caller operacional deve usar estes serviços antes da substituição coordenada.
+API e ações do admin usam este caminho; identidade não guarda flags empresariais.
 """
 
 from django.contrib.auth import get_user_model

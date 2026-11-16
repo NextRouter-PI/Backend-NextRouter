@@ -11,8 +11,9 @@ Substitui `docs/DOMINIO.md`, `docs/ARQUITETURA.md`, `docs/DECISOES.md`,
 
 **Estado:** modelagem 1.1–1.6 e serviços da Etapa 2 implementados; concorrência real
 em PostgreSQL validada (13.1). A Etapa 3 substituiu as entradas operacionais por
-API/admin/WS/worker do domínio datado, em validação na seção 13. Não há dois caminhos
-operacionais de escrita; schema legado ainda congelado até a remoção incremental.
+API/admin/WS/worker do domínio datado, implementados/testados na seção 13. Não há
+dois caminhos operacionais de escrita; remoção incremental do schema legado em 13.4,
+aplicada somente em bancos temporários de teste, não no banco habitual.
 Backend reconhece o artefato Vue, mas somente fixtures foram testadas: build real,
 navegador e entrega conjunta continuam pendentes no marco integrado 3/4. Retenção/
 expurgo e preparação do ambiente permanecem pendentes. Seções 10–12 registram os
@@ -763,11 +764,11 @@ descrever como implementado algo que existe apenas como plano.
 | Marco | Situação |
 |---|---|
 | Registro do plano e substituição dos documentos anteriores | Concluído em 2026-11-15. |
-| Tutorial de build Vue separado | Registrado em BUILD_VUE.md; integração ainda não implementada. |
+| Tutorial de build Vue separado | Contrato de artefato reconhecido pelo backend e testado com fixtures; build Vue real/navegador/entrega pendentes. Ver BUILD_VUE.md. |
 | Etapa 0 — especificação técnica detalhada e estratégia de migrations | Decisões de vínculo, pedidos, publicação, viagem única e regeneração registradas. Exceções restantes na seção 3.4. Nova base de migrations autorizada para bancos vazios; instalação SQLite local criada sem descarte (12.8). |
-| Etapa 1 — modelagem | Cobertura estrutural 1.1–1.6 implementada e testada (seção 11), sem declarar substituição integral: callers/campos antigos ainda necessários têm remoção coordenada nas Etapas 2/3. Nenhum novo fluxo operacional ativado. |
-| Etapa 2 — regras | Serviços 2.1–2.5 e concorrência de 2.6 validados em PostgreSQL 16.16 (13.1). Callers legados ainda em substituição coordenada na Etapa 3; não confundir validação dos serviços com entrega do fluxo pelo navegador. |
-| Etapa 3 — API/admin/integração | Backend HTTP/admin/WS/worker e artefato SPA implementados/testados (seção 13); remoção física do schema legado em preparação. Não concluída a integração com Vue real/navegador. |
+| Etapa 1 — modelagem | Cobertura 1.1–1.6 testada (registro histórico na seção 11). Callers substituídos em 13.3; remoção dos campos/tabelas legados implementada por incrementos novos em 13.4, somente em bancos temporários. |
+| Etapa 2 — regras | Serviços 2.1–2.5 e concorrência de 2.6 validados em PostgreSQL 16.16 (13.1). Callers substituídos na Etapa 3 (13.3–13.4); não confundir validação dos serviços com entrega do fluxo pelo navegador. |
+| Etapa 3 — API/admin/integração | Backend HTTP/admin/WS/worker, contrato SPA e remoção física do legado implementados/testados (13.3–13.4), incluindo PostgreSQL e Redis reais descartáveis. Integração com Vue real/navegador ainda não concluída. |
 | Etapa 4 — ambiente/build/operação | Não iniciada. |
 
 **Validações do registro inicial (2026-11-15, antes da revisão de ambiguidades):** `pdm run test` passou
@@ -1888,10 +1889,72 @@ Suíte completa PostgreSQL 16.16: **352/352 passaram** (372,935 s), nenhuma igno
 Redis 7 isolado via `scripts/test_redis.sh`: **5/5** (4,341 s), quatro testes WS e
 um broadcast real entre processos com PIDs distintos. Container/tmpfs/porta local
 novos, URL herdada ignorada e limpeza dos próprios recursos no fim. Isso não é teste
-de navegador/Vue ou smoke no provedor. Remoção física do schema legado ainda em
-preparação; sem migrate no SQLite habitual, dependências, deploy, push ou merge.
+de navegador/Vue ou smoke no provedor. Naquele marco, a remoção física do schema
+legado ainda estava em preparação; sua implementação/validação está em 13.4.
+Sem migrate no SQLite habitual, dependências, deploy, push ou merge.
 Após reforços de validação de origem, timestamps de custódia e cache conservador,
 recorte final de **28/28** passou (10,152 s). Lint passou (172 arquivos), schema
 validou com `--fail-on-warn`, check e diff sem problemas. Fixtures/links/blocos dos
 documentos mantidos conferidos; resultados integrais anteriores são evidências do
 mesmo recorte, não execução nova após cada edição documental.
+
+### 13.4. Retirada física do schema legado, sem conversão/descarte de dados
+
+Continuação dentro da autorização de 13.1: remover estrutura obsoleta somente após
+substituir seus callers. Árvore limpa ao retomar, sobre `c47598f`. Baseline do recorte
+anterior: suítes SQLite/PostgreSQL de 13.3 e regressões finais de 28 casos aprovadas;
+não são apresentados como execuções novas desta retirada.
+
+- Removidos `Path`, `CompanyRouteSchedule`, `ConfirmPassengerRoute` e otimizador
+  antigo; grupo/flags de aprovação nos perfis; CEP/coordenadas de referência no grupo;
+  propriedade por grupo/motorista/CEP na frota; FK Path na viagem; campos de cálculo
+  legado nos jobs. Identidade, grupos, vínculos, respostas, alocações, snapshots,
+  eventos, convites, publicações e avisos do domínio datado permanecem.
+- Viagem exige atendimento/serviço/agenda, frota exige empresa/capacidade e job exige
+  snapshot/revisão no banco. Retiradas as exceções de constraints para registros
+  legados; motorista/veículo continuam opcionais apenas no planejamento incompleto.
+- `organizations.0002_retire_legacy` e `router.0003_retire_legacy`: incrementos sobre
+  as quatro migrations iniciais preservadas e `router.0002_lost_item_audit`. Nenhuma
+  migration anteriormente aplicada foi reescrita. A geração não interativa informou
+  NOT PROVIDED nas alterações nullable→obrigatório: **não** foram inventados defaults
+  ou executados backfills; guards verificam os valores antes do ALTER NOT NULL.
+- Guard inicial, antes de qualquer DDL de retirada, usa models históricos e alias
+  do banco-alvo. Qualquer conteúdo em tabelas/campos legados ou ausência de dados
+  agora obrigatórios bloqueia com erro estático, sem IDs/PII e sem excluir/converter
+  registros. Transporte é reconferido antes de seu DDL. Parar callers antigos antes
+  de migrar; não há promessa de compatibilidade com processo antigo concorrente.
+- Os guards são irreversíveis de propósito: rollback de release/schema exige plano
+  concreto e backup/banco novo, não `--fake` ou retorno implícito ao domínio antigo.
+  Bancos do histórico anterior à base UUID continuam incompatíveis. Inclusive campos
+  redundantes preenchidos por versões intermediárias bloqueiam a retirada: precisam
+  de diagnóstico/estratégia autorizada, não de limpeza automática.
+- Helpers/regressões foram adaptados para identidade sem flags. Testes existentes
+  de preservação verificam usuário/vínculo/histórico, não a presença dos campos
+  removidos. Modelos/métodos antigos deixaram de aparecer no admin e nos imports.
+
+Evidências desta retirada: **102/102** testes específicos passaram em SQLite
+(53,705 s), incluindo introspecção de tabelas/colunas/NOT NULL e processos isolados
+com schema anterior e dados fictícios. Nos cenários de perfil e Path antigos, a
+tentativa de migrar falhou antes de retirar colunas; registros e estado de migrations
+foram conferidos como preservados. Esses dois testes de bloqueio usam SQLite,
+inclusive quando chamados pela suíte PostgreSQL; não simularam conversão de dados.
+
+Validação final após a retirada:
+
+- SQLite: **356 descobertos, 339 passaram e 17 ignorados** (245,228 s). As dezesseis
+  disputas de domínio/refresh exigem PostgreSQL; o teste Redis exige o roteiro próprio.
+- PostgreSQL 16.16 descartável: **356 descobertos, 355 passaram e 1 ignorado**
+  (332,172 s), somente o teste Redis. Inclui instalação limpa, introspecção de schema
+  e todas as disputas concorrentes; os cenários de bloqueio com dados antigos continuam
+  usando subprocessos SQLite, conforme o limite acima.
+- Redis/WS real repetido após a retirada: **5/5** (3,539 s), em container novo
+  descartável, incluindo broadcast entre processos.
+- `pdm run lint` passou (169 arquivos), `pdm run check` sem problemas/divergência de
+  models e `pdm run schema` validou OpenAPI. Links locais, blocos/tabelas Markdown e
+  `git diff --check` conferidos na revisão final exclusivamente documental; suítes
+  funcionais não repetidas após esses ajustes de documentação.
+
+Nenhum migrate no banco habitual, dado real, nova dependência, frontend separado,
+deploy, push ou merge. Continua o aviso de `staticfiles/` ausente; não foi criado
+build fictício para ocultá-lo. Vue real/navegador/HTTPS/WSS e entrega conjunta seguem
+pendentes. Referência de RunPython/models históricos consultada via Context7.

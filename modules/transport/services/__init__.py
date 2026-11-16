@@ -1,1 +1,1 @@
-"""Serviços do domínio novo, isolados dos callers operacionais até a Etapa 3."""
+"""Regras operacionais compartilhadas pela API, ações do admin e worker."""

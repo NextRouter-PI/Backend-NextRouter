@@ -10,6 +10,7 @@ from tests.helpers import (
     PASSWORD,
     BaseAPITestCase,
     create_company,
+    create_operational_point,
     create_passenger,
     create_route_group,
     masked_cpf,
@@ -228,10 +229,11 @@ class ProfileTests(BaseAPITestCase):
 
     def test_duplicate_route_group_name_returns_400(self):
         company = create_company('empresa@example.com')
-        create_route_group(company)
+        group = create_route_group(company)
+        point = create_operational_point(company)
         self.client.force_authenticate(company.user)
         response = self.client.post(
-            '/api/company-route-groups/', {'name': 'rota centro', 'common_cep': '89010-000'}, format='json'
+            '/api/company-route-groups/', {'name': group.name, 'destination_id': point.pk}, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 

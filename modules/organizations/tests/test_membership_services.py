@@ -22,7 +22,7 @@ class MembershipServiceTests(TestCase):
         cls.company = create_company('service-company@example.com')
         cls.other_company = create_company('service-other@example.com')
         cls.group = create_route_group(cls.company)
-        cls.passenger = create_passenger('service-passenger@example.com', cls.group)
+        cls.passenger = create_passenger('service-passenger@example.com')
         cls.driver = Driver.objects.create(user=create_user('service-driver@example.com'))
         cls.staff = create_user('service-staff@example.com', is_staff=True, is_superuser=True)
         cls.now = datetime(2026, 11, 16, 1, tzinfo=UTC)
@@ -73,16 +73,16 @@ class MembershipServiceTests(TestCase):
         self.assertEqual(MembershipEvent.objects.count(), 1)
         self.assertEqual(Notification.objects.count(), 1)
 
-    def test_active_or_other_pending_blocks_new_request_and_preserves_legacy(self):
+    def test_active_or_other_pending_blocks_new_request_and_preserves_identity(self):
         for profile in (self.passenger, self.driver):
-            initial = (profile.route_group_id, profile.is_approved, profile.is_rejected)
+            initial = (profile.pk, profile.user_id)
             membership = self.request(profile)
             self.assert_error('membership_open', self.request, profile=profile, company=self.other_company)
             approve_membership(actor_id=self.company.user_id, membership_id=membership.pk)
             for company in (self.company, self.other_company):
                 self.assert_error('membership_open', self.request, profile=profile, company=company)
             profile.refresh_from_db()
-            self.assertEqual((profile.route_group_id, profile.is_approved, profile.is_rejected), initial)
+            self.assertEqual((profile.pk, profile.user_id), initial)
             membership.refresh_from_db()
             self.assertEqual(membership.status, 'active')
             self.assertEqual(membership.company_id, self.company.pk)

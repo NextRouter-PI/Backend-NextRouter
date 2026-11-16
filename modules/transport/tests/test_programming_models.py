@@ -107,13 +107,13 @@ class ProgrammingModelTests(Stage1ModelTestCase):
 class FleetModelTests(Stage1ModelTestCase):
     def test_company_owned_vehicle_needs_capacity_and_no_group(self):
         self.vehicle.full_clean()
-        for extra in ({'capacity': None}, {'capacity': 0}, {'route_group': self.group}):
-            self.assert_db_rejects(Vehicle, company=self.company, plate='XYZ1A23', **extra)
+        for extra in ({'capacity': None}, {'capacity': 0}, {'company': None, 'capacity': 2}):
+            self.assert_db_rejects(Vehicle, **{'company': self.company, 'plate': 'XYZ1A23', **extra})
         self.assert_db_rejects(Vehicle, plate='XYZ1A23')
 
-    def test_legacy_ownership_still_loads(self):
-        legacy = Vehicle.objects.create(route_group=self.group, plate='LEG1A23')
-        legacy.full_clean()
+    def test_fleet_has_no_group_driver_or_cep_ownership(self):
+        fields = {field.name for field in Vehicle._meta.fields}
+        self.assertFalse(fields & {'route_group', 'driver', 'garage_cep'})
 
     def test_garage_cannot_belong_to_another_company(self):
         self.vehicle.garage_point = self.other_point
