@@ -1,6 +1,6 @@
 """Vínculos novos, sem espelhar flags/grupos ou enviar e-mail legado.
 
-Ordem de locks deste recorte: perfil estável, empresa, vínculo, usuários por PK.
+Ordem de locks deste recorte: empresa, perfil estável, vínculo, usuários por PK.
 Todas as operações disputam o perfil, mesmo quando ainda não existe um ciclo.
 Nenhum caller operacional deve usar estes serviços antes da substituição coordenada.
 """
@@ -77,8 +77,8 @@ def _record(membership, *, actor_id, action, recipient_id, occurred_at, reason='
 @transaction.atomic
 def request_membership(*, actor_id, company_id, passenger_id=None, driver_id=None):
     """Titular solicita; repetição enquanto pendente na mesma empresa é idempotente."""
-    profile = _profile(passenger_id=passenger_id, driver_id=driver_id)
     company = _get(Company.objects.select_for_update(), pk=company_id)
+    profile = _profile(passenger_id=passenger_id, driver_id=driver_id)
     profile_field = 'passenger_id' if isinstance(profile, Passenger) else 'driver_id'
     current = (
         CompanyMembership.objects
@@ -111,8 +111,8 @@ def request_membership(*, actor_id, company_id, passenger_id=None, driver_id=Non
 def _locked_membership(membership_id):
     # A leitura inicial só localiza o agregado; ownership/estado vêm da releitura sob lock.
     initial = _get(CompanyMembership.objects.all(), pk=membership_id)
-    profile = _profile(passenger_id=initial.passenger_id, driver_id=initial.driver_id)
     company = _get(Company.objects.select_for_update(), pk=initial.company_id)
+    profile = _profile(passenger_id=initial.passenger_id, driver_id=initial.driver_id)
     membership = _get(CompanyMembership.objects.select_for_update(), pk=membership_id)
     if (membership.passenger_id, membership.driver_id, membership.company_id) != (
         initial.passenger_id,
@@ -143,6 +143,44 @@ def _decide(*, actor_id, membership_id, status, action, reason):
     membership.reviewed_at = now
     membership.save(update_fields=['status', 'reviewed_by', 'reviewed_at'])
     _record(membership, actor_id=actor_id, action=action, recipient_id=profile.user_id, occurred_at=now, reason=reason)
+    return membership
+
+
+@transaction.atomic
+def end_membership(*, actor_id, membership_id, reason=''):
+    """Encerra sem apagar identidade/história; operação/futuro precisam estar resolvidos."""
+    from .participation import ensure_profile_can_change
+
+    reason = _reason(reason)
+    membership, profile, company = _locked_membership(membership_id)
+    _users(actor_id=actor_id, profile=profile, company=company)
+    if actor_id not in (profile.user_id, company.user_id):
+        raise MembershipError('Ator não autorizado.', code='permission_denied')
+    if membership.status == CompanyMembership.Status.ENDED:
+        return membership
+    if membership.status != CompanyMembership.Status.ACTIVE:
+        raise MembershipError('O vínculo não está ativo.', code='membership_not_active')
+    now = timezone.now()
+    ensure_profile_can_change(profile, now=now)
+    groups = list(membership.passenger_group_memberships.select_for_update().filter(ended_at=None).order_by('pk'))
+    if now < membership.reviewed_at or any(now < group.started_at for group in groups):
+        raise MembershipError('O encerramento antecede o início do vínculo/grupo.', code='invalid_time')
+    for group in groups:
+        group.ended_at = now
+        group.ended_by_id = actor_id
+        group.save(update_fields=['ended_at', 'ended_by'])
+    membership.status = CompanyMembership.Status.ENDED
+    membership.ended_at = now
+    membership.ended_by_id = actor_id
+    membership.save(update_fields=['status', 'ended_at', 'ended_by'])
+    _record(
+        membership,
+        actor_id=actor_id,
+        action=MembershipEvent.Action.ENDED,
+        recipient_id=company.user_id if actor_id == profile.user_id else profile.user_id,
+        occurred_at=now,
+        reason=reason,
+    )
     return membership
 
 
