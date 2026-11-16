@@ -15,6 +15,13 @@ for structural_model in (
     models.TravelParticipation,
     models.ParticipationEvent,
     models.SeatReservation,
+    models.RouteSnapshot,
+    models.RouteStop,
+    models.RouteStopParticipant,
+    models.TravelPublication,
+    models.DriverInvitation,
+    models.Notification,
+    models.RouteOptimizationJob,
 ):
     admin.site.register(structural_model, OrganizationStructureReadOnlyAdmin)
 
