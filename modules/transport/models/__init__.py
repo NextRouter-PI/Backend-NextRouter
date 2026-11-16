@@ -13,6 +13,7 @@ from .demand import DailyChangeRequest as DailyChangeRequest
 from .confirm_passenger_route import ConfirmPassengerRoute as ConfirmPassengerRoute
 from .driver_rating import DriverRating as DriverRating
 from .lost_item import LostItem as LostItem
+from .lost_item import LostItemEvent as LostItemEvent
 from .path import Path as Path
 from .participation import ParticipationEvent as ParticipationEvent
 from .participation import SeatReservation as SeatReservation

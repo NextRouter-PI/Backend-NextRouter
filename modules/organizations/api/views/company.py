@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, inline_serializer
@@ -16,7 +16,7 @@ from modules.organizations.api.serializers.company import (
 )
 from modules.organizations.models.company import Company
 from modules.organizations.permissions import IsCompany, IsUserOwner
-from modules.transport.models.confirm_passenger_route import ConfirmPassengerRoute
+from modules.transport.access import companies_for
 from modules.transport.models.travel import Travel
 from shared.openapi import document_viewset
 
@@ -36,7 +36,7 @@ from shared.openapi import document_viewset
 )
 class CompanyViewSet(ModelViewSet):
     queryset = Company.objects.all()
-    http_method_names = ('get', 'post', 'patch', 'delete')
+    http_method_names = ('get', 'post', 'patch', 'head', 'options')
     filterset_class = CompanyFilter
 
     def get_permissions(self):
@@ -74,70 +74,47 @@ class CompanyViewSet(ModelViewSet):
             serializer.is_valid(raise_exception=True)
             company = serializer.save()
 
-        serializer = CompanyListAndRetrieveSerializer(company)
+        serializer = CompanyListAndRetrieveSerializer(company, context=self.get_serializer_context())
         return Response(serializer.data)
 
     @extend_schema(
         tags=['Empresas'],
         summary='Consulte estatísticas da sua empresa',
-        description='Apenas empresa aprovada; resume viagens de hoje e presenças por horário de ida.',
+        description='Apenas empresa titular aprovada; data local de atendimento e contagens por serviço concreto.',
         responses={
             200: inline_serializer(
                 'CompanyStatistics',
                 fields={
                     'routes_today': serializers.IntegerField(),
-                    'questionnaire_by_slot': serializers.ListField(child=serializers.DictField()),
+                    'date': serializers.DateField(),
+                    'services': serializers.ListField(child=serializers.DictField()),
                 },
             )
         },
     )
     @action(detail=False, methods=['get'], url_path='me/stats')
     def stats(self, request):
-        """
-        Estatísticas simples da empresa autenticada para o painel inicial:
-        contagem de viagens de hoje e confirmações de presença agrupadas por
-        horário de ida (go_hour) dos horários de rota cadastrados.
-        """
-        company = get_object_or_404(Company, user=request.user)
-        today = timezone.localdate()
-
-        routes_today = (
-            Travel.objects
-            .filter(company=company)
-            .filter(Q(started_at__date=today) | Q(status=Travel.Status.SCHEDULED))
-            .count()
+        company = get_object_or_404(companies_for(request.user))
+        field = serializers.DateField()
+        date = (
+            field.run_validation(request.query_params['date'])
+            if 'date' in request.query_params
+            else timezone.localdate()
         )
-
-        schedule_slots = (
-            company.route_groups
-            .values_list('schedules__go_hour', flat=True)
-            .exclude(schedules__go_hour__isnull=True)
-            .distinct()
-            .order_by('schedules__go_hour')
-        )
-
-        todays_confirmations = ConfirmPassengerRoute.objects.filter(
-            travel__company=company,
-        ).filter(Q(travel__started_at__date=today) | Q(travel__status=Travel.Status.SCHEDULED))
-
-        questionnaire_by_slot = []
-        for go_hour in schedule_slots:
-            label = go_hour.strftime('%H:%M')
-            confirmed_count = (
-                todays_confirmations
-                .filter(
-                    travel__path__route_group__schedules__go_hour=go_hour,
-                    confirm=True,
-                )
-                .distinct()
-                .count()
+        travels = Travel.objects.filter(company=company, service_day__date=date)
+        services = list(
+            travels
+            .values('service', 'service__direction', 'service__target_time')
+            .annotate(
+                trips=Count('pk', distinct=True),
+                allocated=Count('participations', filter=Q(participations__status='allocated')),
+                on_board=Count('participations', filter=Q(participations__status='on_board')),
+                dropped_off=Count('participations', filter=Q(participations__status='dropped_off')),
+                no_show=Count('participations', filter=Q(participations__status='no_show')),
             )
-            questionnaire_by_slot.append({'label': label, 'confirmed': confirmed_count})
-
-        return Response({
-            'routes_today': routes_today,
-            'questionnaire_by_slot': questionnaire_by_slot,
-        })
+            .order_by('service')
+        )
+        return Response({'date': date, 'routes_today': travels.count(), 'services': services})
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -151,10 +128,6 @@ class CompanyViewSet(ModelViewSet):
 
         user = self.request.user
 
-        if user.is_staff or user.is_superuser:
-            return queryset
-
         if self.action != 'list' and user.is_authenticated:
-            return queryset.filter(Q(is_approved=True) | Q(user=user))
-
-        return queryset.filter(is_approved=True)
+            return queryset.filter(Q(is_approved=True, is_rejected=False, user__is_active=True) | Q(user=user))
+        return queryset.filter(is_approved=True, is_rejected=False, user__is_active=True)

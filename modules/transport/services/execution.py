@@ -19,6 +19,7 @@ from .common import (
     get,
     lock_company,
     lock_travel,
+    membership_for,
     notify,
     require,
     travel_recipients,
@@ -38,6 +39,7 @@ def driver_actor(travel, actor_id):
         'company_unavailable',
         'A empresa não está apta a operar.',
     )
+    membership_for(travel.company, driver_id=travel.driver_id)
 
 
 @transaction.atomic
@@ -97,6 +99,9 @@ def finish_travel(*, actor_id, travel_id):
     travel.status, travel.finished_at = 'finished', timezone.now()
     travel.current_latitude = travel.current_longitude = travel.location_updated_at = None
     travel.save(update_fields=['status', 'finished_at', 'current_latitude', 'current_longitude', 'location_updated_at'])
+    from modules.transport.broadcast import close_travel_after_commit
+
+    close_travel_after_commit(travel.pk)
     notify(
         recipients=travel_recipients(travel),
         kind='operation',

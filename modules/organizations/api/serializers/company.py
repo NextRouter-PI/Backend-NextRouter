@@ -59,7 +59,7 @@ class CompanyListAndRetrieveSerializer(ModelSerializer):
         data = super().to_representation(instance)
         request = self.context.get('request')
         user = getattr(request, 'user', None)
-        if user and (user.is_staff or user.is_superuser or instance.user_id == user.pk):
+        if user and (instance.user_id == user.pk or (user.is_staff and user.has_perm('organizations.view_company'))):
             return data
         return {key: data[key] for key in ('id', 'trade_name', 'city', 'state')}
 

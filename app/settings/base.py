@@ -40,7 +40,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'app.frontend.PrivateResponseMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'app.frontend.FrontendAssetsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -120,6 +122,7 @@ STATICFILES_DIRS = [
 
 # Necessário também em desenvolvimento quando collectstatic roda no build.
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+FRONTEND_DIST = BASE_DIR / 'frontend_dist'
 
 # Configurações de arquivos de mídia (App Uploader)
 MEDIA_ENDPOINT = '/media/'
@@ -164,6 +167,7 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'API para o projeto nextrouter.',
     'VERSION': '0.0.0',
     'ENUM_NAME_OVERRIDES': {
+        'ServiceDirectionEnum': [('outbound', 'Ida'), ('return', 'Retorno')],
         'TravelStatusEnum': 'modules.transport.models.travel.Travel.Status',
         'VehicleStatusEnum': 'modules.transport.models.vehicle.Vehicle.Status',
         'LostItemStatusEnum': 'modules.transport.models.lost_item.LostItem.Status',
@@ -196,6 +200,7 @@ EMAIL_TOKEN_MAX_ATTEMPTS = int(os.getenv('EMAIL_TOKEN_MAX_ATTEMPTS', 5))
 EMAIL_TOKEN_RESEND_SECONDS = int(os.getenv('EMAIL_TOKEN_RESEND_SECONDS', 60))
 LOCATION_MAX_AGE_SECONDS = int(os.getenv('LOCATION_MAX_AGE_SECONDS', 30))
 LOCATION_MIN_INTERVAL_SECONDS = int(os.getenv('LOCATION_MIN_INTERVAL_SECONDS', 2))
+WS_REVALIDATION_SECONDS = 5
 GEOCODING_URL = os.getenv('GEOCODING_URL', '')
 GEOCODING_TIMEOUT_SECONDS = int(os.getenv('GEOCODING_TIMEOUT_SECONDS', 5))
 GEOCODING_MAX_ATTEMPTS = int(os.getenv('GEOCODING_MAX_ATTEMPTS', 2))

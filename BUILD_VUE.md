@@ -4,11 +4,11 @@ Este tutorial complementa [PLANEJAMENTO.md](PLANEJAMENTO.md), especialmente as
 Etapas 3 e 4. Os repositórios continuam separados; o **artefato de produção** do
 Vue acompanha a publicação do Django, na mesma origem.
 
-> **Estado atual:** o backend ainda não possui integração para servir esse build.
-> É possível gerar e preparar o artefato com as instruções abaixo, mas copiar a
-> pasta não habilita a aplicação. Roteamento, montagem dos assets e cache serão
-> implementados nas etapas previstas. Os caminhos apresentados são o contrato
-> proposto e devem ser atualizados aqui se a implementação escolher outro layout.
+> **Estado atual:** a Etapa 3 implementou roteamento, assets isolados, cache seguro
+> e autenticação de mesma origem no backend. O layout abaixo já é reconhecido.
+> Isso **não comprova integração real**: frontend separado, build reproduzível,
+> pipeline de publicação e testes em navegador continuam no marco conjunto 3/4.
+> Contrato HTTP/WS em [CONTRATO_API.md](CONTRATO_API.md).
 
 ## 1. Conferir o projeto frontend
 
@@ -110,7 +110,7 @@ cookies, CSRF, API e WebSocket do Django.
 
 ## 4. Preparar o artefato para o backend
 
-Contrato proposto: copiar **o conteúdo** de `dist/` para `frontend_dist/` na raiz
+Contrato implementado: copiar **o conteúdo** de `dist/` para `frontend_dist/` na raiz
 do pacote do backend. Exemplo em um checkout de entrega novo, ainda sem essa pasta:
 
 ```sh
@@ -146,27 +146,28 @@ adicionar a regra adequada de ignore e garantir que o artefato entre no pacote
 ou imagem por um passo explícito de build. Node pode ficar só no estágio de build,
 fora do runtime Python.
 
-## 5. O que falta implementar no backend
+## 5. Contrato implementado no backend e pendências de entrega
 
-**Não executar estas mudanças como se já estivessem configuradas.** A Etapa 4
-deverá integrar o layout acima, em conjunto com as rotas e segurança da Etapa 3:
+- `frontend_dist/index.html` atende GET/HEAD com `Accept: text/html`, sem renderização
+  Django. Deep links sem extensão recebem HTML; rota desconhecida da UI tem 200 e
+  precisa ser tratada pelo 404 do Vue. Sem build, retorna 404.
+- `/assets/` é servido por WhiteNoise sem passar pelo manifest Django. Somente
+  extensões de código/imagem/fonte aprovadas; sem source maps, arquivos ocultos,
+  manifestos JSON ou symlinks. Arquivo público adicional aprovado: `/favicon.ico`.
+- `/static/` continua exclusivo da coleta Django/admin. `collectstatic` não copia
+  o Vue nem publica `html-template-test/`, mídia privada ou o repositório.
+- Prefixos reservados, arquivos inexistentes, requisições JSON e POST desconhecido
+  nunca recebem fallback HTML. API/admin e respostas com cookies são `private, no-store`.
+- HTML usa `no-cache`; assets/favicons usam revalidação por ETag/Last-Modified. Não
+  se presume fingerprint por regex de nome. Cache longo/imutável só deverá ser
+  habilitado quando o pipeline real comprovar versionamento/retensão dos assets.
+- Produção exige `PUBLIC_ORIGIN=https://host[:porta]`, sem barra final, com host em
+  `ALLOWED_HOSTS`. CORS vazio, cookies Lax/HttpOnly/Secure e allowlists WS/CSRF
+  independentes. Não mudar isso para contornar integração.
 
-1. Servir `frontend_dist/index.html` na raiz e nas rotas válidas da SPA.
-2. Montar `/assets/` com os arquivos do build, por WhiteNoise ou mecanismo de
-   produção equivalente, preservando os nomes com hash do Vite.
-3. Publicar explicitamente arquivos públicos adicionais, como favicon, sem
-   transformar qualquer arquivo do repositório em conteúdo público.
-4. Manter `/static/` para Django/admin e sua coleta habitual. O atual
-   `collectstatic` **não integra automaticamente** `frontend_dist/`.
-5. Não fazer dupla renomeação dos assets do Vite pelo manifest do Django sem
-   reescrever/testar todas as referências. Escolher uma estratégia única de URLs.
-6. Aplicar fallback da SPA apenas à navegação apropriada. `/api/...`, `/admin/...`,
-   `/ws/...`, `/assets/...`, `/static/...` e downloads não podem receber HTML da
-   SPA quando deveriam retornar erro ou outra resposta.
-7. HTML sem cache longo; assets versionados com cache longo/imutável. Respostas
-   autenticadas e documentos não entram em cache público.
-8. Entregar tudo sob HTTPS/WSS e configurar cookies/CSRF/origins para a mesma origem.
-9. Manter documentos privados fora do diretório do Vue e da coleta pública.
+**Etapa 4 ainda necessária:** compilar/revisar o artefato real, incluí-lo na imagem
+ou release, validar HTTPS/WSS/proxy/storage, coordenar rollback/API e testar o Vue
+em navegador. Nenhum build real foi executado nesta implementação.
 
 ### Orientação de implementação para agentes
 
@@ -187,7 +188,7 @@ deverá integrar o layout acima, em conjunto com as rotas e segurança da Etapa 
 - Preservar hashes emitidos pelo Vite. Django/admin podem continuar usando seu próprio
   manifest em `/static/`. Se o mecanismo escolhido exigir outro prefixo público,
   ajustar `base`, referências, router e testes juntos; o layout aqui é proposta.
-- Só assets realmente versionados recebem cache imutável. Favicon ou arquivo de
+- Só assets realmente versionados devem receber cache imutável na entrega futura. Favicon ou arquivo de
   `public/` com nome fixo precisa revalidar. HTML pode usar `no-cache` para revalidação;
   respostas sensíveis exigem política própria, em geral `private, no-store`.
 - Build limpo não significa remover indiscriminadamente assets de releases anteriores
@@ -242,3 +243,8 @@ Na revisão de ambiguidades de 2026-11-15, o bloco de cópia da seção 4 foi te
 com arquivos fictícios em diretório temporário: a primeira execução copiou o HTML;
 a segunda falhou sem sobrescrevê-lo. Isso valida a proteção do exemplo de shell,
 não o build ou o deploy real.
+
+Na Etapa 3, fixtures fictícias validaram deep links/HEAD, expressões Vue sem
+interpolação, prefixos reservados/Accept, cache, ETag e negação de mapas/ocultos/
+symlinks. Isso valida o backend, não a compilação, as rotas efetivas ou o navegador
+do frontend real.

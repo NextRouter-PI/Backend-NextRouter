@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from modules.organizations.models import CompanyMembership
 from modules.transport.models import Travel
 
 from .common import active_actor, lock_travel, require
@@ -66,7 +67,11 @@ def save_location(*, actor_id, travel_id, latitude, longitude, recorded_at, max_
 def read_location(*, actor_id, travel_id):
     company, travel = lock_travel(travel_id)
     active_actor(actor_id)
-    require(company.is_approved and company.user.is_active, 'company_unavailable', 'A empresa não está apta a operar.')
+    require(
+        company.is_approved and not company.is_rejected and company.user.is_active,
+        'company_unavailable',
+        'A empresa não está apta a operar.',
+    )
     require(travel.status == 'in_progress', 'travel_not_active', 'A viagem não está em andamento.')
     participant = travel.participations.filter(
         eligibility__passenger__user_id=actor_id,
@@ -75,7 +80,13 @@ def read_location(*, actor_id, travel_id):
         eligibility__group_membership__ended_at=None,
     ).exists()
     require(
-        actor_id == company.user_id or (travel.driver_id and actor_id == travel.driver.user_id) or participant,
+        actor_id == company.user_id
+        or (
+            travel.driver_id
+            and actor_id == travel.driver.user_id
+            and CompanyMembership.objects.filter(company=company, driver_id=travel.driver_id, status='active').exists()
+        )
+        or participant,
         'permission_denied',
         'Acompanhamento não autorizado.',
     )
