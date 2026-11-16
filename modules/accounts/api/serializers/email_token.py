@@ -42,11 +42,8 @@ class PasswordResetSerializer(TokenValidatorMixin, serializers.Serializer):
     code = serializers.CharField(required=True, max_length=6)
     password = serializers.CharField(required=True, write_only=True)
 
-    def validate_password(self, value):
-        validate_password(value)
-        return value
-
     def validate(self, attrs):
         token = self.validate_token(attrs['email'], attrs['code'], token_type=EmailToken.TokenType.NEW_PASSWORD)
+        validate_password(attrs['password'])
         self.context['token_instance'] = token
         return attrs

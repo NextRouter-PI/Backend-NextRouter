@@ -15,8 +15,8 @@ Não declarar conclusão integral da transição: os callers/campos legados nece
 permanecem até as Etapas 2/3. Ainda sem ativação operacional do domínio novo.
 A API/admin legados ainda operam com o domínio anterior; o backend não serve o build Vue.
 Etapa 2 com serviços de configuração, demanda, planejamento, cálculo e execução
-implementados/testados em isolamento (seção 12). O marco final permanece pendente
-de concorrência real em PostgreSQL; ainda sem ativação ou substituição dos callers.
+implementados/testados em isolamento (seção 12). Concorrência real em PostgreSQL
+validada nesta continuação (13.1); substituição dos callers em andamento na Etapa 3.
 Histórico local de migrations reiniciado, por autorização do dono, para **bancos
 novos/vazios**, com usuário UUID desde a criação; ver seção 12.8. As referências
 numéricas antigas abaixo são evidências históricas, não arquivos ainda disponíveis.
@@ -764,8 +764,8 @@ descrever como implementado algo que existe apenas como plano.
 | Tutorial de build Vue separado | Registrado em BUILD_VUE.md; integração ainda não implementada. |
 | Etapa 0 — especificação técnica detalhada e estratégia de migrations | Decisões de vínculo, pedidos, publicação, viagem única e regeneração registradas. Exceções restantes na seção 3.4. Nova base de migrations autorizada para bancos vazios; instalação SQLite local criada sem descarte (12.8). |
 | Etapa 1 — modelagem | Cobertura estrutural 1.1–1.6 implementada e testada (seção 11), sem declarar substituição integral: callers/campos antigos ainda necessários têm remoção coordenada nas Etapas 2/3. Nenhum novo fluxo operacional ativado. |
-| Etapa 2 — regras | Cobertura de serviços 2.1–2.5 implementada, com testes de negócio, falhas e efeitos de 2.6. Marco final de 2.6 pendente: 15 testes concorrentes PostgreSQL preparados e roteiro isolado disponível, ainda não executados nesse backend. Sem ativação operacional; ver 12.5/12.6/12.9. |
-| Etapa 3 — API/admin/integração | Não iniciada. |
+| Etapa 2 — regras | Serviços 2.1–2.5 e concorrência de 2.6 validados em PostgreSQL 16.16 (13.1). Callers legados ainda em substituição coordenada na Etapa 3; não confundir validação dos serviços com entrega do fluxo pelo navegador. |
+| Etapa 3 — API/admin/integração | Iniciada; autorização e decisões na seção 13. Substituição coordenada dos callers ainda em implementação. |
 | Etapa 4 — ambiente/build/operação | Não iniciada. |
 
 **Validações do registro inicial (2026-11-15, antes da revisão de ambiguidades):** `pdm run test` passou
@@ -1782,3 +1782,59 @@ e sintaxe Bash passaram novamente. Links locais, blocos Markdown e
 `git diff --check` conferidos. Bancos temporários e integrações externas
 desabilitadas; nenhum novo descarte ou escrita no SQLite habitual. Continua o
 aviso de `staticfiles/` ausente. PostgreSQL/Redis/navegador/deploy não executados.
+
+## 13. Etapa 3 — contrato HTTP/admin/WS e mesma origem
+
+### 13.1. Autorização e decisões desta continuação
+
+O dono autorizou implementar toda a Etapa 3, incluindo ajustes de settings para
+cookies/CSRF, origins WS, OpenAPI e SPA, substituição dos callers e migrations
+incrementais de remoção do legado **já sem callers**, aplicadas somente em bancos
+temporários de teste. Sem novas dependências, banco habitual, repositório Vue ou
+deploy. Não autoriza reescrever as quatro migrations iniciais existentes.
+
+Decisões explícitas:
+
+- Cookie-only em HTTP e WS; remover Bearer, não retornar JWT no JSON.
+- Ex-vinculados não acessam histórico operacional. Preservação do banco não concede
+  acesso; retenção/expurgo continuam pendentes e sem exclusão automática.
+- Avaliação por aluno desembarcado em viagem finalizada; relato de objeto por esse
+  aluno ou motorista da viagem. Empresa conduz `reported → found → returned`;
+  sem reabertura ou exclusão empresarial.
+- Pesquisa pública por cidade/UF atendidas e nome do grupo/destino, somente empresas
+  aprovadas/ativas, sem endereço/coordenadas ou busca por raio.
+
+Baseline seguro desta continuação: **316 descobertos, 301 passaram e 15 ignorados**
+em SQLite (180,856 s); lint passou (167 arquivos). PostgreSQL 16.16 isolado conseguiu
+instalação limpa e **15/15 testes concorrentes passaram**, nenhum ignorado (24,233 s).
+Suíte completa PostgreSQL descobriu 316 testes e encontrou um erro de fixture em
+`ProfileTests`: CPF com máscara enviado diretamente ao ORM, excedendo varchar(11).
+SQLite aceita esse excesso e não o detectava. Fixture corrigida para CPF sem máscara;
+sem alterar domínio ou coluna. Repetição completa em PostgreSQL 16.16: **321/321**
+passaram (255,611 s), já incluindo as cinco regressões de autenticação do recorte
+13.2; nenhuma ignorada. As quinze disputas de 2.6 foram revistas quanto a alocação
+única, capacidade reservada, deduplicação, publicação/revisão e titularidade de job.
+Isso encerra a pendência PostgreSQL dos serviços da Etapa 2, não a integração de
+callers, Redis, navegador ou worker persistente.
+O roteiro criou/removeu apenas os próprios recursos descartáveis. Banco habitual
+não consultado/alterado; segue o aviso de `staticfiles/` ausente.
+
+### 13.2. Primeiro recorte — sessão cookie-only
+
+Implementação de cookies host-only/Lax/Secure em produção, CSRF rotacionado no login,
+JWT apenas em cookies, expiração de sessão validada em HTTP/WS e refresh sem corpo.
+Bearer removido, sem fallback para contornar CSRF. Produção passa a exigir
+`PUBLIC_ORIGIN`; CORS vazio não esvazia a allowlist WS/CSRF. Fluxos de confirmação
+validam código antes de força/senha atual, preservando tentativas fora de rollback.
+Contrato em [CONTRATO_API.md](CONTRATO_API.md). Sem migration neste recorte.
+Callers operacionais continuam legados até substituição coordenada: este avanço
+independente não habilita escrita operacional paralela no domínio novo.
+Validação inicial do recorte: **22/22** testes de accounts e schema passaram em
+SQLite (68,960 s), incluindo CSRF real, cookies/limpeza, Bearer negado e ordem
+código/senha. Check sem problemas/divergência dos models e OpenAPI validado.
+Suíte completa PostgreSQL: **321/321** (255,611 s). Três testes adicionais passaram
+em PostgreSQL (2,330 s): refresh com conexões/PIDs distintos (um 200, um 401, sessão
+vencedora preservada), cadastro com código antes de senha fraca e settings de origem
+em processos isolados. Referências de CSRF/Channels/DRF consultadas via Context7.
+Lint/formatação e `git diff --check` conferidos antes do commit. Sem nova dependência,
+migration, alteração do banco habitual ou validação de Vue/Redis/servidor público.

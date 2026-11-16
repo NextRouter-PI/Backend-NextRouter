@@ -72,7 +72,7 @@ RESP_401_UNAUTHORIZED = OpenApiResponse(
     response=ErrorDetailSerializer,
     description=(
         'Não autenticado, token JWT expirado/inválido ou sessão revogada. '
-        'Envie o cookie HttpOnly `access_token` ou o cabeçalho `Authorization: Bearer <access>`.'
+        'Use cookies HttpOnly da mesma origem; Bearer não autentica. Consulte o bootstrap CSRF.'
     ),
     examples=[
         OpenApiExample(

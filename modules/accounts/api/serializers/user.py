@@ -101,10 +101,6 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
             raise serializers.ValidationError('Já existe um usuário cadastrado com este CPF.')
         return cpf
 
-    def validate_password(self, value):
-        validate_password(value)
-        return value
-
     def validate_code(self, value):
         if not value.isdigit():
             raise serializers.ValidationError('Formato de código inválido.')
@@ -121,6 +117,9 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
         email = attrs.get('email')
 
         token = self.validate_token(email, code, token_type='new-user')
+        validate_password(
+            attrs['password'], user=User(**{key: attrs[key] for key in ('email', 'name') if key in attrs})
+        )
 
         self.context['token_instance'] = token
 

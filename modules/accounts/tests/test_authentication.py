@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.core import mail
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
@@ -23,7 +24,9 @@ class AuthenticationTests(BaseAPITestCase):
         client = client or self.client
         response = client.post('/api/login/', {'email': self.user.email, 'password': PASSWORD})
         self.assertEqual(response.status_code, 200, response.data)
-        return response.data['access']
+        self.assertNotIn('access', response.data)
+        self.assertNotIn('refresh', response.data)
+        return client.cookies['access_token'].value
 
     def code(self, url, data):
         response = self.client.post(url, data, format='json')
@@ -35,7 +38,7 @@ class AuthenticationTests(BaseAPITestCase):
         response = self.client.post('/api/login/', {'email': self.user.email, 'password': PASSWORD})
         self.assertEqual(response.status_code, 200, response.data)
         session = UserSession.objects.get(user=self.user)
-        self.assertEqual(session.access_jti, AccessToken(response.data['access'])['jti'])
+        self.assertEqual(session.access_jti, AccessToken(self.client.cookies['access_token'].value)['jti'])
         self.assertLessEqual(
             abs(session.expires_at - (before + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'])),
             timedelta(seconds=30),
@@ -49,7 +52,8 @@ class AuthenticationTests(BaseAPITestCase):
         old_refresh = self.client.cookies['refresh_token'].value
         response = self.client.post('/api/refresh/')
         self.assertEqual(response.status_code, 200, response.data)
-        access = response.data['access']
+        access = self.client.cookies['access_token'].value
+        self.assertNotIn('access', response.data)
         refresh = self.client.cookies['refresh_token'].value
         self.assertNotEqual(old_refresh, refresh)
         attacker = APIClient()
@@ -90,7 +94,10 @@ class AuthenticationTests(BaseAPITestCase):
         credentials = {'email': self.user.email, 'password': PASSWORD}
         self.assertEqual(client.post('/api/login/', credentials).status_code, 403)
         csrf = client.get('/api/csrf/').data['csrfToken']
-        self.assertEqual(client.post('/api/login/', credentials, HTTP_X_CSRFTOKEN=csrf).status_code, 200)
+        login = client.post('/api/login/', credentials, HTTP_X_CSRFTOKEN=csrf)
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(client.post('/api/refresh/', HTTP_X_CSRFTOKEN=csrf).status_code, 403)
+        csrf = login.data['csrfToken']
         self.assertEqual(client.get('/api/users/me/').status_code, 200)
         for url in ('/api/refresh/', '/api/me/logout/', '/api/me/revoke-sessions/'):
             self.assertEqual(client.post(url).status_code, 403)
@@ -224,3 +231,65 @@ class AuthenticationTests(BaseAPITestCase):
             self.client.post('/api/login/', {'email': self.user.email, 'password': PASSWORD}).status_code, 401
         )
         self.assertFalse(self.user.sessions.filter(is_active=True).exists())
+
+    def test_bearer_is_not_authentication_and_cannot_bypass_cookie_csrf(self):
+        client = APIClient(enforce_csrf_checks=True)
+        bootstrap = client.get('/api/csrf/').data['csrfToken']
+        response = client.post(
+            '/api/login/', {'email': self.user.email, 'password': PASSWORD}, HTTP_X_CSRFTOKEN=bootstrap
+        )
+        self.assertEqual(response.status_code, 200)
+        token = client.cookies['access_token'].value
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        self.assertEqual(client.patch('/api/users/me/', {'name': 'Outra pessoa'}).status_code, 403)
+        bearer = APIClient()
+        bearer.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        self.assertEqual(bearer.get('/api/users/me/').status_code, 401)
+
+    @override_settings(SESSION_COOKIE_SECURE=True)
+    def test_cookie_attributes_are_host_only_secure_and_cover_api_and_ws(self):
+        response = self.client.post('/api/login/', {'email': self.user.email, 'password': PASSWORD})
+        self.assertNotIn('access', response.data)
+        for name in ('access_token', 'refresh_token'):
+            cookie = response.cookies[name]
+            self.assertTrue(cookie['httponly'])
+            self.assertTrue(cookie['secure'])
+            self.assertEqual(cookie['samesite'], 'Lax')
+            self.assertEqual(cookie['path'], '/')
+            self.assertEqual(cookie['domain'], '')
+        logout = self.client.post('/api/me/logout/')
+        for name in ('access_token', 'refresh_token'):
+            for attribute in ('httponly', 'secure', 'samesite', 'path', 'domain'):
+                self.assertEqual(logout.cookies[name][attribute], response.cookies[name][attribute])
+            self.assertEqual(logout.cookies[name]['max-age'], 0)
+
+    def test_expired_session_rejects_access_and_refresh_and_body_refresh_is_rejected(self):
+        self.login()
+        self.assertEqual(self.client.post('/api/refresh/', {'refresh': 'forbidden'}).status_code, 400)
+        self.user.sessions.update(expires_at=timezone.now() - timedelta(seconds=1))
+        self.assertEqual(self.client.get('/api/users/me/').status_code, 401)
+        self.assertEqual(self.client.post('/api/refresh/').status_code, 401)
+
+    def test_wrong_code_is_checked_before_weak_password_and_attempt_is_persisted(self):
+        code = self.code('/api/password-reset/request/', {'email': self.user.email})
+        wrong = '111111' if code == '000000' else '000000'
+        response = self.client.post(
+            '/api/password-reset/confirm/', {'email': self.user.email, 'code': wrong, 'new_password': '123'}
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('code', response.data)
+        self.assertEqual(EmailToken.objects.get(email=self.user.email).failed_attempts, 1)
+        response = self.client.post(
+            '/api/password-reset/confirm/', {'email': self.user.email, 'code': code, 'new_password': '123'}
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(EmailToken.objects.get(email=self.user.email).consumed)
+
+    def test_email_change_checks_code_before_current_password(self):
+        self.login()
+        code = self.code('/api/email-change/request/', {'new_email': 'new@example.com'})
+        wrong = '111111' if code == '000000' else '000000'
+        response = self.client.post('/api/email-change/confirm/', {'code': wrong, 'password': 'wrong'})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('code', response.data)
+        self.assertEqual(EmailToken.objects.get(email='new@example.com').failed_attempts, 1)

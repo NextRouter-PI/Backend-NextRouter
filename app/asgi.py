@@ -24,5 +24,5 @@ from modules.transport.routing import websocket_urlpatterns  # ruff: ignore[modu
 
 application = ProtocolTypeRouter({
     'http': django_asgi_app,
-    'websocket': OriginValidator(JWTAuthMiddleware(URLRouter(websocket_urlpatterns)), settings.CORS_ALLOWED_ORIGINS),
+    'websocket': OriginValidator(JWTAuthMiddleware(URLRouter(websocket_urlpatterns)), settings.WS_ALLOWED_ORIGINS),
 })
