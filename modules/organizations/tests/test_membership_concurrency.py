@@ -35,18 +35,23 @@ class MembershipConcurrencyTests(TransactionTestCase):
                 with connection.cursor() as cursor:
                     cursor.execute("SET lock_timeout = '5s'")
                     cursor.execute("SET statement_timeout = '10s'")
+                    cursor.execute('SELECT pg_backend_pid()')
+                    backend_pid = cursor.fetchone()[0]
                 barrier.wait(timeout=10)
                 try:
                     result = operation()
-                    return ('ok', result.pk, result.status)
+                    result = ('ok', result.pk, result.status)
                 except MembershipError as exc:
-                    return ('error', exc.code)
+                    result = ('error', exc.code)
+                return backend_pid, result
             finally:
                 connections.close_all()
 
         with ThreadPoolExecutor(max_workers=len(operations)) as pool:
             futures = [pool.submit(run, operation) for operation in operations]
-            return [future.result(timeout=20) for future in futures]
+            results = [future.result(timeout=20) for future in futures]
+        self.assertEqual(len({pid for pid, _ in results}), len(operations), 'A disputa reutilizou a mesma conexão.')
+        return [result for _, result in results]
 
     def request(self, company_id):
         return request_membership(
