@@ -99,7 +99,7 @@ class RequestServiceTests(ServiceTestCase):
         request = self.prepare_transfer()
         self.now = self.day.extension_deadline
         self.assert_domain('extension_closed', self.approve, request=request)
-        process_due(actor_id=self.company.user_id, company_id=self.company.pk)
+        process_due(actor_id=self.company.user_id, company_id=self.company.pk, batch_size=10)
         request.refresh_from_db()
         self.assertEqual(request.status, 'expired')
         self.assertEqual(request.response.return_service_id, self.returning.pk)

@@ -219,8 +219,8 @@ class DailyServiceTests(ServiceTestCase):
     def test_due_work_is_reentrant(self):
         self.answer()
         self.now = self.day.normal_deadline
-        first = process_due(actor_id=self.company.user_id, company_id=self.company.pk)
-        second = process_due(actor_id=self.company.user_id, company_id=self.company.pk)
+        first = process_due(actor_id=self.company.user_id, company_id=self.company.pk, batch_size=10)
+        second = process_due(actor_id=self.company.user_id, company_id=self.company.pk, batch_size=10)
         self.assertEqual(first[self.day.pk], 'closed')
         self.assertEqual(second, {})
 

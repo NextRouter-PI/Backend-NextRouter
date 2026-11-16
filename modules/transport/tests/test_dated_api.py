@@ -150,6 +150,9 @@ class DatedApiTests(ServiceTestCase):
             lease_seconds=30,
             max_attempts=1,
             retry_seconds=1,
+            schedule_batch_size=2,
+            maintenance_batch_size=2,
+            job_batch_size=1,
         )
         travel = self.travel()
         self.assertEqual(travel.planning_status, 'ready')

@@ -79,6 +79,9 @@ def _generate(group, date, *, explicit=False):
         'eligibility_versions': [],
         'closed_revision': existing.configuration_snapshot.get('closed_revision') if existing else None,
         'operational_issue': existing.configuration_snapshot.get('operational_issue') if existing else None,
+        'maintenance_attempted_at': existing.configuration_snapshot.get('maintenance_attempted_at')
+        if existing
+        else None,
     }
     day = existing or ServiceDay(
         route_group=group,

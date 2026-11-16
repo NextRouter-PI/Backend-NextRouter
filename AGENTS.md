@@ -59,7 +59,9 @@
   `router.0003_retire_legacy`, testados só em bancos temporários. Guards bloqueiam
   conteúdo legado sem limpar/converter registros; não usar `--fake` nem aplicar
   em banco habitual sem autorização concreta. Admin não aceita PATCH de estados.
-  Worker exige empresa/lease/tentativas/retry explícitos; agendamento persistente é Etapa 4.
+  Worker exige empresa/lease/tentativas/retry/poll/lotes explícitos. Agenda opt-in
+  por grupo usa `router.0004_automation_schedule`, horizonte/lote/frequência no banco,
+  checkpoint transacional e revisão na configuração; ver planejamento 14.2.
 - Regeneração aprovada: automática somente para datas futuras não publicadas;
   publicadas exigem revisão explícita. Preservar respostas/decisões/histórico e
   cancelados. Conflitos preservam registros e geram pendência bloqueante até resolução

@@ -21,3 +21,4 @@ from .programming import RecurringServiceStop as RecurringServiceStop
 from .route_optimization_job import RouteOptimizationJob as RouteOptimizationJob
 from .travel import Travel as Travel
 from .vehicle import Vehicle as Vehicle
+from .automation import AutomationSchedule as AutomationSchedule

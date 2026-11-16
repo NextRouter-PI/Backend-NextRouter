@@ -769,7 +769,7 @@ descrever como implementado algo que existe apenas como plano.
 | Etapa 1 — modelagem | Cobertura 1.1–1.6 testada (registro histórico na seção 11). Callers substituídos em 13.3; remoção dos campos/tabelas legados implementada por incrementos novos em 13.4, somente em bancos temporários. |
 | Etapa 2 — regras | Serviços 2.1–2.5 e concorrência de 2.6 validados em PostgreSQL 16.16 (13.1). Callers substituídos na Etapa 3 (13.3–13.4); não confundir validação dos serviços com entrega do fluxo pelo navegador. |
 | Etapa 3 — API/admin/integração | Backend HTTP/admin/WS/worker, contrato SPA e remoção física do legado implementados/testados (13.3–13.4), incluindo PostgreSQL e Redis reais descartáveis. Integração com Vue real/navegador ainda não concluída. |
-| Etapa 4 — ambiente/build/operação | Não iniciada. |
+| Etapa 4 — ambiente/build/operação | Em implementação local autorizada (seção 14). Frontend real e provedor indisponíveis; sem deploy nem alterações no banco habitual. |
 
 **Validações do registro inicial (2026-11-15, antes da revisão de ambiguidades):** `pdm run test` passou
 46/46 com SQLite de teste isolado e integrações externas desabilitadas; `pdm run lint`
@@ -1958,3 +1958,68 @@ Nenhum migrate no banco habitual, dado real, nova dependência, frontend separad
 deploy, push ou merge. Continua o aviso de `staticfiles/` ausente; não foi criado
 build fictício para ocultá-lo. Vue real/navegador/HTTPS/WSS e entrega conjunta seguem
 pendentes. Referência de RunPython/models históricos consultada via Context7.
+
+## 14. Etapa 4 — ambiente e operação local descartável
+
+### 14.1. Autorização, baseline e limites
+
+O dono autorizou em 2026-11-16: Docker/Compose/Procfile/scripts PDM, ajustes de
+settings de proxy confiável/HSTS/storage/logs, agenda persistente opt-in por grupo
+(habilitação, horizonte, lote, frequência, próxima execução e progresso/erro),
+migration incremental, configuração explícita pela empresa via API/admin,
+testes e commits locais. Sem novas dependências da aplicação, banco habitual,
+push, contratação ou deploy. Migrations somente em bancos temporários.
+
+Frontend/build real não disponível; preparar ingestão de artefato, não inventar um
+build Vue. Provedor ainda não escolhido; validar Docker/proxy HTTPS/WSS local
+descartável e manter smoke público, integração Vue/navegador e decisões de
+retenção/LGPD explicitamente pendentes.
+
+Baseline novo sobre `753db2e`: SQLite **356 descobertos, 339 passaram e 17 ignorados**
+(231,513 s), lint passou (169 arquivos), check sem problemas/divergência de models.
+Somente bancos temporários e integrações externas desabilitadas; aviso de
+`staticfiles/` ausente preservado. Esses resultados antecedem a implementação da
+Etapa 4. Docker 29.9.3 disponível; plugin Docker Compose ausente no host.
+
+### 14.2. Agenda persistente e worker reentrante
+
+Agenda por grupo sem números universais, checkpoint de lote no banco e mutex da
+empresa antes de qualquer lock de agenda/job. Geração não faz chamadas externas;
+cálculo continua nos jobs de snapshot com claim/lease. Interrupção desfaz apenas
+o lote transacional em curso; datas já confirmadas permanecem. Nada publica,
+seleciona substitutos ou refaz datas passadas automaticamente.
+
+Implementados `AutomationSchedule` e `router.0004_automation_schedule`, sem alterar
+migrations anteriores. Sem defaults de horizonte/lote/frequência; habilitação
+opt-in, revisão otimista e autor/instante da configuração. Empresa configura por
+ações explícitas de API/admin, consulta progresso por GET; agenda é somente leitura
+no admin genérico. Horizonte técnico máximo 31; lotes de infraestrutura explícitos
+entre 1 e 1000. Intervalo de cada grupo fica no banco, não no ambiente do worker.
+
+O ciclo cobre hoje/futuro, retoma cursor persistido e ignora datas já passadas;
+não tenta reproduzir cada ciclo perdido. Lote parcial retorna à fila; conclusão
+agenda a próxima execução pelo intervalo escolhido. Falha de validação desfaz o
+lote e registra somente `generation_blocked`, com retry pelo mesmo intervalo.
+Configurar/desabilitar não apaga datas já geradas. Cancelamentos/publicações e
+as barreiras existentes da regeneração permanecem.
+
+Manutenção tem lote separado por tipo, exclui revisões já fechadas no SQL e alterna
+datas bloqueadas por timestamp no snapshot existente; comparação JSON/revisão é
+compatível com PostgreSQL/SQLite. Cada claim examina só um candidato, inclusive
+tentativas esgotadas. Worker revalida empresa a cada ciclo, fecha conexões antigas,
+espera entre ciclos mesmo com trabalho e trata SIGTERM/SIGINT. Logs novos contêm
+somente contagens/duração e erros estáticos; quedas abruptas dependem de rollback
+ou recuperação do lease do cálculo, não de um encerramento elegante garantido.
+
+Validação deste recorte, antes das alterações de infraestrutura:
+- **56/56** testes específicos SQLite (12,610 s).
+- Suíte SQLite: **371 descobertos, 352 passaram e 19 ignorados** (244,888 s).
+- PostgreSQL 16.16 descartável: **371 descobertos, 370 passaram e 1 ignorado**
+  (348,342 s), somente Redis; inclui duas disputas novas entre schedulers/configurações
+  com conexões/PIDs distintos, além das dezesseis anteriores.
+- Lint passou (172 arquivos), check sem problemas/divergência e OpenAPI validado.
+  Nenhum teste Redis novo neste recorte; repetição real ficará na validação integrada.
+
+Migrations aplicadas só nos bancos temporários acima. Banco habitual continua sem
+esses incrementos; não executar o novo código ali sem estratégia/autorização.
+Frontend/artifacts, imagem e proxy ainda não foram validados por esses resultados.

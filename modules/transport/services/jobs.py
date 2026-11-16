@@ -32,10 +32,12 @@ def claim_snapshot_job(*, company_id, lease_duration, max_attempts):
         .filter(Q(status='pending') | Q(status='running', claim_expires_at__lte=now))
         .order_by('pk')
     )
-    for job in jobs.select_for_update(skip_locked=True):
+    # Cada claim examina no máximo um candidato, inclusive quando esgota tentativas.
+    job = jobs.select_for_update(skip_locked=True).first()
+    if job:
         if job.attempts >= max_attempts:
             _terminal_failure(job, 'attempts_exhausted')
-            continue
+            return None
         job.status, job.claim_token, job.claim_expires_at = 'running', uuid.uuid4(), now + lease_duration
         job.attempts += 1
         job.save(update_fields=['status', 'claim_token', 'claim_expires_at', 'attempts', 'updated_at'])

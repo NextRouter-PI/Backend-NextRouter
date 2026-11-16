@@ -340,7 +340,7 @@ class InvitationServiceTests(ServiceTestCase):
             invitation_id=second.pk,
             accept=True,
         )
-        process_due(actor_id=self.company.user_id, company_id=self.company.pk)
+        process_due(actor_id=self.company.user_id, company_id=self.company.pk, batch_size=10)
         second.refresh_from_db()
         self.assertEqual(second.status, 'expired')
         self.assertIsNone(self.travel().driver_id)

@@ -57,7 +57,7 @@ Schema executável em `/api/schema/`, interface em `/api/doc/`.
 | `membership-events/` | Mesmo escopo do ciclo. | Somente serviço de vínculo. |
 | `group-memberships/` | Titular ativo e empresa dona. | Atribuição via `memberships/{id}/assign-group/` com `{route_group_id, transport_point_id}`; `group-memberships/{id}/authorize-services/` com `{service_ids, habitual_outbound_id}`. |
 | `operational-points/` | Somente empresa dona aprovada. | POST/PATCH de endereço operacional completo e coordenadas; empresa/autor inferidos, não aceitos do cliente. |
-| `company-route-groups/` | Somente empresa dona aprovada. | POST/PATCH `{name, destination_id}`; `/{id}/policy/`, `generate/`, `cancel-date/`. |
+| `company-route-groups/` | Somente empresa dona aprovada. | POST/PATCH `{name, destination_id}`; `/{id}/policy/`, `generate/`, `cancel-date/`, `automation/`. GET `/{id}/automation-status/`. |
 | `response-policies/` | Empresa dona; campos/prorrogação sem defaults universais. | `company-route-groups/{id}/policy/` define abertura, prazo normal e par opcional de prorrogação. |
 | `recurring-services/` | Empresa dona. | POST/PATCH de sentido/semana/horário/vigência/duração/margem e IDs escolhidos; `/{id}/stops/` com `{point_ids}`. Grupo não pode ser trocado. |
 | `vehicles/` | Empresa dona. | POST/PATCH de placa, capacidade, estado e `garage_point_id`; sem reparenting ou DELETE. |
@@ -134,6 +134,27 @@ ator sem permissão, 409 para revisão/idempotência/capacidade/transição conf
 `detail` e os status 401/403. Listas vazias não revelam recursos de outras empresas.
 API/admin e respostas com cookies usam `private, no-store`, incluindo downloads.
 
+### Agenda automática opt-in
+
+`POST company-route-groups/{id}/automation/` exige `{enabled, horizon_days,
+batch_size, interval_seconds, next_run_at, expected_revision}`. Revisão inicial 0;
+alterações exigem a revisão vigente. Horizonte entre 1 e 31 dias, lote entre 1 e
+horizonte e frequência positiva, sem valores universais. `next_run_at` é um instante
+com fuso; política de respostas deve existir antes da habilitação. A empresa dona
+configura pelo mesmo serviço na API/admin; não existe PATCH genérico da agenda.
+
+`GET company-route-groups/{id}/automation-status/` devolve configuração/revisão,
+cursor/fim do ciclo, próxima execução, última tentativa/conclusão e código estático
+de falha. 404 antes da primeira configuração. Configurar ou consultar não inicia
+o worker nem publica viagens. O worker processa somente a empresa informada.
+
+Cada ciclo cobre o dia atual e o horizonte futuro; nunca cria datas passadas ao
+retomar. Cada lote e seu cursor confirmam na mesma transação. Falha desfaz o lote,
+registra `generation_blocked` e tenta novamente após o intervalo escolhido. Lotes
+parciais voltam à fila; ciclos completos agendam o próximo a partir da conclusão,
+sem reproduzir ciclos perdidos um a um. Dias cancelados/publicados e regras de
+regeneração permanecem. Desabilitar ou reconfigurar não apaga o que já foi gerado.
+
 ## WebSocket
 
 `/ws/travels/{id}/location/`, mesma origem e cookie de access. Origin obrigatório
@@ -161,9 +182,13 @@ Códigos: 4001 sessão, 4003 acesso, 4009 operação encerrada/inacessível, 100
   domínio para **um** registro, parâmetros JSON validados pelo mesmo contrato e
   `actor_id` do usuário real. Nem superusuário opera por outra empresa implicitamente.
 - Worker agora processa snapshots, não Path. Exemplo **apenas fictício** de parâmetros:
-  `pdm run worker --once --company-id 1 --lease-seconds 60 --max-attempts 3 --retry-seconds 5`.
+  `pdm run worker --once --company-id 1 --lease-seconds 60 --max-attempts 3 --retry-seconds 5 --schedule-batch-size 2 --maintenance-batch-size 20 --job-batch-size 2`.
   Loop exige também `--poll-seconds`; nenhum número desse exemplo é default universal.
-  Agendamento/horizonte persistente e configuração de deploy continuam na Etapa 4.
+  Lotes de infraestrutura são explícitos e limitados a 1000. Geração usa ainda o lote
+  escolhido por grupo (máximo 31 datas). Manutenção limita pedidos, convites e dias
+  separadamente e alterna pendências bloqueadas; claim examina um job por chamada.
+  SIGTERM/SIGINT encerram após o trabalho corrente; queda abrupta deixa checkpoint/
+  lease para recuperação. Processo deve ser supervisionado; não há Celery.
 - `seed_demo_data`/`seed_data` somente dev, `--confirm-fictitious` e `DEMO_PASSWORD`
   no ambiente. Sem reset, senha no log ou dados reais; estrutura idempotente usa
   os serviços novos. Backfill legado de documentos/endereço pessoal foi desativado.
@@ -176,7 +201,8 @@ Códigos: 4001 sessão, 4003 acesso, 4009 operação encerrada/inacessível, 100
 ### Schema necessário antes de usar o contrato
 
 O código atual depende de `router.0002_lost_item_audit`,
-`organizations.0002_retire_legacy` e `router.0003_retire_legacy`, além das quatro
+`organizations.0002_retire_legacy`, `router.0003_retire_legacy` e
+`router.0004_automation_schedule`, além das quatro
 migrations iniciais UUID. Nesta tarefa foram aplicadas **somente em bancos
 descartáveis de teste**. Não executar o código novo sobre o SQLite habitual ainda
 sem esses incrementos, nem aplicá-los ali sem autorização concreta. Conteúdo legado
