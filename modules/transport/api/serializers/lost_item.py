@@ -11,6 +11,8 @@ class LostItemListAndRetrieveSerializer(serializers.ModelSerializer):
 
 
 class LostItemCreateSerializer(serializers.ModelSerializer):
+    travel = serializers.PrimaryKeyRelatedField(queryset=Travel.objects.filter(service_day__isnull=True))
+
     class Meta:
         model = LostItem
         fields = (

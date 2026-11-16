@@ -8,6 +8,9 @@ from .confirm_passenger_route import ConfirmPassengerRoute as ConfirmPassengerRo
 from .driver_rating import DriverRating as DriverRating
 from .lost_item import LostItem as LostItem
 from .path import Path as Path
+from .participation import ParticipationEvent as ParticipationEvent
+from .participation import SeatReservation as SeatReservation
+from .participation import TravelParticipation as TravelParticipation
 from .programming import PassengerServiceAuthorization as PassengerServiceAuthorization
 from .programming import RecurringService as RecurringService
 from .programming import RecurringServiceStop as RecurringServiceStop

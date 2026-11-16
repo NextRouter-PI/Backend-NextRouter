@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -21,18 +22,38 @@ class Travel(models.Model):
         related_name='travels',
     )
 
+    service_day = models.ForeignKey(
+        'router.ServiceDay', on_delete=models.PROTECT, null=True, blank=True, related_name='travels'
+    )
+    service = models.ForeignKey(
+        'router.RecurringService', on_delete=models.PROTECT, null=True, blank=True, related_name='travels'
+    )
+    planned_start = models.DateTimeField(null=True, blank=True)
+    planned_end = models.DateTimeField(null=True, blank=True)
+    revision = models.PositiveIntegerField(default=1)
+    planning_status = models.CharField(
+        max_length=10,
+        choices=[('draft', 'Rascunho'), ('preparing', 'Preparando'), ('blocked', 'Com pendência'), ('ready', 'Pronto')],
+        default='draft',
+    )
+    published_revision = models.PositiveIntegerField(null=True, blank=True)
+
     driver = models.ForeignKey(
         Driver,
         on_delete=models.PROTECT,
         verbose_name=_('Motorista'),
         related_name='travels',
+        null=True,
+        blank=True,
     )
 
     path = models.ForeignKey(
         Path,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         verbose_name=_('Rota (Path)'),
         related_name='travels',
+        null=True,
+        blank=True,
     )
 
     vehicle = models.ForeignKey(Vehicle, on_delete=models.PROTECT, null=True, blank=True, related_name='travels')
@@ -84,6 +105,66 @@ class Travel(models.Model):
         db_table = 'router_travel'
         ordering = ('-started_at',)
         constraints = (
+            models.CheckConstraint(
+                condition=models.Q(service_day__isnull=False) | models.Q(path__isnull=False, driver__isnull=False),
+                name='legacy_travel_route_driver_required',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(service_day__isnull=True)
+                | models.Q(status__in=['scheduled', 'in_progress', 'finished', 'canceled']),
+                name='dated_travel_execution_state_valid',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(service_day__isnull=True)
+                | ~models.Q(status='finished')
+                | models.Q(finished_at__isnull=False, finished_at__gte=models.F('started_at')),
+                name='dated_travel_finish_after_start',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(service_day__isnull=True)
+                | ~models.Q(planning_status='ready')
+                | models.Q(driver__isnull=False, vehicle__isnull=False),
+                name='dated_travel_ready_designation',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(service_day__isnull=True, service__isnull=True)
+                    | models.Q(service_day__isnull=False, service__isnull=False)
+                ),
+                name='travel_day_service_pair',
+            ),
+            models.UniqueConstraint(fields=['service_day', 'service'], name='travel_one_per_service_day'),
+            models.CheckConstraint(condition=models.Q(revision__gte=1), name='travel_revision_positive'),
+            models.CheckConstraint(
+                condition=models.Q(planning_status__in=['draft', 'preparing', 'blocked', 'ready']),
+                name='travel_planning_state_valid',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(published_revision__isnull=True)
+                | models.Q(published_revision__gte=1, published_revision__lte=models.F('revision')),
+                name='travel_publication_revision_order',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(service_day__isnull=True)
+                | models.Q(
+                    planned_start__isnull=False, planned_end__isnull=False, planned_end__gt=models.F('planned_start')
+                ),
+                name='dated_travel_planned_period',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(service_day__isnull=True)
+                | ~models.Q(status__in=['in_progress', 'finished'])
+                | models.Q(driver__isnull=False, vehicle__isnull=False, started_at__isnull=False),
+                name='dated_travel_execution_designation',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(service_day__isnull=True)
+                | ~models.Q(status='in_progress')
+                | models.Q(
+                    planning_status='ready', published_revision__isnull=False, published_revision=models.F('revision')
+                ),
+                name='dated_travel_start_current_revision',
+            ),
             models.UniqueConstraint(
                 fields=['driver'], condition=models.Q(status='in_progress'), name='one_active_travel_per_driver'
             ),
@@ -95,3 +176,28 @@ class Travel(models.Model):
     def __str__(self):
         day = self.started_at.day if self.started_at else '?'
         return f'Viagem do dia {day} da empresa {self.company.user.name.title()}'
+
+    def clean(self):
+        super().clean()
+        from .validation import related_values, same_company
+
+        if self.service_day_id is None:
+            return
+        errors = {}
+        day = related_values(self, 'service_day', 'route_group_id', 'route_group__company_id')
+        service = related_values(self, 'service', 'route_group_id')
+        if day and day['route_group__company_id'] != self.company_id:
+            errors['service_day'] = 'O atendimento deve pertencer à empresa da viagem.'
+        if day and service and day['route_group_id'] != service['route_group_id']:
+            errors['service'] = 'O serviço deve pertencer ao grupo do atendimento.'
+        same_company(errors, 'vehicle', related_values(self, 'vehicle', 'company_id'), self.company_id)
+        if self.driver_id:
+            from modules.organizations.models import CompanyMembership
+
+            statuses = ['active'] if self.status == self.Status.SCHEDULED else ['active', 'ended']
+            if not CompanyMembership.objects.filter(
+                company_id=self.company_id, driver_id=self.driver_id, status__in=statuses
+            ).exists():
+                errors['driver'] = 'O motorista não possui vínculo empresarial compatível.'
+        if errors:
+            raise ValidationError(errors)

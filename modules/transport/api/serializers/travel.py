@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
+from modules.organizations.models import Driver
 from modules.transport.api.serializers.ownership import validate_driver_in_route_group, validate_route_group_ownership
+from modules.transport.models.path import Path
 from modules.transport.models.travel import Travel
 from modules.transport.models.vehicle import Vehicle
 
@@ -36,6 +38,9 @@ class TravelListAndRetrieveSerializer(serializers.ModelSerializer):
 
 
 class TravelCreateSerializer(serializers.ModelSerializer):
+    path = serializers.PrimaryKeyRelatedField(queryset=Path.objects.all())
+    driver = serializers.PrimaryKeyRelatedField(queryset=Driver.objects.all())
+
     class Meta:
         model = Travel
         fields = (

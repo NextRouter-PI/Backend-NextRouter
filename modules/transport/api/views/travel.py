@@ -106,7 +106,7 @@ class TravelViewSet(ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        queryset = Travel.objects.select_related(
+        queryset = Travel.objects.filter(service_day__isnull=True).select_related(
             'company', 'company__user', 'driver', 'driver__user', 'path', 'path__route_group', 'vehicle'
         )
 

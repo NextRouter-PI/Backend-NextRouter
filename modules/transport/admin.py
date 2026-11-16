@@ -12,6 +12,9 @@ for structural_model in (
     models.ServiceDayEligibility,
     models.DailyResponse,
     models.DailyChangeRequest,
+    models.TravelParticipation,
+    models.ParticipationEvent,
+    models.SeatReservation,
 ):
     admin.site.register(structural_model, OrganizationStructureReadOnlyAdmin)
 
@@ -109,6 +112,21 @@ class LostItemAdmin(admin.ModelAdmin):
 
 @admin.register(models.Travel)
 class TravelAdmin(admin.ModelAdmin):
+    actions = None
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        for field in ('driver', 'path'):
+            if field in form.base_fields:
+                form.base_fields[field].required = True
+        return form
+
+    def has_change_permission(self, request, obj=None):
+        return super().has_change_permission(request, obj) and not (obj and obj.service_day_id)
+
+    def has_delete_permission(self, request, obj=None):
+        return super().has_delete_permission(request, obj) and not (obj and obj.service_day_id)
+
     fields = (
         'company',
         'driver',

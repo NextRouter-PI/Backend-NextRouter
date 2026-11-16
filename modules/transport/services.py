@@ -24,6 +24,8 @@ class LocationRejected(ValueError):
 @transaction.atomic
 def save_travel_location(travel_id, user_id, latitude, longitude, recorded_at=None):
     travel = Travel.objects.select_for_update().select_related('driver').get(pk=travel_id)
+    if travel.service_day_id:
+        raise LocationRejected('O acompanhamento da operação nova ainda não está disponível.', 409)
     if travel.driver.user_id != user_id or not travel.driver.is_approved:
         raise LocationRejected('Apenas o motorista designado pode enviar a localização.', 403)
     if travel.status != Travel.Status.IN_PROGRESS:

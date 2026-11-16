@@ -104,7 +104,7 @@ class TravelLocationConsumer(AsyncWebsocketConsumer):
         return (
             Travel.objects
             .select_related('company__user', 'driver__user', 'path__route_group')
-            .filter(pk=travel_id)
+            .filter(pk=travel_id, service_day__isnull=True)
             .first()
         )
 
@@ -127,7 +127,7 @@ class TravelLocationConsumer(AsyncWebsocketConsumer):
             return False
         return (
             Travel.objects
-            .filter(pk=travel_id, status=Travel.Status.IN_PROGRESS)
+            .filter(pk=travel_id, status=Travel.Status.IN_PROGRESS, service_day__isnull=True)
             .filter(
                 Q(company__user=user, company__is_approved=True)
                 | Q(driver__user=user, driver__is_approved=True)
