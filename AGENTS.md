@@ -19,6 +19,10 @@
 - Nesta adaptação, o dono permite substituir a API e não exige preservar dados de
   desenvolvimento. Documentar o contrato e coordenar frontend; isso não autoriza
   apagar banco ou reescrever migrations aplicadas sem confirmação concreta.
+- A base local de migrations foi recriada com autorização para bancos novos/vazios
+  (PLANEJAMENTO.md, 12.8). Não aplicar sobre bancos do histórico anterior nem usar
+  `--fake` para simular compatibilidade. As antigas referências numéricas do plano
+  são históricas; novos incrementos partem das quatro `0001_initial` atuais.
 
 ## Stack e mapa
 
