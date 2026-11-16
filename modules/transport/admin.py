@@ -1,6 +1,10 @@
 from django.contrib import admin
 
+from modules.organizations.admin import OrganizationStructureReadOnlyAdmin
 from modules.transport import models
+
+for structural_model in (models.RecurringService, models.PassengerServiceAuthorization, models.RecurringServiceStop):
+    admin.site.register(structural_model, OrganizationStructureReadOnlyAdmin)
 
 
 @admin.register(models.CompanyRouteSchedule)
@@ -159,6 +163,20 @@ class PathAdmin(admin.ModelAdmin):
 
 @admin.register(models.Vehicle)
 class VehicleAdmin(admin.ModelAdmin):
+    actions = None
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if 'route_group' in form.base_fields:
+            form.base_fields['route_group'].required = True
+        return form
+
+    def has_change_permission(self, request, obj=None):
+        return super().has_change_permission(request, obj) and not (obj and obj.company_id)
+
+    def has_delete_permission(self, request, obj=None):
+        return super().has_delete_permission(request, obj) and not (obj and obj.company_id)
+
     fields = (
         'plate',
         'model',
