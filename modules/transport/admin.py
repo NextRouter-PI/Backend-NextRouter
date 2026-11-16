@@ -6,6 +6,15 @@ from modules.transport import models
 for structural_model in (models.RecurringService, models.PassengerServiceAuthorization, models.RecurringServiceStop):
     admin.site.register(structural_model, OrganizationStructureReadOnlyAdmin)
 
+for structural_model in (
+    models.ResponsePolicy,
+    models.ServiceDay,
+    models.ServiceDayEligibility,
+    models.DailyResponse,
+    models.DailyChangeRequest,
+):
+    admin.site.register(structural_model, OrganizationStructureReadOnlyAdmin)
+
 
 @admin.register(models.CompanyRouteSchedule)
 class CompanyRouteScheduleAdmin(admin.ModelAdmin):

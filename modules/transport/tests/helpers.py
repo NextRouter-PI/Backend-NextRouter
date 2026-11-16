@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from modules.organizations.models import CompanyMembership, PassengerGroupMembership
-from modules.transport.models import RecurringService, Vehicle
+from modules.transport.models import RecurringService, ServiceDay, ServiceDayEligibility, Vehicle
 from tests.helpers import create_company, create_operational_point, create_passenger, create_route_group
 
 
@@ -63,3 +63,24 @@ class Stage1ModelTestCase(TestCase):
     def assert_db_rejects(self, model, **data):
         with self.assertRaises(IntegrityError), transaction.atomic():
             model.objects.create(**data)
+
+
+class DayModelTestCase(Stage1ModelTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.day = ServiceDay.objects.create(
+            route_group=cls.group,
+            date=cls.tomorrow,
+            opens_at=cls.now - timedelta(hours=1),
+            normal_deadline=cls.now + timedelta(hours=1),
+            extension_deadline=cls.now + timedelta(hours=2),
+            configuration_snapshot={'service_ids': [cls.service.pk, cls.return_service.pk]},
+        )
+        cls.eligibility = ServiceDayEligibility.objects.create(
+            day=cls.day,
+            passenger=cls.passenger,
+            group_membership=cls.participation,
+            authorized_service_ids=[cls.service.pk, cls.return_service.pk],
+            point_snapshot={'latitude': -26.3, 'longitude': -48.8},
+        )

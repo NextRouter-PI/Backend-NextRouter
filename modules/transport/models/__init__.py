@@ -1,4 +1,9 @@
 from .company_route_schedule import CompanyRouteSchedule as CompanyRouteSchedule
+from .calendar import ResponsePolicy as ResponsePolicy
+from .calendar import ServiceDay as ServiceDay
+from .calendar import ServiceDayEligibility as ServiceDayEligibility
+from .demand import DailyResponse as DailyResponse
+from .demand import DailyChangeRequest as DailyChangeRequest
 from .confirm_passenger_route import ConfirmPassengerRoute as ConfirmPassengerRoute
 from .driver_rating import DriverRating as DriverRating
 from .lost_item import LostItem as LostItem
