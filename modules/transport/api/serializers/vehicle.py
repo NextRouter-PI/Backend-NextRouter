@@ -1,6 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
+from modules.organizations.models import CompanyRouteGroup
 from modules.transport.api.serializers.ownership import validate_driver_in_route_group, validate_route_group_ownership
 from modules.transport.models.vehicle import Vehicle
 
@@ -30,6 +31,8 @@ class VehicleListAndRetrieveSerializer(serializers.ModelSerializer):
 
 
 class VehicleCreateSerializer(serializers.ModelSerializer):
+    route_group = serializers.PrimaryKeyRelatedField(queryset=CompanyRouteGroup.objects.all(), allow_null=False)
+
     class Meta:
         model = Vehicle
         fields = (

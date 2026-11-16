@@ -120,8 +120,9 @@ motorista ou percurso válido, o sistema aponta o problema; não exclui alunos n
 distribui entre novos veículos automaticamente.
 
 Se Pedro pedir para mudar das 17h para 12h durante a prorrogação, mantém a alocação
-anterior até o aceite. Aprovar valida vaga e viabilidade e transfere atomicamente,
-sem dupla alocação. Se a programação já estiver publicada, a alteração gera revisão
+anterior até a aplicação da troca. Aprovar no prazo reserva/prepara a alteração;
+só após cálculo validado a transferência é aplicada atomicamente, sem dupla alocação.
+Falha no cálculo preserva a alocação anterior. Se a programação já estiver publicada, a alteração gera revisão
 e aviso; não deixa um percurso antigo marcado como atual. Uma desistência, ao
 contrário de inclusão/troca, pode ser avisada após o prazo sem aprovação, antes
 do embarque, e fica visível ao motorista e à empresa.
@@ -158,9 +159,8 @@ operacionais. O envio atual de aprovação de vínculo deverá ser alinhado ao n
 
 ### 3.2. Prazos, publicação e revisão
 
-- Respostas livres terminam no prazo normal; solicitações de inclusão/troca terminam
-  no fim da prorrogação, se habilitada. A proposta é exigir também aceite dentro
-  dela; confirmar essa regra na Etapa 0 (seção 3.4) e então revalidá-la no serviço.
+- Respostas livres terminam no prazo normal; envio e aprovação de inclusão/troca
+  terminam no fim da prorrogação, se habilitada. Pedido ainda pendente expira ali.
 - Não aceitar inclusão/troca depois do início da viagem nem permitir que a empresa
   contorne o prazo por um PATCH genérico. Exceções futuras exigem regra explícita.
 - Desistência continua permitida antes do embarque, inclusive com viagem ativa.
@@ -207,12 +207,7 @@ independentes. Não tratar as recomendações abaixo como regras já aprovadas.
 
 | Questão ainda não fechada | Recomendação a apresentar e impacto |
 |---|---|
-| Pedido enviado no prazo pode ser aprovado depois do fim da prorrogação? | Recomendar expiração no fim da janela. A sessão aprovou prazo de prorrogação, mas não distinguiu explicitamente prazo de envio e de decisão. Bloqueia definição final de estados/worker. |
-| Como delimitar a regeneração após mudar grupo/ponto/serviços/política? | O dono respondeu “Gerar novamente e aplicar as mudanças.” Registrar essa intenção, mas ainda fechar se é automática ou ação da empresa, quais dias podem ser atualizados e como preservar respostas/alocações/revisões. Não interpretar como autorização para apagar decisões, recriar cancelados ou reescrever viagens passadas/em andamento. Ver 10.10. |
-| Aprovação de troca com falha no novo cálculo mantém qual alocação? | Recomendar manter a alocação transferida em revisão pendente e exigir resolução da empresa, sem rollback tardio invisível. Confirmar antes de implementar a seção 4.1. |
-| Pode publicar cada viagem independentemente ou o dia é publicado em bloco? | Recomendar por viagem, com painel agregado do dia. Uma pendência do meio-dia não deve impedir automaticamente uma ida pronta. |
-| Como reorganizar um serviço lotado? | Empresa escolhe passageiros e viagem adicional explicitamente; confirmar suporte a mais de uma viagem por serviço/data antes de definir unicidade. Não adotar ordem de confirmação como prioridade sem decisão. |
-| Desistência da ida também cancela retorno? | Recomendar desistência por trecho; ida e volta independentes. Definir interação com pedido pendente e impedir que um aceite antigo reinsira aluno que desistiu. |
+| Regeneração automática: conflitos com respostas/alocações existentes | Decidido: reaplicar automaticamente apenas a datas futuras não publicadas; publicadas só por revisão explícita. Preservar decisões/histórico/cancelamentos. Ainda detalhar resolução quando configuração nova torna resposta/alocação inválida, sem descartar pessoas silenciosamente. |
 | Cancelamento do dia com alguma viagem já iniciada | Não cancelar retroativamente viagens ativas/finalizadas. Confirmar cancelamento apenas das ainda não iniciadas e indicação de cancelamento parcial. |
 | Encerrar viagem com aluno ainda marcado como embarcado; erro de marcação | Definir correção auditada e regra de fechamento, sem fabricar desembarque automático. |
 | Desaprovação/desativação durante viagem ativa | Encerramento comum de vínculo já foi decidido: bloquear durante participação operacional em andamento (seção 10.8). Ainda definir efeitos de desaprovação empresarial/desativação de conta, quem conclui a operação e acesso residual; não presumir que esse bloqueio resolve todos esses eventos. |
@@ -249,26 +244,26 @@ planejamento, execução), sem concentrar tudo em um único `services.py`. API, 
 e worker compartilham esses caminhos. Publicação WS e outras entregas externas
 ocorrem após commit; avisos persistentes são gravados atomicamente com a decisão.
 
-### 4.1. Receita técnica para alteração e publicação (proposta)
+### 4.1. Receita técnica para alteração e publicação
 
-Esta receita esclarece o trabalho assíncrono; a decisão de negócio sobre falha após
-aceite ainda depende da seção 3.4. Não implementar uma transação de banco aberta
-durante geocodificação/OSRM.
+Decisão complementar: preservar escolha/alocação anterior até cálculo validado;
+aprovação é distinta de aplicação. Não manter transação aberta durante OSRM.
 
 1. Serviço recebe ator, ID do pedido e revisão esperada; não depende de `request`
    ou `Response` do DRF. Reobtém objetos do banco e valida autorização de domínio.
 2. Na transação, bloqueia pedido, participação e viagens envolvidas em ordem
    consistente. Revalida elegibilidade, prazo, execução e capacidade atual.
-3. Aceite transfere a participação e atualiza a escolha vigente atomicamente.
-   Remove a alocação antiga e ocupa a nova vaga na mesma transação. Uma tentativa
-   repetida do mesmo aceite não pode transferir de novo nem duplicar avisos.
-4. Incrementa a revisão das viagens afetadas, marca preparação pendente, grava jobs
-   com entradas congeladas e avisos mínimos. A decisão aceita é distinta do estado
-   do percurso e da publicação; informar “alteração aceita, programação em atualização”.
+3. Aprovação registra decisão e reserva de capacidade proposta, sem remover a
+   participação anterior nem alterar escolha vigente. Reserva não é embarque nem
+   segunda alocação efetiva; deve ser contada para não prometer o mesmo assento.
+4. Grava proposta de revisão e jobs com entradas congeladas. Falha mantém a
+   alocação anterior; aprovação e aplicação têm estados separados e auditáveis.
 5. Worker calcula fora dos locks. Na gravação, verifica revisão, estado, cancelamento
    e titularidade do processamento; descarta resultado obsoleto. Falha gera pendência
    observável, nunca sucesso nem reconstrução usando dados atuais de outra revisão.
-6. Empresa publica a revisão pronta; grava aviso de publicação. `start` exige que
+6. Com cálculo válido, serviço revalida e aplica escolha, transferência e revisões
+   atomicamente, consumindo a reserva. Repetição não duplica efeito/aviso.
+7. Empresa publica cada viagem pronta independentemente; grava aviso. `start` exige que
    revisão publicada, revisão atual e percurso pronto sejam compatíveis. Enquanto
    houver revisão pendente, uma publicação anterior não autoriza iniciar a viagem.
 
@@ -305,9 +300,11 @@ Mapa conceitual para fechar na Etapa 0 (não impõe nomes de enums):
   encerra. Confirmar/documentar no contrato e testar igualdade e virada de data.
 - Guardar elegibilidade ou seu histórico para saber quem era esperado naquele dia;
   “sem resposta” não pode mudar retroativamente ao incluir novo aluno no grupo.
-- Geração usa chave única de atendimento `(grupo, data)`. A chave da viagem habitual
-  deve distinguir geração automática de viagens adicionais manuais caso estas sejam
-  aprovadas; não impor `(serviço, data)` único cegamente.
+- Geração usa chave única `(grupo, data)` e no máximo uma viagem por serviço nesse
+  dia. Viagens adicionais para o mesmo serviço/data **não foram aprovadas nesta versão**.
+- Regeneração reaplica configuração automaticamente apenas aos dias futuros não
+  publicados, preservando respostas, decisões e cancelamentos. Publicados exigem
+  revisão explícita; viagens iniciadas/passadas não são reescritas.
 - Cancelamento de data futura deve existir mesmo antes de suas viagens serem geradas.
   Geração consulta esse registro e nunca usa um `update_or_create` que zere decisões.
 
@@ -642,7 +639,7 @@ smoke de HTTPS/WSS/proxy/storage feito no provedor escolhido.
 6. Fechamento ocorre sem prorrogar prazo por atraso do worker; modo rígido bloqueia inclusão.
 7. Prorrogação recebe pedidos, não confirma alterações automaticamente; envio/aceite
    respeitam os prazos definidos com o dono na seção 3.4.
-8. Pedro mantém 17h enquanto pede 12h; aprovação transfere atomicamente; recusa preserva 17h.
+8. Pedro mantém 17h até cálculo validado; aplicação transfere atomicamente; recusa/falha preservam 17h.
 9. Duas aprovações disputam a última vaga sem ultrapassar capacidade.
 10. Motorista habitual não confirma todo dia; substituto precisa aceitar convite vigente.
 11. Publicação inválida por falta de motorista, capacidade ou percurso atualizado é bloqueada.
@@ -785,6 +782,37 @@ em diretório temporário: cópia inicial correta e segunda execução interromp
 sobrescrever o destino. Nenhum build Vue real executado; sem novo baseline funcional.
 
 ## 10. Etapa 0 — inventário e preparação da transição
+
+### Autorização global dos recortes restantes da Etapa 1
+
+O dono autorizou serviços/autorizações, empresa/garagem da frota, política/dia com
+elegibilidade congelada, resposta/pedido, evolução de Travel/participantes/eventos,
+snapshots/paradas/publicações, jobs por revisão/claim, convites e avisos, incluindo
+migrations incrementais **apenas em bancos temporários de teste**, admin protegido,
+testes/fixtures e ajustes mecânicos dos callers. Sem settings/dependências, descarte
+de dados, reescrita de migrations ou aplicação no banco habitual. Operação/API novas
+continuam para as Etapas 2/3; legado necessário só sai no marco coordenado dos callers.
+
+Decisões complementares aprovadas: aprovação de pedido dentro da prorrogação;
+escolha/alocação anterior preservada até cálculo validado (diferente da recomendação
+anterior de transferência imediata); publicação **por viagem**; **sem viagem adicional
+por serviço/data nesta versão**; desistência por trecho invalida pedido conflitante;
+regeneração **automática somente de futuras datas não publicadas**, preservando decisões,
+histórico e cancelamentos. Publicadas só por revisão explícita.
+
+Primeiro recorte deste conjunto: `RecurringService`, `PassengerServiceAuthorization`
+e `RecurringServiceStop`; dias da semana por máscara 1..127 (segunda bit 1), sentido
+independente, horário-alvo de chegada/partida, vigência e escolhas humanas opcionais
+durante configuração. Autorização tem ida habitual única e retornos elegíveis;
+services futuros revalidarão grupo/empresa/aptidão, sem alocação automática.
+Frota nova pertence à empresa e exige capacidade positiva/conhecida; garagem é ponto
+operacional. `Vehicle.route_group` fica opcional **somente para a transição**, com
+constraint XOR: propriedade empresarial nova ou grupo legado, nunca ambos. API/admin
+legados não escrevem veículos empresariais novos. Migration `router.0008` é incremental,
+sem backfill; migrar dados legados inválidos requer estratégia/autorização futura.
+Validação deste recorte: 23/23 testes (programação/frota + privacidade), 31,525 s.
+Primeira tentativa de makemigrations usou o nome do módulo em vez do label `router`,
+sem criar arquivo; corrigida. Lint ajustado antes do commit; schema/check ao fim do conjunto.
 
 **Continuação da Etapa 1:** baseline antes dos próximos models encontrou uma falha
 no teste de filtro por data de viagens (114/115 passaram). O teste usava data UTC,

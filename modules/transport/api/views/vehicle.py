@@ -47,7 +47,7 @@ class VehicleViewSet(ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        queryset = Vehicle.objects.select_related(
+        queryset = Vehicle.objects.filter(company__isnull=True).select_related(
             'route_group',
             'route_group__company',
             'driver',
