@@ -23,7 +23,9 @@ class DriverRatingListAndRetrieveSerializer(serializers.ModelSerializer):
 
 class DriverRatingCreateSerializer(serializers.ModelSerializer):
     # Obrigatória: só quem viajou pode avaliar, uma única vez por viagem.
-    travel = serializers.PrimaryKeyRelatedField(queryset=Travel.objects.select_related('driver'))
+    travel = serializers.PrimaryKeyRelatedField(
+        queryset=Travel.objects.filter(service_day__isnull=True).select_related('driver')
+    )
     driver = serializers.PrimaryKeyRelatedField(queryset=Driver.objects.all(), required=False)
     score = serializers.IntegerField(min_value=MIN_SCORE, max_value=MAX_SCORE)
 

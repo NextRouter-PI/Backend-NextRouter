@@ -825,6 +825,20 @@ modifica a resposta automaticamente. Reservas/cálculo/aplicação serão servic
 Etapa 2. Migrations incrementais `router.0009`/`0010` (auditoria terminal); 25/25 testes de transport passaram
 (10,372 s); lint conferido antes do commit. Modelos novos somente leitura no admin.
 
+Terceiro recorte: `Travel` datada por atendimento/serviço, agenda, preparação e
+revisões, com motorista/veículo pendentes no rascunho; uma viagem por serviço/data.
+`TravelParticipation` distingue alocação/desistência/ausência/embarque/desembarque,
+tem unicidade efetiva por elegibilidade/trecho e horários coerentes no banco.
+`ParticipationEvent` preserva autoria, correção referenciada/motivada e ID idempotente;
+`SeatReservation` representa capacidade proposta sem substituir a alocação antiga.
+Capacidade total, transições e disputa concorrente continuam responsabilidade dos
+services da Etapa 2. `Path` passa a PROTECT para não apagar histórico de viagens.
+Migration `router.0011`; testes de transport + privacidade passaram 46/46 (43,001 s).
+Callers legados de viagens/confirmações/avaliações/objetos/GPS não recebem viagens
+datadas; admin não altera essas viagens. Essas barreiras são adaptação transitória,
+não implementação da API nova. A localização legada rejeita viagem datada antes de
+acessar motorista pendente. Defaults/nullable novos não dispensam validação de publicação.
+
 **Continuação da Etapa 1:** baseline antes dos próximos models encontrou uma falha
 no teste de filtro por data de viagens (114/115 passaram). O teste usava data UTC,
 mas o filtro usa America/Sao_Paulo. Corrigido para data local, com relógio fixo em

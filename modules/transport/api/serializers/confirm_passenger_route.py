@@ -25,6 +25,8 @@ class ConfirmPassengerRouteCreateSerializer(serializers.ModelSerializer):
     para a viagem informada. Usado pelo questionário diário de confirmação de presença.
     """
 
+    travel = serializers.PrimaryKeyRelatedField(queryset=Travel.objects.filter(service_day__isnull=True))
+
     class Meta:
         model = ConfirmPassengerRoute
         fields = ('id', 'travel', 'confirm')
