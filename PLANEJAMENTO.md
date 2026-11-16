@@ -1651,3 +1651,30 @@ banco desde zero com `router.0013/0014`; não houve migrate no banco habitual.
 isolamento; **não marcar o marco final de 2.6 como concluído** sem executar e revisar
 a concorrência PostgreSQL. A remoção/substituição dos callers e a ativação coordenada
 do domínio novo continuam na Etapa 3, sem escrita paralela com a operação legada.
+
+### 12.7. Desenvolvimento SQLite e bloqueio da instalação PostgreSQL (2026-11-16)
+
+- Execução PostgreSQL relatada pelo dono: os dez testes concorrentes foram
+  descobertos, mas nenhum chegou a executar. A instalação parou em
+  `authenticator.0007`, que tenta converter diretamente a PK de usuário de bigint
+  para UUID (`id::uuid`), operação não suportada pelo PostgreSQL. Isso é falha de
+  instalação do schema, não evidência de falha ou sucesso dos locks.
+- O dono solicitou recriar o histórico e aplicar migrations, incluindo o banco
+  habitual; o destino/descarte concreto desse banco ainda não foi identificado.
+  A solicitação seguinte autorizou organizar a configuração de desenvolvimento
+  com SQLite. Nesta mudança não foram removidas, criadas ou aplicadas migrations.
+  A estratégia de substituição do histórico permanece pendente.
+- `app/settings/dev.py` agora explicita SQLite em `BASE_DIR / 'db.sqlite3'` quando
+  `DATABASE_URL` está ausente, vazia ou contém apenas espaços. URL explícita continua
+  permitindo banco temporário SQLite ou PostgreSQL para testes. Produção mantém
+  PostgreSQL obrigatório. `.env.example` documenta a seleção; `.env` local ignorado
+  foi preparado sem integrações externas. Banco SQLite e seus arquivos auxiliares
+  ficam ignorados pelo Git.
+- Para desenvolvimento: remover eventual URL exportada com `unset DATABASE_URL`
+  e usar `pdm run dev`. O `.env` não sobrescreve variáveis do shell. A criação das
+  tabelas locais exige migrations; esta mudança somente configura o banco.
+- Validação desta mudança: baseline `pdm run check` passou em SQLite temporário;
+  após a alteração, check e lint passaram (165 arquivos). Cinco verificações em
+  processos separados confirmaram URL ausente/vazia/com espaços, SQLite temporário
+  e seleção explícita de PostgreSQL, sem conexão a esse servidor. Não executados
+  suíte funcional, concorrência PostgreSQL, schema, Redis ou navegador nesta mudança.

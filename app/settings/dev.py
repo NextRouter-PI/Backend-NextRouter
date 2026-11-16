@@ -26,11 +26,15 @@ _origins = [
 CORS_ALLOWED_ORIGINS = list(dict.fromkeys(_origins))
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
+# Desenvolvimento local usa SQLite na raiz, independentemente do diretório do comando.
+# DATABASE_URL permite usar um banco temporário nos testes, inclusive PostgreSQL
+# para validar concorrência. Variáveis do shell prevalecem sobre o .env.
+_database_url = os.getenv('DATABASE_URL', '').strip()
 DATABASES = {
-    'default': dj_database_url.parse(
-        os.getenv('DATABASE_URL') or f'sqlite:///{common.BASE_DIR / "db.sqlite3"}',
-        conn_max_age=600,
-        conn_health_checks=True,
+    'default': (
+        dj_database_url.parse(_database_url, conn_max_age=600, conn_health_checks=True)
+        if _database_url
+        else {'ENGINE': 'django.db.backends.sqlite3', 'NAME': common.BASE_DIR / 'db.sqlite3'}
     )
 }
 BACKEND_HOST = os.getenv('BACKEND_HOST', '127.0.0.1')
