@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import ClassVar
 
 from django.conf import settings
@@ -19,6 +20,8 @@ class RecurringService(models.Model):
     direction = models.CharField(max_length=8, choices=Direction.choices)
     weekdays = models.PositiveSmallIntegerField(help_text='Máscara: segunda=1, terça=2, ... domingo=64.')
     target_time = models.TimeField(help_text='Chegada desejada na ida; partida no retorno.')
+    planned_duration = models.DurationField(null=True, blank=True)
+    turnaround_duration = models.DurationField(null=True, blank=True)
     valid_from = models.DateField()
     valid_until = models.DateField(null=True, blank=True)
     driver_membership = models.ForeignKey(
@@ -51,6 +54,14 @@ class RecurringService(models.Model):
         verbose_name = 'Serviço habitual'
         verbose_name_plural = 'Serviços habituais'
         constraints: ClassVar[list] = [
+            models.CheckConstraint(
+                condition=models.Q(planned_duration__isnull=True) | models.Q(planned_duration__gt=timedelta()),
+                name='service_planned_duration_positive',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(turnaround_duration__isnull=True) | models.Q(turnaround_duration__gte=timedelta()),
+                name='service_turnaround_nonnegative',
+            ),
             models.CheckConstraint(
                 condition=models.Q(direction__in=['outbound', 'return']), name='service_direction_valid'
             ),

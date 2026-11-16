@@ -38,6 +38,8 @@ class RouteSnapshot(models.Model):
     geometry = models.JSONField(null=True, blank=True)
     distance_meters = models.FloatField(null=True, blank=True)
     duration_seconds = models.FloatField(null=True, blank=True)
+    planned_start = models.DateTimeField(null=True, blank=True)
+    planned_end = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     calculated_at = models.DateTimeField(null=True, blank=True)
 
@@ -45,6 +47,13 @@ class RouteSnapshot(models.Model):
         verbose_name = 'Snapshot de percurso'
         verbose_name_plural = 'Snapshots de percurso'
         constraints: ClassVar[list] = [
+            models.CheckConstraint(
+                condition=models.Q(planned_start__isnull=True, planned_end__isnull=True)
+                | models.Q(
+                    planned_start__isnull=False, planned_end__isnull=False, planned_end__gt=models.F('planned_start')
+                ),
+                name='snapshot_planned_period_pair',
+            ),
             models.UniqueConstraint(fields=['travel', 'revision'], name='snapshot_travel_revision_unique'),
             models.CheckConstraint(
                 condition=models.Q(base_revision__gte=1, revision__gte=models.F('base_revision')),
