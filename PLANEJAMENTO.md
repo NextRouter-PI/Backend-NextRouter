@@ -764,7 +764,7 @@ descrever como implementado algo que existe apenas como plano.
 | Tutorial de build Vue separado | Registrado em BUILD_VUE.md; integração ainda não implementada. |
 | Etapa 0 — especificação técnica detalhada e estratégia de migrations | Decisões de vínculo, pedidos, publicação, viagem única e regeneração registradas. Exceções restantes na seção 3.4. Nova base de migrations autorizada para bancos vazios; instalação SQLite local criada sem descarte (12.8). |
 | Etapa 1 — modelagem | Cobertura estrutural 1.1–1.6 implementada e testada (seção 11), sem declarar substituição integral: callers/campos antigos ainda necessários têm remoção coordenada nas Etapas 2/3. Nenhum novo fluxo operacional ativado. |
-| Etapa 2 — regras | Cobertura de serviços 2.1–2.5 implementada, com testes de negócio, falhas e efeitos de 2.6. Marco final de 2.6 pendente: testes concorrentes PostgreSQL preparados, não executados. Sem ativação operacional; ver 12.5/12.6. |
+| Etapa 2 — regras | Cobertura de serviços 2.1–2.5 implementada, com testes de negócio, falhas e efeitos de 2.6. Marco final de 2.6 pendente: 15 testes concorrentes PostgreSQL preparados e roteiro isolado disponível, ainda não executados nesse backend. Sem ativação operacional; ver 12.5/12.6/12.9. |
 | Etapa 3 — API/admin/integração | Não iniciada. |
 | Etapa 4 — ambiente/build/operação | Não iniciada. |
 
@@ -1726,3 +1726,59 @@ atuais e seus campos legados necessários à transição permanecem.
   mudanças de API/WS, novo worker, Redis, Vue/navegador e deploy continuam fora deste
   recorte. Referência de dependências/usuário inicial consultada via Context7 para
   Django 6.1. Sem alterações de settings/dependências nesta recriação.
+
+### 12.9. Complemento da cobertura concorrente e roteiro PostgreSQL isolado
+
+- Os dez testes PostgreSQL anteriores foram preservados. Acrescentados cinco
+  cenários em `modules/transport/tests/test_service_concurrency.py`: duas aplicações
+  da mesma transferência; dois workers concluindo os cálculos da mesma proposta;
+  dois aceites do mesmo convite; aceite contra recusa; publicação contra troca de
+  veículo. Conferem escolha/alocação única, consumo da reserva, deduplicação de
+  eventos/avisos, designação e preservação do histórico publicado sem liberar
+  início com percurso obsoleto. Permanecem ignorados explicitamente em SQLite.
+- As duas suítes concorrentes agora verificam também PIDs de backend distintos
+  via `pg_backend_pid()`, além de threads, barreira e timeouts. Não substituir
+  essas disputas por duas chamadas sequenciais ou pelo `--parallel` do runner.
+- `scripts/test_postgresql.sh`: usa **novo** container PostgreSQL 16 Alpine
+  (mesma série do Compose), dados em tmpfs, porta aleatória em 127.0.0.1 e remoção
+  somente do container/diretório temporário criados pelo próprio roteiro, mesmo
+  quando os testes falham. Ignora a URL de banco herdada, força settings dev e
+  desabilita integrações externas; rejeita contextos Docker remotos. Primeiro
+  aplica migrations no banco descartável vazio, depois roda o test runner, que
+  também cria seu banco de testes separado. Não altera settings/dependências,
+  Compose, `.env`, banco habitual, API/admin/WS ou o worker legado.
+- Quatro testes de isolamento do roteiro em `tests/test_postgresql_script.py`
+  usam executáveis falsos, não Docker/PostgreSQL: seleção da URL temporária,
+  integrações desligadas, limpeza em sucesso/falha, código de saída, recusa de
+  daemon indisponível e contexto remoto (inclusive precedência de DOCKER_CONTEXT).
+  Passaram em 0,648 s; isso valida o roteiro, **não os locks nem o servidor real**.
+- `bash -n` passou; execução real do roteiro foi interrompida antes de criar
+  recursos porque o daemon Docker está indisponível nesta sessão. Sem PostgreSQL
+  real, não afirmar que os quinze testes passaram nem concluir a Etapa 2.
+
+**Como executar quando o Docker local estiver disponível e acessível:**
+
+```sh
+# Somente as quinze disputas (esperado: 15 executadas, nenhuma ignorada):
+bash scripts/test_postgresql.sh \
+  modules.organizations.tests.test_membership_concurrency \
+  modules.transport.tests.test_service_concurrency
+
+# Instalação limpa e suíte inteira no PostgreSQL, em outro container novo:
+bash scripts/test_postgresql.sh
+```
+
+Argumentos extras do test runner, como `--shuffle`, são aceitos pelo roteiro.
+Registrar versão/revisão, resultados e revisar as invariantes antes de fechar 2.6.
+Se houver falhas, corrigi-las e repetir as validações pertinentes; SQLite aprovado
+não substitui esse aceite. A ativação/substituição dos callers continua na Etapa 3.
+
+**Validação desta continuação:** recorte de 19 testes: quatro passaram e quinze
+concorrentes foram ignorados (0,586 s). Lint passou (167 arquivos), check sem
+divergência de models e OpenAPI validado. Suíte completa SQLite: **316 descobertos,
+301 passaram e 15 ignorados**, 185,719 s. Após reforçar a precedência de contexto
+Docker, os quatro testes do roteiro foram repetidos com sucesso (0,648 s), e lint
+e sintaxe Bash passaram novamente. Links locais, blocos Markdown e
+`git diff --check` conferidos. Bancos temporários e integrações externas
+desabilitadas; nenhum novo descarte ou escrita no SQLite habitual. Continua o
+aviso de `staticfiles/` ausente. PostgreSQL/Redis/navegador/deploy não executados.
