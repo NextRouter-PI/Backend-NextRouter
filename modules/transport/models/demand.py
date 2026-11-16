@@ -18,7 +18,7 @@ class DailyResponse(models.Model):
     return_service = models.ForeignKey(
         'router.RecurringService', on_delete=models.PROTECT, null=True, blank=True, related_name='return_responses'
     )
-    answered_at = models.DateTimeField(default=timezone.now)
+    answered_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
     revision = models.PositiveIntegerField(default=1)
     outbound_withdrawn_at = models.DateTimeField(null=True, blank=True)
     return_withdrawn_at = models.DateTimeField(null=True, blank=True)

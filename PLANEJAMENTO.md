@@ -212,9 +212,9 @@ independentes. Não tratar as recomendações abaixo como regras já aprovadas.
 | Questão ainda não fechada | Recomendação a apresentar e impacto |
 |---|---|
 | Regeneração automática: conflitos com respostas/alocações existentes | Decidido nesta continuação: preservar registros conflitantes, sinalizar pendência e bloquear publicação/início até resolução explícita pela empresa; nenhuma exclusão/transferência automática. Qualquer viagem publicada congela a regeneração automática de todo o grupo/data; mudanças exigem revisão explícita. Automática somente em datas futuras não publicadas; preservar decisões/histórico/cancelamentos. Ver seção 12.2. |
-| Cancelamento do dia com alguma viagem já iniciada | Não cancelar retroativamente viagens ativas/finalizadas. Confirmar cancelamento apenas das ainda não iniciadas e indicação de cancelamento parcial. |
-| Encerrar viagem com aluno ainda marcado como embarcado; erro de marcação | Definir correção auditada e regra de fechamento, sem fabricar desembarque automático. |
-| Desaprovação/desativação durante viagem ativa | Encerramento comum de vínculo já foi decidido: bloquear durante participação operacional em andamento (seção 10.8). Ainda definir efeitos de desaprovação empresarial/desativação de conta, quem conclui a operação e acesso residual; não presumir que esse bloqueio resolve todos esses eventos. |
+| Cancelamento do dia com alguma viagem já iniciada | Decidido em 2026-11-16: cancelar somente as ainda não iniciadas, preservar ativas/finalizadas e indicar cancelamento parcial com aviso. |
+| Encerrar viagem com aluno ainda marcado como embarcado; erro de marcação | Decidido em 2026-11-16: bloquear fechamento com embarque aberto; somente a empresa corrige marcações, com motivo obrigatório, referência ao evento anterior e auditoria. Não fabricar desembarque nem reabrir execução finalizada. |
+| Desaprovação/desativação durante viagem ativa | Decidido em 2026-11-16: bloquear a mudança cadastral enquanto houver operação em andamento, em vez de inventar acesso residual. Mesmas barreiras devem cobrir API/admin; integração de callers legados continua sendo condição antes da ativação. Encerramento de vínculo segue 10.8/12.2. |
 | Pesquisa pública por região/destino | Definir filtros mínimos (por exemplo, cidade atendida e destino), sem presumir busca por raio ou geocodificação pública. Aprovação cadastral não implementa descoberta geográfica. |
 | Histórico, retenção, avaliações e objetos perdidos | Precisar acesso de ex-vinculados, tempo de retenção e elegibilidade por embarque/viagem finalizada; reabertura de objeto continua pendente. |
 
@@ -1511,3 +1511,42 @@ Aviso de `staticfiles/` continua. Lint teve apenas ajustes de formatação.
 Validação final: lint passou (142 arquivos formatados), schema validado sem novos
 endpoints e `git diff --check` sem problemas. Sem PostgreSQL/Redis/navegador,
 worker real, chamadas externas reais ou deploy; concorrência não comprovada.
+
+### 12.4. Autorização da continuação e complementos de schema (2026-11-16)
+
+O dono solicitou o término da Etapa 2 e autorizou os complementos concretos abaixo.
+Somente migrations incrementais e bancos temporários de teste; sem aplicação no
+banco habitual, backfill, descarte, alteração de settings/dependências ou ativação
+parcial da operação nova. O baseline desta continuação passou **220 descobertos,
+214 executados com sucesso e 6 ignorados**, 162,206 s; lint passou (142 arquivos).
+
+- `RecurringService.planned_duration`: orçamento positivo de duração do trecho
+  principal. `turnaround_duration`: margem não negativa depois da operação do
+  veículo. Ambos anuláveis para configuração incompleta, **sem defaults numéricos
+  universais**. `router.0013` adiciona os campos e checks, sem converter dados.
+- Ida: horário-alvo é chegada ao destino comum; orçamento precede esse horário.
+  Retorno: horário-alvo é partida do ponto comum; orçamento cobre atendimento até
+  o destino final. Aproximação do veículo na volta e deslocamento final adicional
+  na ida são calculados separadamente e integram a agenda completa do veículo.
+  Orçamento é uma estimativa empresarial, não garantia de trânsito/pontualidade.
+- `DailyResponse.answered_at` anulável: expressamente autorizado para suportar
+  pedido de quem nunca respondeu, sem fabricar uma negativa. Ausência de linha
+  **ou linha com answered_at nulo** significa sem resposta; negativa tem instante
+  de resposta e escolhas nulas. Aprovação não muda essa condição; aplicação válida
+  da inclusão registra a resposta. Complementa a representação inicial de 1.4.
+- `RouteSnapshot.planned_start/planned_end` opcionais, com check de par ordenado:
+  autorização complementar para congelar a **agenda candidata** sem modificar a
+  agenda vigente antes da aplicação da transferência. `router.0014` reúne esses
+  campos e a alteração de `answered_at`. Snapshots antigos não recebem backfill.
+- Decisões de cancelamento parcial, correção somente empresarial e bloqueio de
+  mudança cadastral durante operação foram respondidas explicitamente e atualizadas
+  na seção 3.4. Não fechar por suposição as pendências de descoberta pública,
+  retenção/acesso histórico, avaliações ou objetos perdidos das etapas seguintes.
+
+Testes estruturais em `modules/transport/tests/test_stage2_schema.py`: duração/margem
+sem default, negações de update no banco, placeholder sem negativa e agenda candidata
+pareada/ordenada. Passaram no recorte de **79 descobertos, 75 passaram e 4 ignorados**
+(21,421 s), junto dos testes dos serviços em preparação. Migrations foram geradas
+pelo Django **6.1 instalado**, sem mudar dependências. Instalação limpa validada pelo
+runner SQLite; isso não comprova locks em PostgreSQL. Não declarar o marco final da
+Etapa 2 somente por estes complementos de schema; acompanhamento operacional abaixo.
