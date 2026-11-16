@@ -1,3 +1,3 @@
-web: env DJANGO_SETTINGS_MODULE=app.settings.prod daphne -b 0.0.0.0 -p $PORT app.asgi:application
-worker: env DJANGO_SETTINGS_MODULE=app.settings.prod python manage.py process_route_jobs
-release: env DJANGO_SETTINGS_MODULE=app.settings.prod python manage.py migrate --noinput
+web: python -m scripts.runtime web
+worker: python -m scripts.runtime worker
+release: python -m scripts.runtime release

@@ -16,8 +16,9 @@ dois caminhos operacionais de escrita; remoção incremental do schema legado em
 aplicada somente em bancos temporários de teste, não no banco habitual.
 Backend reconhece o artefato Vue, mas somente fixtures foram testadas: build real,
 navegador e entrega conjunta continuam pendentes no marco integrado 3/4. Retenção/
-expurgo e preparação do ambiente permanecem pendentes. Seções 10–12 registram os
-marcos históricos; a situação atual prevalecente está na seção 13.
+expurgo e ambiente no provedor permanecem pendentes; runtime local descartável com
+fixture validado em 14.3. Seções 10–12 registram os
+marcos históricos; a situação atual prevalecente está nas seções 13–14.
 Histórico local de migrations reiniciado, por autorização do dono, para **bancos
 novos/vazios**, com usuário UUID desde a criação; ver seção 12.8. As referências
 numéricas antigas abaixo são evidências históricas, não arquivos ainda disponíveis.
@@ -769,7 +770,7 @@ descrever como implementado algo que existe apenas como plano.
 | Etapa 1 — modelagem | Cobertura 1.1–1.6 testada (registro histórico na seção 11). Callers substituídos em 13.3; remoção dos campos/tabelas legados implementada por incrementos novos em 13.4, somente em bancos temporários. |
 | Etapa 2 — regras | Serviços 2.1–2.5 e concorrência de 2.6 validados em PostgreSQL 16.16 (13.1). Callers substituídos na Etapa 3 (13.3–13.4); não confundir validação dos serviços com entrega do fluxo pelo navegador. |
 | Etapa 3 — API/admin/integração | Backend HTTP/admin/WS/worker, contrato SPA e remoção física do legado implementados/testados (13.3–13.4), incluindo PostgreSQL e Redis reais descartáveis. Integração com Vue real/navegador ainda não concluída. |
-| Etapa 4 — ambiente/build/operação | Em implementação local autorizada (seção 14). Frontend real e provedor indisponíveis; sem deploy nem alterações no banco habitual. |
+| Etapa 4 — ambiente/build/operação | Agenda persistente, artefato identificado e runtime local implementados; smoke HTTPS/WSS/recuperação/restore aprovado só com fixture (seção 14). Frontend real/navegador e provedor pendentes; sem deploy nem alterações no banco habitual. |
 
 **Validações do registro inicial (2026-11-15, antes da revisão de ambiguidades):** `pdm run test` passou
 46/46 com SQLite de teste isolado e integrações externas desabilitadas; `pdm run lint`
@@ -2023,3 +2024,81 @@ Validação deste recorte, antes das alterações de infraestrutura:
 Migrations aplicadas só nos bancos temporários acima. Banco habitual continua sem
 esses incrementos; não executar o novo código ali sem estratégia/autorização.
 Frontend/artifacts, imagem e proxy ainda não foram validados por esses resultados.
+
+### 14.3. Artefato, runtime e infraestrutura — validados localmente com fixture
+
+Implementado sobre `498058c`, com aceite local descartável, não do marco conjunto
+Vue/navegador/provedor:
+
+- Preparador offline e manifesto fora da raiz pública: revisões Git completas,
+  SHA-256, nomes preservados, referências/allowlist e recusa de sobreposição,
+  ocultos, mapas, manifestos públicos e symlinks. Não executa npm nem comprova a
+  origem/compilação de um bundle. Tutorial atualizado e runbook em
+  [OPERACAO.md](OPERACAO.md).
+- Docker multi-stage: bootstrap PDM 2.29.5 com extra oficial `locked`, dependências
+  da aplicação do lock existente, collectstatic offline e runtime UID 10001, sem
+  Node/PDM/dados/clientes legados. Código/artefato root-owned legíveis pelo runtime;
+  diretório privado permanece 0700. Target release exige manifesto/revisão válida.
+- Entradas Docker/Procfile/PDM conferem dependências, schema, estáticos e artefato antes do
+  processo. Nenhum migrate/seed implícito. Healthchecks mínimos, logs JSON por
+  allowlist, `CONN_MAX_AGE=0` no ASGI e documentação de recuperação/rollback.
+- Compose com redes/volumes separados, DB/Redis/Daphne sem portas publicadas e proxy
+  TLS local. Confiança em headers é opt-in fora dessa borda controlada; HSTS gradual,
+  sem preload/subdomínios presumidos. Storage privado fora de diretórios públicos;
+  URLs de serviços demo recusadas, sem autorizar envio de coordenadas reais.
+
+No build limpo, PDM sem o extra locked instalava hishel 2 incompatível; bootstrap
+corrigido sem mudar dependências/lock da aplicação. Permissões 0600 do checkout
+também impediam leitura pelo UID não-root: normalização limitada a código/artefato,
+sem abrir documentos privados. Build backend e release com fixture foram exercitados;
+o smoke integrado encontrou falha na criação do PDF fictício: a fixture agora
+atribui ContentFile nomeado ao model antes do save, sem alterar o modelo/caller de
+upload. Instalação limpa, release-check e worker SIGKILL/retomada/SIGTERM passaram.
+Na subida do Daphne, o manifesto gerado pelo collectstatic continuava sem leitura
+pelo UID 10001: o build agora normaliza também os estáticos públicos após a coleta,
+sem mudar permissões privadas. O preflight recusa manifesto estático ausente,
+inválido ou sem leitura antes de executar o servidor. Não foram alterados settings
+de upload nem permissões de documentos para contornar essa falha.
+
+Na retomada, Docker estava indisponível (socket ausente); o dono o disponibilizou.
+Não foram instalados/iniciados serviços do sistema pelo agente. Suítes completas
+da retomada, anteriores aos últimos reforços de launcher/preflight/harness, em recursos
+descartáveis novos: SQLite **390 descobertos, 371 passaram e 19 ignorados**
+(277,102 s); PostgreSQL 16.16 **390 descobertos, 389 passaram e 1 ignorado**
+(332,551 s), apenas Redis. Roteiro Redis/WS real: **5/5** (3,727 s).
+As saídas integrais de duas suítes iniciadas antes da interrupção não ficaram
+disponíveis na retomada e não são apresentadas como evidência aprovada.
+
+Validação final dos reforços: testes focais de runtime/artefato/isolamento **20/20**
+(1,255 s), incluindo manifesto estático ausente/inválido/ilegível e worker sem
+empresa explícita. Lint aprovado (187 arquivos), check sem problemas/divergência,
+OpenAPI e lock-check aprovados. As suítes completas não foram repetidas apenas por
+esses reforços isolados ou por documentação.
+
+Smoke integrado final aprovado em 2026-11-16 por
+`pdm run python -m scripts.test_runtime --confirm-fictitious`:
+
+- Build release com fixture e identidade exclusivamente fictícia, Compose real,
+  migrations em PostgreSQL novo/vazio e release-check sem migrations/seed implícitos.
+- Worker: SIGKILL, retomada do checkpoint sem duplicar os cinco atendimentos e
+  SIGTERM com saída 0.
+- TLS local verificado, HTTPS/WSS pelo proxy, sobrescrita de headers encaminhados,
+  cookies Secure/HttpOnly/Lax, CSRF obrigatório, refresh/logout e revogação de socket;
+  Origin indevida e acesso anônimo recusados.
+- HTML/deep link/HEAD e assets/estáticos; API/arquivo ausente, manifesto/cliente
+  legado e mídia privada não publicados; download permitido só ao titular autorizado.
+- Readiness 503 genérico sem Redis e recuperação; PostgreSQL reiniciado e novamente
+  pronto. Dump/restore em outro banco vazio e volume privado novo, comparando
+  contagens e hash SHA-256 do documento e repetindo o preflight restaurado.
+- Logs web/proxy/worker sem os marcadores fictícios de senha, endereço, CPF,
+  coordenadas, query e JWT. Somente recursos próprios foram removidos; sem prune.
+
+CLI Docker/Compose executado em imagem oficial fixada por digest no harness, sem
+instalar plugin no host. Avisos `security.W005`/`security.W021` são deliberados na
+referência local: subdomínios/preload não foram habilitados para silenciá-los.
+Links locais, blocos/tabelas Markdown e `git diff --check` conferidos.
+
+**Limites:** não houve build Vue real, teste em navegador/dispositivo, provedor,
+backup externo, push ou deploy. Retenção/LGPD, autorização de serviços com dados
+reais, emissão/renovação TLS e aceite operacional no provedor seguem pendentes.
+Banco habitual não foi migrado nem alterado. Este smoke não conclui a adaptação.

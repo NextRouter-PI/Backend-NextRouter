@@ -212,6 +212,13 @@ não um plano de rollback ou conversão. Nunca usar `--fake` para contornar isso
 
 ### Entrega do artefato
 
+Entradas de produção Docker/Procfile/PDM exigem também `frontend-release.json`
+fora de `frontend_dist/`, com revisões completas e hashes conferidos contra
+`BACKEND_REVISION`. Schema precisa estar atualizado antes do startup; release não
+aplica migrations nem gera dados. Preparação em [BUILD_VUE.md](BUILD_VUE.md),
+runtime/proxy/probes em [OPERACAO.md](OPERACAO.md). Não iniciar produção pelos
+settings de build ou contornar esses checks com o servidor de desenvolvimento.
+
 `frontend_dist/index.html` é servido sem interpolação Django, somente GET/HEAD de
 navegação com `Accept: text/html`. Deep links sem extensão recebem HTML; o Vue
 deve exibir seu próprio 404 para rota desconhecida. Prefixos reservados, arquivos

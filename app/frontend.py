@@ -8,23 +8,8 @@ from django.utils.cache import patch_vary_headers
 from whitenoise import WhiteNoise
 from whitenoise.middleware import WhiteNoiseMiddleware
 
-ASSET_EXTENSIONS = {
-    '.js',
-    '.css',
-    '.svg',
-    '.png',
-    '.jpg',
-    '.jpeg',
-    '.gif',
-    '.webp',
-    '.avif',
-    '.ico',
-    '.woff',
-    '.woff2',
-    '.ttf',
-    '.eot',
-    '.wasm',
-}
+from shared.frontend_artifact import ASSET_EXTENSIONS
+
 RESERVED = {
     'api',
     'admin',
@@ -37,6 +22,7 @@ RESERVED = {
     'private-documents',
     'html-template-test',
     'frontend_dist',
+    'health',
 }
 
 
