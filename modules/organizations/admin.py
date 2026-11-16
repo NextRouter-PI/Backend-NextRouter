@@ -1,13 +1,15 @@
-import logging
-import re
-
-from django import forms
 from django.contrib import admin, messages
 
+from modules.transport.admin_commands import (
+    GROUP_COMMANDS,
+    GROUP_MEMBERSHIP_COMMANDS,
+    MEMBERSHIP_COMMANDS,
+    POINT_COMMANDS,
+)
 from modules.transport.services.common import DomainError
 from modules.transport.services.governance import review_company
+from shared.admin import DomainCommandAdmin, ReadOnlyAdmin
 
-from .mixins.is_approved import clear_approval_notification_key, dispatch_approval_email_on_commit
 from .models import (
     Company,
     CompanyMembership,
@@ -19,219 +21,66 @@ from .models import (
     PassengerGroupMembership,
 )
 
-logger = logging.getLogger(__name__)
-
-
-class CompanyAdminForm(forms.ModelForm):
-    cnpj = forms.CharField(label='CNPJ', max_length=18, required=False)
-    contact_phone = forms.CharField(label='Telefone comercial', max_length=15, required=False)
-
-    def clean_cnpj(self):
-        value = self.cleaned_data.get('cnpj')
-        if value:
-            value = re.sub(r'\D', '', value)
-            if len(value) != 14:
-                raise forms.ValidationError('O CNPJ deve conter 14 números.')
-        return value
-
-    def clean_contact_phone(self):
-        value = self.cleaned_data.get('contact_phone')
-        return re.sub(r'\D', '', value) if value else value
-
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
-    form = CompanyAdminForm
     list_display = ('trade_name', 'legal_name', 'cnpj', 'user', 'review_status')
     list_filter = ('is_approved', 'state')
-    search_fields = ('trade_name', 'legal_name', 'cnpj', 'user__name', 'user__email')
+    search_fields = ('trade_name', 'legal_name', 'cnpj')
     list_select_related = ('user',)
-    autocomplete_fields = ('user',)
     actions = ('approve_companies', 'reject_companies')
-    fieldsets = (
-        (
-            'Empresa',
-            {
-                'fields': (
-                    'user',
-                    'trade_name',
-                    'legal_name',
-                    'cnpj',
-                    'state_registration',
-                    'is_approved',
-                    'is_rejected',
-                    'reviewed_by',
-                    'reviewed_at',
-                )
-            },
-        ),
-        ('Contato', {'fields': ('contact_email', 'contact_phone')}),
-        ('Endereço', {'fields': ('cep', 'street', 'number', 'complement', 'neighborhood', 'city', 'state')}),
-        ('Geolocalização', {'fields': ('latitude', 'longitude', 'geocoded_at'), 'classes': ('collapse',)}),
-        (
-            'Documentação',
-            {
-                'fields': (
-                    'articles_of_association_document',
-                    'state_operating_license_document',
-                    'certificate_of_good_stading_document',
-                )
-            },
-        ),
-    )
 
     def get_readonly_fields(self, request, obj=None):
-        fields = ('latitude', 'longitude', 'geocoded_at', 'is_approved', 'is_rejected', 'reviewed_by', 'reviewed_at')
-        return (*fields, 'user', 'cnpj') if obj else fields
+        protected = ('is_approved', 'is_rejected', 'reviewed_by', 'reviewed_at', 'latitude', 'longitude', 'geocoded_at')
+        return (*protected, 'user', 'cnpj') if obj else protected
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     @admin.action(description='Aprovar empresas selecionadas')
     def approve_companies(self, request, queryset):
         self._review(request, queryset, approve=True)
-        logger.info('company_review decision=approved reviewer_id=%s', request.user.pk)
 
     @admin.action(description='Recusar empresas selecionadas')
     def reject_companies(self, request, queryset):
         self._review(request, queryset, approve=False)
-        logger.info('company_review decision=rejected reviewer_id=%s', request.user.pk)
 
     def _review(self, request, queryset, *, approve):
         for company_id in queryset.order_by('pk').values_list('pk', flat=True):
             try:
                 review_company(actor_id=request.user.pk, company_id=company_id, approve=approve)
-            except DomainError as exc:
-                self.message_user(request, ' '.join(exc.messages), level=messages.ERROR)
-
-    class Media:
-        js = ('core/js/cnpj_mask.js', 'core/js/phone_mask.js')
+            except DomainError:
+                self.message_user(request, 'Operação recusada pelo serviço de domínio.', level=messages.ERROR)
 
 
-class ProfileAdminForm(forms.ModelForm):
-    def clean(self):
-        cleaned = super().clean()
-        if cleaned.get('is_approved') and cleaned.get('is_rejected'):
-            raise forms.ValidationError('O vínculo não pode ser aprovado e recusado ao mesmo tempo.')
-        return cleaned
-
-
-class ProfileAdmin(admin.ModelAdmin):
-    form = ProfileAdminForm
-    list_display = ('user', 'route_group', 'is_approved', 'is_rejected')
-    list_filter = ('is_approved', 'route_group__company')
-    search_fields = ('user__name', 'user__email', 'route_group__name')
-    list_select_related = ('user', 'route_group', 'route_group__company', 'route_group__company__user')
-    autocomplete_fields = ('user', 'route_group')
-    actions = None
-
-    def get_readonly_fields(self, request, obj=None):
-        return (*self.readonly_fields, 'user') if obj else self.readonly_fields
-
-    def save_model(self, request, obj, form, change):
-        was_approved = False
-        old_group_id = None
-        if change and obj.pk:
-            previous = type(obj).objects.filter(pk=obj.pk).values('is_approved', 'route_group_id').first()
-            if previous:
-                was_approved = previous['is_approved'] and previous['route_group_id'] == obj.route_group_id
-                old_group_id = previous['route_group_id']
-        super().save_model(request, obj, form, change)
-        if old_group_id and (old_group_id != obj.route_group_id or not obj.is_approved):
-            clear_approval_notification_key(obj, old_group_id)
-        if obj.is_approved and not obj.is_rejected and obj.route_group_id and not was_approved:
-            dispatch_approval_email_on_commit(obj)
-
-
-@admin.register(Passenger)
-class PassengerAdmin(ProfileAdmin):
-    fields = ('user', 'route_group', 'is_approved', 'is_rejected')
-
-
-@admin.register(Driver)
-class DriverAdmin(ProfileAdmin):
-    fields = ('user', 'route_group', 'is_approved', 'is_rejected', 'cnh')
-
-
-class CompanyRouteGroupAdminForm(forms.ModelForm):
-    common_cep = forms.CharField(label='CEP em comum', max_length=9, required=False)
-
-    def clean_name(self):
-        value = self.cleaned_data.get('name')
-        return value.lower() if value else value
-
-    def clean_common_cep(self):
-        value = self.cleaned_data.get('common_cep')
-        return re.sub(r'\D', '', value) if value else value
-
-
-@admin.register(CompanyRouteGroup)
-class CompanyRouteGroupAdmin(admin.ModelAdmin):
-    form = CompanyRouteGroupAdminForm
-    list_display = ('name', 'company', 'common_cep')
-    list_filter = ('company',)
-    search_fields = ('name', 'company__trade_name', 'company__user__name')
-    list_select_related = ('company',)
-    autocomplete_fields = ('company',)
-    fields = ('company', 'name', 'common_cep', 'reference_latitude', 'reference_longitude', 'geocoded_at')
-    readonly_fields = ('reference_latitude', 'reference_longitude', 'geocoded_at')
-    actions = None
-
-    def get_readonly_fields(self, request, obj=None):
-        return (*self.readonly_fields, 'company') if obj else self.readonly_fields
-
-    class Media:
-        js = ('core/js/name_mask.js', 'core/js/cep_mask.js')
-
-
-class OrganizationStructureReadOnlyAdmin(admin.ModelAdmin):
-    """Sem escrita administrativa antes de existir o serviço de domínio comum."""
-
-    actions = None
-
-    def get_readonly_fields(self, request, obj=None):
-        return tuple(field.name for field in self.model._meta.fields)
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
+OrganizationStructureReadOnlyAdmin = ReadOnlyAdmin
 
 
 @admin.register(CompanyMembership)
-class CompanyMembershipAdmin(OrganizationStructureReadOnlyAdmin):
-    list_display = ('id', 'company', 'passenger', 'driver', 'status', 'created_at')
+class CompanyMembershipAdmin(DomainCommandAdmin):
+    commands = MEMBERSHIP_COMMANDS
+    list_display = ('id', 'company', 'status', 'created_at')
     list_filter = ('status', 'company')
-    list_select_related = (
-        'company__user',
-        'passenger__user',
-        'driver__user',
-        'driver__route_group__company__user',
-        'requested_by',
-        'reviewed_by',
-        'withdrawn_by',
-        'ended_by',
-    )
 
 
-@admin.register(MembershipEvent)
-class MembershipEventAdmin(OrganizationStructureReadOnlyAdmin):
-    list_display = ('id', 'membership', 'action', 'actor', 'occurred_at')
-    list_filter = ('action',)
-    list_select_related = ('membership', 'actor')
-
-
-@admin.register(OperationalPoint)
-class OperationalPointAdmin(OrganizationStructureReadOnlyAdmin):
-    # Endereço e coordenadas só aparecem na consulta individual autorizada.
-    list_display = ('id', 'company', 'created_at')
-    list_filter = ('company',)
-    list_select_related = ('company__user', 'created_by')
+@admin.register(CompanyRouteGroup)
+class CompanyRouteGroupAdmin(DomainCommandAdmin):
+    commands = GROUP_COMMANDS
+    list_display = ('id', 'name', 'company')
+    search_fields = ('name',)
 
 
 @admin.register(PassengerGroupMembership)
-class PassengerGroupMembershipAdmin(OrganizationStructureReadOnlyAdmin):
+class PassengerGroupMembershipAdmin(DomainCommandAdmin):
+    commands = GROUP_MEMBERSHIP_COMMANDS
     list_display = ('id', 'membership', 'route_group', 'started_at', 'ended_at')
-    list_filter = ('route_group__company',)
-    list_select_related = ('membership', 'route_group__company', 'transport_point', 'assigned_by', 'ended_by')
+
+
+@admin.register(OperationalPoint)
+class OperationalPointAdmin(DomainCommandAdmin):
+    commands = POINT_COMMANDS
+    list_display = ('id', 'company', 'created_at')
+
+
+for model in (Passenger, Driver, MembershipEvent):
+    admin.site.register(model, ReadOnlyAdmin)

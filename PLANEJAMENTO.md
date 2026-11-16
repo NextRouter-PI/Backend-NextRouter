@@ -9,14 +9,14 @@ Substitui `docs/DOMINIO.md`, `docs/ARQUITETURA.md`, `docs/DECISOES.md`,
 `docs/CONVENCOES.md` e `docs/PROGRESSO.md`. Distinguir sempre **decisão aprovada**,
 **proposta técnica a detalhar** e **comportamento já implementado**.
 
-**Estado:** cobertura estrutural das subetapas **1.1–1.6** implementada e testada
-no conjunto autorizado; ver seção 11. Etapa 0 ainda tem exceções pendentes.
-Não declarar conclusão integral da transição: os callers/campos legados necessários
-permanecem até as Etapas 2/3. Ainda sem ativação operacional do domínio novo.
-A API/admin legados ainda operam com o domínio anterior; o backend não serve o build Vue.
-Etapa 2 com serviços de configuração, demanda, planejamento, cálculo e execução
-implementados/testados em isolamento (seção 12). Concorrência real em PostgreSQL
-validada nesta continuação (13.1); substituição dos callers em andamento na Etapa 3.
+**Estado:** modelagem 1.1–1.6 e serviços da Etapa 2 implementados; concorrência real
+em PostgreSQL validada (13.1). A Etapa 3 substituiu as entradas operacionais por
+API/admin/WS/worker do domínio datado, em validação na seção 13. Não há dois caminhos
+operacionais de escrita; schema legado ainda congelado até a remoção incremental.
+Backend reconhece o artefato Vue, mas somente fixtures foram testadas: build real,
+navegador e entrega conjunta continuam pendentes no marco integrado 3/4. Retenção/
+expurgo e preparação do ambiente permanecem pendentes. Seções 10–12 registram os
+marcos históricos; a situação atual prevalecente está na seção 13.
 Histórico local de migrations reiniciado, por autorização do dono, para **bancos
 novos/vazios**, com usuário UUID desde a criação; ver seção 12.8. As referências
 numéricas antigas abaixo são evidências históricas, não arquivos ainda disponíveis.
@@ -219,8 +219,8 @@ independentes. Não tratar as recomendações abaixo como regras já aprovadas.
 | Cancelamento do dia com alguma viagem já iniciada | Decidido em 2026-11-16: cancelar somente as ainda não iniciadas, preservar ativas/finalizadas e indicar cancelamento parcial com aviso. |
 | Encerrar viagem com aluno ainda marcado como embarcado; erro de marcação | Decidido em 2026-11-16: bloquear fechamento com embarque aberto; somente a empresa corrige marcações, com motivo obrigatório, referência ao evento anterior e auditoria. Não fabricar desembarque nem reabrir execução finalizada. |
 | Desaprovação/desativação durante viagem ativa | Decidido em 2026-11-16: bloquear a mudança cadastral enquanto houver operação em andamento, em vez de inventar acesso residual. Mesmas barreiras devem cobrir API/admin; integração de callers legados continua sendo condição antes da ativação. Encerramento de vínculo segue 10.8/12.2. |
-| Pesquisa pública por região/destino | Definir filtros mínimos (por exemplo, cidade atendida e destino), sem presumir busca por raio ou geocodificação pública. Aprovação cadastral não implementa descoberta geográfica. |
-| Histórico, retenção, avaliações e objetos perdidos | Precisar acesso de ex-vinculados, tempo de retenção e elegibilidade por embarque/viagem finalizada; reabertura de objeto continua pendente. |
+| Pesquisa pública por região/destino | Decidido em 13.1: filtros cidade/UF atendidas e nome do grupo/destino, sem raio, endereço ou coordenadas públicas. |
+| Histórico, retenção, avaliações e objetos perdidos | Decidido em 13.1: ex-vinculados não acessam histórico; avaliação por aluno desembarcado em viagem finalizada; relato por esse aluno/motorista; empresa conduz reported→found→returned, sem reabertura/exclusão. Retenção/expurgo continuam pendentes, sem exclusão automática. |
 
 Detalhes técnicos a registrar na mesma etapa: horizonte de geração e frequência do
 worker, limites de espera, margem de agenda e modelo de horário planejado; nenhum
@@ -715,20 +715,22 @@ Entradas atuais: `app/api.py`, `app/urls.py`, `app/asgi.py`, `app/settings/`;
 `modules/uploads/`, `shared/`. Worker atual:
 `modules/transport/management/commands/process_route_jobs.py`.
 
-Prod atualmente exige `SECRET_KEY`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`,
+Prod atualmente exige `SECRET_KEY`, `ALLOWED_HOSTS`, `PUBLIC_ORIGIN`,
 `DATABASE_URL`, `REDIS_URL`, `PRIVATE_DOCUMENT_ROOT`, `OSRM_URL`, `GEOCODING_URL`,
 `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`. Outros nomes estão em
-`.env.example` e `app/settings/base.py`; essas exigências ainda não foram adaptadas
-à mesma origem. A lista não é o contrato final de deploy.
+`.env.example` e `app/settings/base.py`. CORS fica vazio em produção; WS/CSRF usam
+a origem pública explícita. A lista não é o contrato completo de deploy da Etapa 4.
 
-E-mail de código é síncrono; aprovação atual usa executor após commit (não Celery).
+E-mail de código é síncrono; aprovação empresarial de vínculo agora gera aviso
+interno transacional, sem executor/e-mail operacional.
 Documentos privados usam storage separado; imagens podem usar Cloudinary. Redis
-é necessário para cache/canais entre processos. WhiteNoise e collectstatic já existem,
-mas não há montagem/roteamento do build Vue em `app/urls.py`.
+é necessário para cache/canais entre processos. WhiteNoise mantém `/static/` e serve
+assets do artefato isolado; `app/urls.py` tem fallback restrito da SPA. Build real não validado.
 
 ## 8. Riscos herdados: não perder durante a substituição dos docs
 
-Esta lista preserva achados da revisão anterior; não equivale a reprodução nova.
+Esta lista preserva achados históricos da revisão anterior à Etapa 3; não equivale
+a reprodução nova nem descreve todos os callers atuais. Resoluções na seção 13.
 
 | Achado e evidência atual | Encaminhamento |
 |---|---|
@@ -765,7 +767,7 @@ descrever como implementado algo que existe apenas como plano.
 | Etapa 0 — especificação técnica detalhada e estratégia de migrations | Decisões de vínculo, pedidos, publicação, viagem única e regeneração registradas. Exceções restantes na seção 3.4. Nova base de migrations autorizada para bancos vazios; instalação SQLite local criada sem descarte (12.8). |
 | Etapa 1 — modelagem | Cobertura estrutural 1.1–1.6 implementada e testada (seção 11), sem declarar substituição integral: callers/campos antigos ainda necessários têm remoção coordenada nas Etapas 2/3. Nenhum novo fluxo operacional ativado. |
 | Etapa 2 — regras | Serviços 2.1–2.5 e concorrência de 2.6 validados em PostgreSQL 16.16 (13.1). Callers legados ainda em substituição coordenada na Etapa 3; não confundir validação dos serviços com entrega do fluxo pelo navegador. |
-| Etapa 3 — API/admin/integração | Iniciada; autorização e decisões na seção 13. Substituição coordenada dos callers ainda em implementação. |
+| Etapa 3 — API/admin/integração | Backend HTTP/admin/WS/worker e artefato SPA implementados/testados (seção 13); remoção física do schema legado em preparação. Não concluída a integração com Vue real/navegador. |
 | Etapa 4 — ambiente/build/operação | Não iniciada. |
 
 **Validações do registro inicial (2026-11-15, antes da revisão de ambiguidades):** `pdm run test` passou
@@ -1838,3 +1840,58 @@ vencedora preservada), cadastro com código antes de senha fraca e settings de o
 em processos isolados. Referências de CSRF/Channels/DRF consultadas via Context7.
 Lint/formatação e `git diff --check` conferidos antes do commit. Sem nova dependência,
 migration, alteração do banco habitual ou validação de Vue/Redis/servidor público.
+
+### 13.3. Substituição coordenada das entradas operacionais
+
+API nova organizada por recursos de vínculo/configuração/demanda/planejamento/
+execução/histórico/avisos; contratos e mapa de substituição em CONTRATO_API.md.
+Views finas usam serializers estritos e os mesmos serviços de domínio. Listas e
+detalhes são isolados antes de filtros/paginação; empresa é inferida do ator para
+configuração, sem reparenting ou bypass operacional de staff. Campos de estado,
+propriedade, ator e revisão não são silenciosamente aceitos por PATCH genérico.
+
+- Removidos callers HTTP de Path/horários pareados/confirmações, ações de vínculo
+  nos perfis, consumer/GPS antigos, serviços de localização legados, signals que
+  ligavam endereço pessoal ao percurso e e-mails operacionais de aprovação. Perfis
+  agora representam identidade; empresa não edita/apaga identidade de terceiros.
+- Admin bloqueia add/change/delete genéricos operacionais e mantém ações explícitas
+  para um registro, entrada validada, ator real e serviços comuns; nem superusuário
+  pode operar silenciosamente por outra empresa. Review cadastral continua separado.
+- Worker substituído por jobs de snapshot/claim/lease e manutenção reentrante. Exige
+  empresa e limites explícitos; sem números universais ou novo scheduler persistente.
+  Seeds adaptados ao domínio novo, somente dev, confirmação explícita e senha por
+  ambiente sem log/reset; backfill que fabricava endereço/documento foi desativado.
+- WS autentica somente cookie, com Origin independente de CORS, revalidação antes de
+  cada entrega e watchdog para expiração/revogação/encerramento sem novo GPS. Limites
+  de payload/frequência/ordem e indicação de stale; fim limpa posição/fecha conexão,
+  broadcast pós-commit não desfaz decisão. Alunos não recebem percurso/endereço alheio.
+- Avaliações/objetos passam por participação efetiva e vínculo vigente. Autorização
+  **complementar expressa** do dono permitiu adicionar `LostItemEvent` (estado, autor,
+  instante e UUID idempotente; sem replicar descrição/PII). `router.0002_lost_item_audit`
+  é incremental, testada só em bancos descartáveis. Custódia forward-only e auditada
+  atomicamente; sem DELETE/reabertura. Ex-vinculados perdem acesso, não registros.
+- SPA/WhiteNoise: HTML não interpolado, GET/HEAD de navegação explícita, prefixos
+  reservados/arquivos/JSON fora do fallback, assets isolados/allowlist e sem symlinks,
+  mapas ou manifestos públicos. Hashes preservados; cache conservador revalidável até
+  pipeline real. API/admin/cookies/downloads privados são `private, no-store`.
+- Clientes HTML antigos permanecem históricos e fora da imagem/estáticos; não são
+  cliente do contrato novo. Frontend separado não foi acessado/alterado.
+
+Validações intermediárias: **26 testes novos** de HTTP/admin/WS/histórico/SPA
+passaram; a checagem de schema ainda exigia atualizar a asserção do endpoint legado,
+depois corrigida para ações novas. Suíte completa SQLite após adaptar regressões:
+**352 descobertos, 336 passaram e 16 ignorados**, 247,322 s (15 disputas de domínio
+e refresh concorrente exigem PostgreSQL). Check sem divergência; OpenAPI validado
+após unificar os enums de trecho. Seeds/SPA: **6/6** (1,401 s).
+
+Suíte completa PostgreSQL 16.16: **352/352 passaram** (372,935 s), nenhuma ignorada.
+Redis 7 isolado via `scripts/test_redis.sh`: **5/5** (4,341 s), quatro testes WS e
+um broadcast real entre processos com PIDs distintos. Container/tmpfs/porta local
+novos, URL herdada ignorada e limpeza dos próprios recursos no fim. Isso não é teste
+de navegador/Vue ou smoke no provedor. Remoção física do schema legado ainda em
+preparação; sem migrate no SQLite habitual, dependências, deploy, push ou merge.
+Após reforços de validação de origem, timestamps de custódia e cache conservador,
+recorte final de **28/28** passou (10,152 s). Lint passou (172 arquivos), schema
+validou com `--fail-on-warn`, check e diff sem problemas. Fixtures/links/blocos dos
+documentos mantidos conferidos; resultados integrais anteriores são evidências do
+mesmo recorte, não execução nova após cada edição documental.

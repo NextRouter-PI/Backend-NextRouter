@@ -99,7 +99,7 @@ class OperationalPointTests(TestCase):
     def test_creation_and_user_address_changes_do_not_geocode_or_modify_point(self):
         passenger = create_passenger('point-passenger@example.com')
         with (
-            mock.patch('modules.transport.services.legacy.geocode_address') as geocode,
+            mock.patch('shared.geocoding.geocode_address') as geocode,
             mock.patch('modules.transport.osrm.optimize_coordinates') as osrm,
         ):
             point = create_operational_point(self.company)
@@ -119,7 +119,8 @@ class OperationalPointTests(TestCase):
     def test_new_points_are_not_public_api_resources(self):
         client = APIClient()
         client.force_authenticate(self.company.user)
-        self.assertEqual(client.get('/api/operational-points/').status_code, 404)
+        self.assertEqual(client.get('/api/operational-points/').status_code, 200)
+        self.assertEqual(APIClient().get('/api/operational-points/').status_code, 401)
 
 
 class GroupDestinationTests(TestCase):
@@ -162,14 +163,18 @@ class GroupDestinationTests(TestCase):
         with self.assertRaises(ProtectedError):
             self.point.delete()
 
-    def test_legacy_api_neither_exposes_nor_writes_destination(self):
+    def test_api_exposes_destination_to_owner_and_requires_explicit_id_input(self):
         client = APIClient()
         client.force_authenticate(self.company.user)
         url = f'/api/company-route-groups/{self.group.pk}/'
         response = client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotIn('destination', response.data)
+        self.assertIn('destination', response.data)
         response = client.patch(url, {'destination': self.point.pk}, format='json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.group.refresh_from_db()
         self.assertIsNone(self.group.destination_id)
+        response = client.patch(url, {'destination_id': self.point.pk}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.group.refresh_from_db()
+        self.assertEqual(self.group.destination_id, self.point.pk)

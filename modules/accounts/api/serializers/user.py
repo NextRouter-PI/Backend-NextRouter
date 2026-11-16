@@ -208,6 +208,9 @@ class BaseProfilePatchSerializer(ModelSerializer):
 
     FORBIDDEN_FIELDS = (
         'is_approved',
+        'is_rejected',
+        'route_group',
+        'review_status',
         'user',
     )
 

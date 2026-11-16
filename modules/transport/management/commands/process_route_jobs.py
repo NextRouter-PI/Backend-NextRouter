@@ -1,48 +1,50 @@
-import logging
 import time
 from datetime import timedelta
 
-from django.core.management.base import BaseCommand
-from django.utils import timezone
+from django.core.management.base import BaseCommand, CommandError
 
-from modules.transport.models import RouteOptimizationJob
-from modules.transport.optimization import claim_job, process_optimization
-from modules.transport.osrm import OSRMError
-from shared.geocoding import GeocodingError
-
-logger = logging.getLogger(__name__)
+from modules.organizations.models import Company
+from modules.transport.services.jobs import claim_snapshot_job, process_snapshot_job
+from modules.transport.services.maintenance import process_due
 
 
 class Command(BaseCommand):
-    help = 'Processa rotas pendentes fora das requisições HTTP.'
+    help = 'Processa jobs de snapshots por claim/lease; nunca processa Path legado.'
 
     def add_arguments(self, parser):
         parser.add_argument('--once', action='store_true')
+        parser.add_argument('--company-id', type=int, required=True)
+        parser.add_argument('--lease-seconds', type=int, required=True)
+        parser.add_argument('--max-attempts', type=int, required=True)
+        parser.add_argument('--retry-seconds', type=int, required=True)
+        parser.add_argument('--poll-seconds', type=int)
 
     def handle(self, *args, **options):
+        if (
+            options['lease_seconds'] <= 0
+            or options['max_attempts'] <= 0
+            or options['retry_seconds'] < 0
+            or (not options['once'] and (options['poll_seconds'] is None or options['poll_seconds'] <= 0))
+        ):
+            raise CommandError('Informe limites positivos; retry pode ser zero. Loop exige --poll-seconds.')
+        company = Company.objects.filter(pk=options['company_id'], is_approved=True, user__is_active=True).first()
+        if company is None:
+            raise CommandError('Empresa aprovada/ativa não encontrada.')
         while True:
-            job = claim_job()
+            process_due(actor_id=company.user_id, company_id=company.pk)
+            job = claim_snapshot_job(
+                company_id=company.pk,
+                lease_duration=timedelta(seconds=options['lease_seconds']),
+                max_attempts=options['max_attempts'],
+            )
             if job:
-                try:
-                    process_optimization(job)
-                except (OSRMError, GeocodingError) as exc:
-                    self._retry(job, str(exc))
-                except Exception as exc:
-                    logger.error('route_job_failed job_id=%s error_type=%s', job.pk, type(exc).__name__)
-                    self._retry(job, 'Falha ao processar a rota. Tente novamente.')
+                process_snapshot_job(
+                    job_id=job.pk,
+                    claim_token=job.claim_token,
+                    max_attempts=options['max_attempts'],
+                    retry_delay=timedelta(seconds=options['retry_seconds']),
+                )
             if options['once']:
                 return
             if not job:
-                time.sleep(2)
-
-    def _retry(self, job, message):
-        final = job.attempts >= 3
-        RouteOptimizationJob.objects.filter(pk=job.pk, status=RouteOptimizationJob.Status.RUNNING).update(
-            status=RouteOptimizationJob.Status.FAILED if final else RouteOptimizationJob.Status.PENDING,
-            error=message,
-            passenger_ids=[] if final else job.passenger_ids,
-            start={} if final else job.start,
-            end={} if final else job.end,
-            available_at=timezone.now() + timedelta(seconds=2**job.attempts * 5),
-        )
-        logger.warning('route_job_retry job_id=%s attempts=%s final=%s', job.pk, job.attempts, final)
+                time.sleep(options['poll_seconds'])

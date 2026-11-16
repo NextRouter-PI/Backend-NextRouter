@@ -6,9 +6,10 @@
   antes de encerrar. Ele substitui os antigos documentos de `docs/`.
 - Para o artefato frontend, consulte [BUILD_VUE.md](BUILD_VUE.md). É um tutorial
   de preparação e integração planejada, não confirmação de suporte já implementado.
-- A adaptação **ainda não está concluída**. A modelagem nova cobre 1.1–1.6,
-  mas o caminho operacional continua legado (seção 11 do planejamento). Não
-  confundir regras-alvo com o código atual; conferir arquivos e registrar diferenças.
+- A adaptação **ainda não está concluída**. Modelagem 1.1–1.6 e serviços da Etapa 2
+  têm validação PostgreSQL. A Etapa 3 substituiu callers por HTTP/admin/WS/worker
+  datados (seção 13); build Vue real/navegador/entrega continuam pendentes. Seções
+  10–12 são históricas; conferir o código e o acompanhamento mais recente.
 - Leia a legenda inicial e a seção 3.4 do planejamento: fluxo principal aprovado
   não significa que todas as recomendações técnicas ou regras de exceção estejam
   aprovadas. Feche as pendências que bloqueiam a subetapa antes de implementá-las;
@@ -51,22 +52,21 @@
   grupos do motorista. Um ciclo empresarial pendente ou ativo por perfil; só
   solicitar outra empresa após encerrar. Titular retira pedido pendente; titular
   ou empresa encerram vínculo, bloqueado durante participação operacional ativa.
-- Modelos novos de vínculos, programação, dias, respostas/pedidos, viagens datadas,
-  participantes/reservas, snapshots, convites e avisos ainda não têm escrita operacional.
-  Serviços da Etapa 2 existem em `modules/organizations/services/` e
-  `modules/transport/services/`, mas continuam isolados dos callers operacionais.
-  Código legado de transport foi movido para `services/legacy.py` com seus imports.
-  Admin novo é somente leitura; endpoints/GPS legados não recebem viagens datadas.
-  Worker legado só processa jobs de Path, nunca jobs novos de snapshot.
-  Não habilitar caminho novo mantendo API/admin/WS legados com outra fonte de verdade;
-  substituição de callers e remoção do legado têm marco explícito no planejamento.
+- A escrita operacional autoritativa passa pelos serviços de organizations/transport,
+  compartilhados por API, ações explícitas do admin e worker de snapshots/claim/lease.
+  Callers legados foram removidos; não reativá-los nem criar espelhamento por signals.
+  Schema legado ainda congelado até remoção incremental; não usá-lo para autorizar
+  acesso ou configurar o domínio datado. Admin não aceita escrita genérica de estados.
+  Worker exige empresa/lease/tentativas/retry explícitos; agendamento persistente é Etapa 4.
 - Regeneração aprovada: automática somente para datas futuras não publicadas;
   publicadas exigem revisão explícita. Preservar respostas/decisões/histórico e
   cancelados. Conflitos preservam registros e geram pendência bloqueante até resolução
   explícita. Uma viagem publicada congela a regeneração automática de todo o grupo/data.
 - Encerramento de vínculo/troca de grupo exige resolver antes alocações/designações
   futuras não canceladas/desistidas, além do bloqueio durante participação em andamento.
-  Serviços novos ainda isolados dos callers; ver seção 12 do planejamento.
+  Ex-vinculados não acessam histórico operacional; não apagar/expurgar registros sem
+  política/autorização. Avaliação exige desembarque e viagem finalizada; objetos
+  seguem reported→found→returned pela empresa, com auditoria, sem reabertura/DELETE.
 - Pedidos precisam ser aprovados antes do fim da prorrogação. Aprovação **não**
   transfere imediatamente: preserva escolha/alocação anterior até cálculo validado;
   proposta pode reservar capacidade. Aplicação revalida e transfere atomicamente.
@@ -89,8 +89,8 @@
   não protegem listas. Revalidar invariantes nos services, inclusive com concorrência.
 - Alunos podem ser menores: não expor identidade, endereço ou localização sem
   necessidade/autorização. Não logar senha, código, JWT, CPF, endereço ou coordenadas.
-- Código de confirmação deve ser validado antes das regras de senha; existem
-  divergências atuais listadas no planejamento. Preservar tentativas e antienumeração.
+- Código de confirmação deve ser validado antes das regras de senha. Os callers
+  foram corrigidos na Etapa 3; preservar as regressões de tentativas e antienumeração.
 - Produção-alvo: cookies HttpOnly/Secure e CSRF, mesma origem, sem JWT em JSON/storage/URL.
   Não desabilitar CSRF/CORS/origin checks para fazer a integração funcionar.
 - CSRF não é JWT: seu token de bootstrap pode ser entregue ao Vue. Cookie de access

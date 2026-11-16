@@ -24,5 +24,9 @@ class OpenApiContractTests(SimpleTestCase):
             self.assertTrue(operation.get('description'), operation['operationId'])
             self.assertTrue(operation.get('tags'), operation['operationId'])
 
-        self.assertIn('202', schema['paths']['/api/paths/{id}/optimize/']['post']['responses'])
-        self.assertIn('400', schema['paths']['/api/travels/']['post']['responses'])
+        self.assertIn('202', schema['paths']['/api/travels/{id}/calculate/']['post']['responses'])
+        self.assertIn('409', schema['paths']['/api/travels/{id}/publish/']['post']['responses'])
+        self.assertNotIn('post', schema['paths']['/api/travels/'])
+        self.assertNotIn('/api/paths/', schema['paths'])
+        self.assertNotIn('/api/confirmations/', schema['paths'])
+        self.assertNotIn('bearerAuth', schema['components']['securitySchemes'])

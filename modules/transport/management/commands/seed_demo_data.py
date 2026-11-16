@@ -1,345 +1,146 @@
 import os
-from datetime import timedelta
+from datetime import time, timedelta
 
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
 from modules.accounts.models import User
-from modules.organizations.models import Company, CompanyRouteGroup, Driver, Passenger
-from modules.transport.models import CompanyRouteSchedule, Path, Travel, Vehicle
-
-CNPJ_WEIGHTS_1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-CNPJ_WEIGHTS_2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-
-
-def _check_digit(digits, start_weight):
-    weights = range(start_weight, 1, -1)
-    total = sum(d * w for d, w in zip(digits, weights, strict=True))
-    remainder = (total * 10) % 11
-    return 0 if remainder == 10 else remainder
-
-
-def make_cpf(base9: str) -> str:
-    digits = [int(c) for c in base9]
-    d1 = _check_digit(digits, 10)
-    d2 = _check_digit([*digits, d1], 11)
-    return f'{base9}{d1}{d2}'
-
-
-def make_cnpj(base12: str) -> str:
-    digits = [int(c) for c in base12]
-    total_1 = sum(d * w for d, w in zip(digits, CNPJ_WEIGHTS_1, strict=True))
-    remainder_1 = total_1 % 11
-    d1 = 0 if remainder_1 < 2 else 11 - remainder_1
-
-    total_2 = sum(d * w for d, w in zip([*digits, d1], CNPJ_WEIGHTS_2, strict=True))
-    remainder_2 = total_2 % 11
-    d2 = 0 if remainder_2 < 2 else 11 - remainder_2
-
-    return f'{base12}{d1}{d2}'
-
-
-COMPANIES = [
-    {
-        'slug': 'transnorte',
-        'trade_name': 'TransNorte Transportes',
-        'legal_name': 'TransNorte Transportes Ltda',
-        'cnpj': make_cnpj('111222330001'),
-        'email': 'contato@transnorte.com.br',
-        'cpf': make_cpf('100200300'),
-        'city': 'Blumenau',
-        'state': 'SC',
-        'cep': '89010-000',
-        'street': 'Rua XV de Novembro',
-        'number': '500',
-        'neighborhood': 'Centro',
-        'route_groups': [
-            {
-                'name': 'Rota Centro-Garcia',
-                'common_cep': '89010-000',
-                'schedules': [('06:30', '18:00')],
-                'drivers': [
-                    {'name': 'Marcos Antunes', 'email': 'marcos.antunes@transnorte.com.br', 'cpf_base': '200300400'},
-                    {
-                        'name': 'Juliana Bittencourt',
-                        'email': 'juliana.bittencourt@transnorte.com.br',
-                        'cpf_base': '200300500',
-                    },
-                ],
-                'vehicles': [
-                    {
-                        'plate': 'BLU1A23',
-                        'model': 'Mercedes-Benz Sprinter',
-                        'year': 2021,
-                        'capacity': 16,
-                        'color': 'Branco',
-                    },
-                    {'plate': 'BLU2B34', 'model': 'Volkswagen Crafter', 'year': 2022, 'capacity': 18, 'color': 'Prata'},
-                ],
-                'passengers': [
-                    {'name': 'Ana Beatriz Souza', 'email': 'ana.souza@example.com', 'cpf_base': '300400500'},
-                    {'name': 'Carlos Eduardo Lima', 'email': 'carlos.lima@example.com', 'cpf_base': '300400600'},
-                    {'name': 'Fernanda Costa', 'email': 'fernanda.costa@example.com', 'cpf_base': '300400700'},
-                    {'name': 'Gustavo Ramos', 'email': 'gustavo.ramos@example.com', 'cpf_base': '300400800'},
-                ],
-            },
-        ],
-    },
-    {
-        'slug': 'rotafacil',
-        'trade_name': 'Rota Fácil Fretamento',
-        'legal_name': 'Rota Fácil Fretamento Ltda',
-        'cnpj': make_cnpj('444555660001'),
-        'email': 'contato@rotafacil.com.br',
-        'cpf': make_cpf('400500600'),
-        'city': 'Rio do Sul',
-        'state': 'SC',
-        'cep': '89160-000',
-        'street': 'Rua Duque de Caxias',
-        'number': '120',
-        'neighborhood': 'Centro',
-        'route_groups': [
-            {
-                'name': 'Rota Centro-Laranjeiras',
-                'common_cep': '89160-000',
-                'schedules': [('07:00', '17:30')],
-                'drivers': [
-                    {'name': 'Rodrigo Peixoto', 'email': 'rodrigo.peixoto@rotafacil.com.br', 'cpf_base': '500600700'},
-                ],
-                'vehicles': [
-                    {'plate': 'RSU3C45', 'model': 'Iveco Daily', 'year': 2020, 'capacity': 14, 'color': 'Azul'},
-                ],
-                'passengers': [
-                    {'name': 'Larissa Nogueira', 'email': 'larissa.nogueira@example.com', 'cpf_base': '600700800'},
-                    {'name': 'Pedro Henrique Alves', 'email': 'pedro.alves@example.com', 'cpf_base': '600700900'},
-                    {'name': 'Sabrina Teixeira', 'email': 'sabrina.teixeira@example.com', 'cpf_base': '600701000'},
-                ],
-            },
-        ],
-    },
-    {
-        'slug': 'valeexpresso',
-        'trade_name': 'Vale Expresso Transportes',
-        'legal_name': 'Vale Expresso Transportes Ltda',
-        'cnpj': make_cnpj('777888990001'),
-        'email': 'contato@valeexpresso.com.br',
-        'cpf': make_cpf('700800900'),
-        'city': 'Camboriú',
-        'state': 'SC',
-        'cep': '88340-000',
-        'street': 'Avenida Santa Catarina',
-        'number': '2200',
-        'neighborhood': 'Centro',
-        'route_groups': [
-            {
-                'name': 'Rota Praia-Centro',
-                'common_cep': '88340-000',
-                'schedules': [('06:00', '19:00')],
-                'drivers': [
-                    {
-                        'name': 'Eduardo Martins',
-                        'email': 'eduardo.martins@valeexpresso.com.br',
-                        'cpf_base': '800900100',
-                    },
-                    {'name': 'Camila Duarte', 'email': 'camila.duarte@valeexpresso.com.br', 'cpf_base': '800900200'},
-                ],
-                'vehicles': [
-                    {'plate': 'CBU4D56', 'model': 'Renault Master', 'year': 2023, 'capacity': 15, 'color': 'Cinza'},
-                    {'plate': 'CBU5E67', 'model': 'Fiat Ducato', 'year': 2021, 'capacity': 16, 'color': 'Branco'},
-                ],
-                'passengers': [
-                    {'name': 'Bruna Fagundes', 'email': 'bruna.fagundes@example.com', 'cpf_base': '900100200'},
-                    {'name': 'Diego Correia', 'email': 'diego.correia@example.com', 'cpf_base': '900100300'},
-                    {'name': 'Isabela Franco', 'email': 'isabela.franco@example.com', 'cpf_base': '900100400'},
-                    {'name': 'Lucas Andrade', 'email': 'lucas.andrade@example.com', 'cpf_base': '900100500'},
-                    {'name': 'Mariana Vieira', 'email': 'mariana.vieira@example.com', 'cpf_base': '900100600'},
-                ],
-            },
-        ],
-    },
-]
-
-DEMO_PASSWORD = 'Demo@1234'
+from modules.organizations.models import Company, Driver, Passenger
+from modules.organizations.services.groups import assign_passenger_group
+from modules.organizations.services.memberships import approve_membership, request_membership
+from modules.transport.services.calendar import generate_day
+from modules.transport.services.configuration import (
+    authorize_services,
+    configure_group,
+    configure_point,
+    configure_policy,
+    configure_service,
+    configure_vehicle,
+)
+from modules.transport.services.governance import review_company
+from shared.demo import make_cnpj as make_cnpj
+from shared.demo import make_cpf as make_cpf
 
 
 class Command(BaseCommand):
-    help = (
-        'Popula o banco com dados de demonstração (empresas, motoristas, passageiros, '
-        'veículos e rotas) para o ambiente publicado. É idempotente (get_or_create), '
-        'então pode ser executado mais de uma vez sem duplicar registros. Só roda de fato '
-        "quando a variável de ambiente SEED_DEMO_DATA='true' está definida, para não "
-        'acontecer sem querer em todo deploy.'
-    )
+    help = 'Cria fixture fictícia no domínio datado, somente em desenvolvimento e por confirmação explícita.'
 
+    def add_arguments(self, parser):
+        parser.add_argument('--confirm-fictitious', action='store_true')
+
+    @transaction.atomic
     def handle(self, *args, **options):
-        if os.getenv('SEED_DEMO_DATA', 'false').lower() != 'true':
-            self.stdout.write("SEED_DEMO_DATA não está 'true', pulando população de dados de demonstração.")
-            return
+        password = os.environ.get('DEMO_PASSWORD', '')
+        if not settings.DEBUG or not options['confirm_fictitious'] or not password:
+            raise CommandError('Use apenas em dev, --confirm-fictitious e DEMO_PASSWORD no ambiente. Sem reset.')
 
-        with transaction.atomic():
-            for company_data in COMPANIES:
-                self._create_company(company_data)
+        def user(role, base, **values):
+            found = User.objects.filter(email=f'{role}@fixture.example.invalid').first()
+            return found or User.objects.create_user(
+                email=f'{role}@fixture.example.invalid',
+                password=password,
+                name=f'Fixture {role}',
+                cpf=make_cpf(base),
+                **values,
+            )
 
-        self.stdout.write(self.style.SUCCESS('Dados de demonstração populados com sucesso.'))
-        self.stdout.write(f'Todos os usuários de demonstração usam a senha: {DEMO_PASSWORD}')
-
-    def _create_user(self, *, name, email, cpf, city, state, cep, street, number, neighborhood):
-        user, created = User.objects.get_or_create(
-            email=email,
+        moderator = user('moderator', '900000001', is_staff=True, is_superuser=True)
+        company, _ = Company.objects.get_or_create(
+            user=user('company', '900000002'),
             defaults={
-                'name': name,
-                'cpf': cpf,
-                'city': city,
-                'state': state,
-                'cep': cep,
-                'street': street,
-                'number': number,
-                'neighborhood': neighborhood,
-                'is_active': True,
+                'trade_name': 'Empresa fictícia',
+                'legal_name': 'Empresa fictícia LTDA',
+                'cnpj': make_cnpj('900000010001'),
             },
         )
-        if created:
-            user.set_password(DEMO_PASSWORD)
-            user.save(update_fields=['password'])
-            self.stdout.write(f'  Usuário criado: {email}')
-        return user
-
-    def _create_company(self, data):
-        user = self._create_user(
-            name=data['trade_name'],
-            email=data['email'],
-            cpf=data['cpf'],
-            city=data['city'],
-            state=data['state'],
-            cep=data['cep'],
-            street=data['street'],
-            number=data['number'],
-            neighborhood=data['neighborhood'],
+        review_company(actor_id=moderator.pk, company_id=company.pk, approve=True)
+        driver, _ = Driver.objects.get_or_create(user=user('driver', '900000003'))
+        passenger, _ = Passenger.objects.get_or_create(user=user('passenger', '900000004'))
+        members = []
+        for profile, field in ((driver, 'driver_id'), (passenger, 'passenger_id')):
+            member = company.memberships.filter(**{field: profile.pk}, status='active').first()
+            member = member or request_membership(
+                actor_id=profile.user_id, company_id=company.pk, **{field: profile.pk}
+            )
+            members.append(approve_membership(actor_id=company.user_id, membership_id=member.pk))
+        points = []
+        for index, name in enumerate(('Garagem fictícia', 'Destino fictício', 'Ponto fictício')):
+            existing = company.operational_points.filter(name=name).first()
+            points.append(
+                configure_point(
+                    actor_id=company.user_id,
+                    company_id=company.pk,
+                    point_id=existing.pk if existing else None,
+                    name=name,
+                    street='Rua Fictícia',
+                    number=str(index + 1),
+                    neighborhood='Bairro fictício',
+                    city='Cidade fictícia',
+                    state='SC',
+                    cep='89010000',
+                    latitude=-26.3 - index / 100,
+                    longitude=-48.8,
+                )
+            )
+        existing = company.route_groups.filter(name='Grupo fictício').first()
+        group = configure_group(
+            actor_id=company.user_id,
+            company_id=company.pk,
+            group_id=existing.pk if existing else None,
+            name='Grupo fictício',
+            destination_id=points[1].pk,
         )
-
-        company, created = Company.objects.get_or_create(
-            cnpj=data['cnpj'],
-            defaults={
-                'user': user,
-                'trade_name': data['trade_name'],
-                'legal_name': data['legal_name'],
-                'state_registration': '000000000',
-                'contact_email': data['email'],
-                'is_approved': True,
-                'city': data['city'],
-                'state': data['state'],
-                'cep': data['cep'],
-                'street': data['street'],
-                'number': data['number'],
-                'neighborhood': data['neighborhood'],
-            },
+        vehicle = company.fleet.filter(plate='FIC1A23').first()
+        vehicle = configure_vehicle(
+            actor_id=company.user_id,
+            company_id=company.pk,
+            vehicle_id=vehicle.pk if vehicle else None,
+            plate='FIC1A23',
+            capacity=2,
+            garage_point_id=points[0].pk,
         )
-        self.stdout.write(f'Empresa: {data["trade_name"]} ({"criada" if created else "já existia"})')
-
-        for group_data in data['route_groups']:
-            self._create_route_group(company, data, group_data)
-
-    def _create_route_group(self, company, company_data, group_data):
-        route_group, _ = CompanyRouteGroup.objects.get_or_create(
-            company=company,
-            name=group_data['name'],
-            defaults={'common_cep': group_data['common_cep']},
+        configure_policy(
+            actor_id=company.user_id,
+            group_id=group.pk,
+            opens_days_before=1,
+            opens_time=time(8),
+            normal_days_before=1,
+            normal_time=time(22),
+            extension_days_before=0,
+            extension_time=time(6),
         )
-
-        for go_hour, return_hour in group_data['schedules']:
-            CompanyRouteSchedule.objects.get_or_create(
-                route_group=route_group,
-                go_hour=go_hour,
-                return_hour=return_hour,
+        services = []
+        for direction, clock in (('outbound', time(8)), ('return', time(17))):
+            existing = group.services.filter(direction=direction).first()
+            services.append(
+                configure_service(
+                    actor_id=company.user_id,
+                    group_id=group.pk,
+                    service_id=existing.pk if existing else None,
+                    name=f'Fixture {direction}',
+                    direction=direction,
+                    weekdays=127,
+                    target_time=clock,
+                    valid_from=timezone.localdate(),
+                    driver_membership_id=members[0].pk,
+                    vehicle_id=vehicle.pk,
+                    planned_duration=timedelta(hours=1),
+                    turnaround_duration=timedelta(minutes=10),
+                )
             )
-
-        drivers = []
-        for driver_data in group_data['drivers']:
-            user = self._create_user(
-                name=driver_data['name'],
-                email=driver_data['email'],
-                cpf=make_cpf(driver_data['cpf_base']),
-                city=company_data['city'],
-                state=company_data['state'],
-                cep=company_data['cep'],
-                street=company_data['street'],
-                number=str(int(company_data['number']) + 10),
-                neighborhood=company_data['neighborhood'],
-            )
-            driver, _ = Driver.objects.get_or_create(
-                user=user,
-                defaults={'route_group': route_group, 'is_approved': True},
-            )
-            if driver.route_group_id != route_group.id or not driver.is_approved:
-                driver.route_group = route_group
-                driver.is_approved = True
-                driver.save(update_fields=['route_group', 'is_approved'])
-            drivers.append(driver)
-
-        for index, vehicle_data in enumerate(group_data['vehicles']):
-            Vehicle.objects.get_or_create(
-                plate=vehicle_data['plate'],
-                defaults={
-                    'route_group': route_group,
-                    'driver': drivers[index] if index < len(drivers) else None,
-                    'model': vehicle_data['model'],
-                    'year': vehicle_data['year'],
-                    'capacity': vehicle_data['capacity'],
-                    'color': vehicle_data['color'],
-                    'garage_cep': company_data['cep'],
-                    'status': Vehicle.Status.ACTIVE,
-                    'features': ['Ar-condicionado', 'Cinto de segurança'],
-                },
-            )
-
-        for passenger_data in group_data['passengers']:
-            user = self._create_user(
-                name=passenger_data['name'],
-                email=passenger_data['email'],
-                cpf=make_cpf(passenger_data['cpf_base']),
-                city=company_data['city'],
-                state=company_data['state'],
-                cep=company_data['cep'],
-                street=company_data['street'],
-                number=str(int(company_data['number']) + 20),
-                neighborhood=company_data['neighborhood'],
-            )
-            Passenger.objects.get_or_create(
-                user=user,
-                defaults={'route_group': route_group, 'is_approved': True},
-            )
-
-        self._create_travels(company, route_group, drivers)
-
-    def _create_travels(self, company, route_group, drivers):
-        if not drivers:
-            return
-
-        # get_or_create abaixo usa started_at, que é calculado a partir de timezone.now() — se
-        # já existem viagens para essa empresa, não recalcula, senão cada execução do comando
-        # geraria um novo now() (segundos diferentes) e duplicaria as viagens a cada deploy.
-        if Travel.objects.filter(company=company).exists():
-            return
-
-        path = Path.objects.filter(route_group=route_group).order_by('id').first()
-        if not path:
-            path = Path.objects.create(route_group=route_group, name='Trajeto automático', points=[])
-
-        now = timezone.now()
-        travel_plans = [
-            (drivers[0], Travel.Status.FINISHED, now - timedelta(days=1), now - timedelta(days=1) + timedelta(hours=1)),
-            (drivers[0], Travel.Status.SCHEDULED, now + timedelta(days=1), None),
-        ]
-        if len(drivers) > 1:
-            travel_plans.append((drivers[1], Travel.Status.IN_PROGRESS, now - timedelta(minutes=20), None))
-
-        for driver, status, started_at, finished_at in travel_plans:
-            Travel.objects.get_or_create(
-                company=company,
-                driver=driver,
-                path=path,
-                status=status,
-                started_at=started_at,
-                defaults={'finished_at': finished_at},
-            )
+        participation = assign_passenger_group(
+            actor_id=company.user_id,
+            membership_id=members[1].pk,
+            route_group_id=group.pk,
+            transport_point_id=points[2].pk,
+        )
+        authorize_services(
+            actor_id=company.user_id,
+            group_membership_id=participation.pk,
+            service_ids=[service.pk for service in services],
+            habitual_outbound_id=services[0].pk,
+        )
+        generate_day(actor_id=company.user_id, group_id=group.pk, date=timezone.localdate() + timedelta(days=1))
+        self.stdout.write(self.style.SUCCESS('Fixture datada preparada. Credenciais não são exibidas.'))

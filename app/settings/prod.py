@@ -26,17 +26,23 @@ if not ALLOWED_HOSTS or '*' in ALLOWED_HOSTS or any('://' in host for host in AL
     raise ImproperlyConfigured('ALLOWED_HOSTS deve conter apenas nomes de host, sem curingas ou protocolo.')
 
 PUBLIC_ORIGIN = _required('PUBLIC_ORIGIN')
-_origin = urlsplit(PUBLIC_ORIGIN)
+try:
+    _origin = urlsplit(PUBLIC_ORIGIN)
+    _port = _origin.port
+except ValueError as exc:
+    raise ImproperlyConfigured('PUBLIC_ORIGIN deve ser uma origem HTTPS válida.') from exc
 if (
     _origin.scheme != 'https'
     or not _origin.hostname
     or _origin.hostname not in ALLOWED_HOSTS
-    or _origin.username
-    or _origin.password
+    or _origin.username is not None
+    or _origin.password is not None
     or _origin.path
     or _origin.query
     or _origin.fragment
     or '*' in PUBLIC_ORIGIN
+    or any(value in PUBLIC_ORIGIN for value in ('?', '#', '\\'))
+    or _port == 0
 ):
     raise ImproperlyConfigured('PUBLIC_ORIGIN deve ser uma origem HTTPS sem caminho, de um host autorizado.')
 CORS_ALLOWED_ORIGINS = []

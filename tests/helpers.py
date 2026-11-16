@@ -5,7 +5,6 @@ import itertools
 import re
 import shutil
 import tempfile
-from unittest import mock
 
 from django.core import mail
 from django.core.cache import cache
@@ -17,8 +16,7 @@ from rest_framework.test import APITestCase
 
 from modules.accounts.models import User
 from modules.organizations.models import Company, CompanyRouteGroup, OperationalPoint, Passenger
-from modules.transport.management.commands.backfill_user_data import _placeholder_pdf
-from modules.transport.management.commands.seed_demo_data import make_cnpj, make_cpf
+from shared.demo import make_cnpj, make_cpf, placeholder_pdf
 
 PASSWORD = 'SenhaForte@123'
 
@@ -45,7 +43,7 @@ def png_file(name='foto.png'):
 
 
 def pdf_file(name='documento.pdf'):
-    return SimpleUploadedFile(name, _placeholder_pdf('Documento').read(), content_type='application/pdf')
+    return SimpleUploadedFile(name, placeholder_pdf('Documento').read(), content_type='application/pdf')
 
 
 def create_user(email, **extra):
@@ -108,11 +106,6 @@ class BaseAPITestCase(APITestCase):
         media_override = override_settings(MEDIA_ROOT=media_root, PRIVATE_DOCUMENT_ROOT=private_root)
         media_override.enable()
         self.addCleanup(media_override.disable)
-
-        for target in ('modules.transport.services.legacy.geocode_address',):
-            patcher = mock.patch(target, return_value=(-26.3, -48.8))
-            patcher.start()
-            self.addCleanup(patcher.stop)
 
     def request_code(self, email, token_type='new-user'):
         """Pede o código como o front-end faz e devolve o código lido do e-mail enviado."""

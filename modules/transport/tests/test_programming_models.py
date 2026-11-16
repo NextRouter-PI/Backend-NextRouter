@@ -124,8 +124,8 @@ class FleetModelTests(Stage1ModelTestCase):
         with self.assertRaises(IntegrityError), transaction.atomic():
             Vehicle.objects.filter(pk=self.vehicle.pk).update(capacity=None)
 
-    def test_legacy_api_cannot_write_company_owned_vehicle(self):
+    def test_api_writes_company_vehicle_through_configuration_service(self):
         client = APIClient()
         client.force_authenticate(self.company.user)
         response = client.patch(f'/api/vehicles/{self.vehicle.pk}/', {'plate': 'BAD1A23'}, format='json')
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 200, response.data)

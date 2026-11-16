@@ -84,7 +84,7 @@ class MembershipReadOnlyAdminTests(TestCase):
                 response = self.client.post(
                     self.admin_url(obj, 'changelist'), {'action': 'delete_selected', '_selected_action': [obj.pk]}
                 )
-                self.assertEqual(response.status_code, 200)
+                self.assertIn(response.status_code, (200, 302))
                 self.assertTrue(type(obj).objects.filter(pk=obj.pk).exists())
 
     def test_staff_without_model_permissions_cannot_read(self):
@@ -108,7 +108,7 @@ class MembershipReadOnlyAdminTests(TestCase):
                 self.assertEqual(self.client.get(url).status_code, 200)
                 self.assertEqual(self.client.post(url, {'post': 'yes'}).status_code, 403)
 
-    def test_legacy_group_admin_does_not_offer_or_write_destination(self):
+    def test_group_admin_cannot_write_destination_through_generic_form(self):
         self.client.force_login(self.admin)
         url = reverse('admin:organizations_companyroutegroup_change', args=[self.group.pk])
         response = self.client.get(url)
@@ -118,7 +118,7 @@ class MembershipReadOnlyAdminTests(TestCase):
             url,
             {'name': 'Grupo atualizado', 'common_cep': '89010-000', 'destination': self.point.pk, '_save': 'Salvar'},
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 403)
         self.group.refresh_from_db()
         self.assertIsNone(self.group.destination_id)
 

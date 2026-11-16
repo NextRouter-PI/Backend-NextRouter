@@ -1,8 +1,8 @@
 # `html-template-test/` — Páginas HTML para Teste Manual da API NextRouter
 
-> **Cliente legado:** descreve o contrato anterior à adaptação. Não é a especificação
-> do fluxo aprovado; consulte [PLANEJAMENTO.md](../PLANEJAMENTO.md). Será revisado
-> quando a API mudar. O storage de tokens usado aqui não é o padrão do frontend Vue de produção.
+> **Cliente legado desativado como contrato:** a Etapa 3 substituiu esta API. Não
+> utilizar estas páginas contra a operação datada nem armazenar JWT no navegador.
+> Consulte [CONTRATO_API.md](../CONTRATO_API.md) e [PLANEJAMENTO.md](../PLANEJAMENTO.md).
 
 > **AVISO DE SEGURANÇA**: Esta pasta é uma ferramenta exclusiva para ambiente de desenvolvimento local. Não a exponha em produção, não a inclua em `STATIC_ROOT`/coleta de arquivos estáticos nem grave senhas, tokens ou segredos reais nos arquivos.
 
@@ -74,3 +74,11 @@ http://localhost:5173/index.html
 - **WebSocket no Navegador e Cookies**: A API nativa `WebSocket` do navegador não permite enviar cabeçalhos `Authorization: Bearer` customizados; portanto, o canal `ws/travels/{travel_id}/location/` autentica sempre pelo cookie HttpOnly `access_token` do último login efetuado no navegador. Para testar motorista e passageiro simultaneamente em WebSocket, use duas janelas (normal + anônima/outro perfil de navegador) ou alterne o login em `index.html`.
 - **Rate Limit de Localização**: O backend rejeita coordenadas enviadas com intervalo inferior a `LOCATION_MIN_INTERVAL_SECONDS` (padrão `2` segundos); na simulação de sequência do WebSocket, mantenha o intervalo em `>= 2500` ms.
 - **Serviços Externos (OSRM e Nominatim)**: O endpoint `POST /api/paths/{id}/optimize/` exige que `OSRM_URL` e `GEOCODING_URL` estejam configurados no `.env` e acessíveis; caso o OSRM esteja indisponível, o backend retorna `503 Service Unavailable` sem sobrescrever o trajeto anterior.
+# Aviso da transição da Etapa 3
+
+Os clientes desta pasta documentam o contrato **anterior** e não devem ser usados
+como cliente da operação datada. Endpoints de confirmação/Path/horários pareados,
+Bearer e troca de vínculo no perfil foram removidos. Não guardar JWT no storage;
+sessões antigas salvas por estes clientes não fazem parte do contrato atual.
+Consulte [CONTRATO_API.md](../CONTRATO_API.md) e os testes de HTTP/WS para os fluxos
+novos. Esta pasta é histórica, excluída da imagem e da entrega de assets/SPA.

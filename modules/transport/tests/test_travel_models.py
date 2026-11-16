@@ -59,13 +59,13 @@ class DatedTravelModelTests(DayModelTestCase):
         with self.assertRaises(ValidationError):
             Travel(**self.travel_data(company=self.other_company)).full_clean()
 
-    def test_legacy_api_cannot_read_or_confirm_dated_travel(self):
+    def test_api_reads_dated_travel_but_legacy_confirmation_endpoint_is_removed(self):
         travel = Travel.objects.create(**self.travel_data())
         client = APIClient()
         client.force_authenticate(self.company.user)
-        self.assertEqual(client.get(f'/api/travels/{travel.pk}/').status_code, 404)
+        self.assertEqual(client.get(f'/api/travels/{travel.pk}/').status_code, 200)
         client.force_authenticate(self.passenger.user)
-        self.assertEqual(client.post('/api/confirmations/', {'travel': travel.pk}, format='json').status_code, 400)
+        self.assertEqual(client.post('/api/confirmations/', {'travel': travel.pk}, format='json').status_code, 404)
 
     def test_admin_cannot_change_new_travel(self):
         travel = Travel.objects.create(**self.travel_data())

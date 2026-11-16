@@ -1,20 +1,40 @@
 from rest_framework.routers import SimpleRouter
 
-from .api.views.company_route_schedule import CompanyRouteScheduleViewSet
-from .api.views.confirm_passenger_route import ConfirmPassengerRouteViewSet
-from .api.views.driver_rating import DriverRatingViewSet
-from .api.views.lost_item import LostItemViewSet
-from .api.views.path import PathViewSet
-from .api.views.travel import TravelViewSet
-from .api.views.vehicle import VehicleViewSet
+from .api.views.configuration import GroupViewSet, PointViewSet, PolicyViewSet, ServiceViewSet, VehicleViewSet
+from .api.views.daily import ChangeRequestViewSet, DayViewSet, EligibilityViewSet, ResponseViewSet
+from .api.views.history import LostItemViewSet, RatingViewSet
+from .api.views.operation import (
+    EventViewSet,
+    InvitationViewSet,
+    JobViewSet,
+    NotificationViewSet,
+    ParticipantViewSet,
+    PublicationViewSet,
+    SnapshotViewSet,
+    StopViewSet,
+    TravelViewSet,
+)
 
 router = SimpleRouter()
-router.register('route-schedules', CompanyRouteScheduleViewSet, basename='route-schedules')
-router.register('confirmations', ConfirmPassengerRouteViewSet, basename='confirmations')
-router.register('lost-items', LostItemViewSet, basename='lost-items')
-router.register('paths', PathViewSet, basename='paths')
+router.register('operational-points', PointViewSet, basename='operational-points')
+router.register('company-route-groups', GroupViewSet, basename='company-route-groups')
+router.register('response-policies', PolicyViewSet, basename='response-policies')
+router.register('recurring-services', ServiceViewSet, basename='recurring-services')
+router.register('service-days', DayViewSet, basename='service-days')
+router.register('eligibilities', EligibilityViewSet, basename='eligibilities')
+router.register('daily-responses', ResponseViewSet, basename='daily-responses')
+router.register('change-requests', ChangeRequestViewSet, basename='change-requests')
 router.register('vehicles', VehicleViewSet, basename='vehicles')
 router.register('travels', TravelViewSet, basename='travels')
-router.register('driver-ratings', DriverRatingViewSet, basename='driver-ratings')
+router.register('travel-participations', ParticipantViewSet, basename='travel-participations')
+router.register('participation-events', EventViewSet, basename='participation-events')
+router.register('route-snapshots', SnapshotViewSet, basename='route-snapshots')
+router.register('route-stops', StopViewSet, basename='route-stops')
+router.register('travel-publications', PublicationViewSet, basename='travel-publications')
+router.register('driver-invitations', InvitationViewSet, basename='driver-invitations')
+router.register('notifications', NotificationViewSet, basename='notifications')
+router.register('optimization-jobs', JobViewSet, basename='optimization-jobs')
+router.register('driver-ratings', RatingViewSet, basename='driver-ratings')
+router.register('lost-items', LostItemViewSet, basename='lost-items')
 
 urlpatterns = []

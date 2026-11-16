@@ -60,7 +60,14 @@ class ProductionOriginTests(SimpleTestCase):
         )
         result = subprocess.run([sys.executable, '-c', code], env=env, capture_output=True, text=True, timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
-        for origin in ('https://evil.example.com', 'http://app.example.com', 'https://app.example.com/path', '*'):
+        for origin in (
+            'https://evil.example.com',
+            'http://app.example.com',
+            'https://app.example.com/path',
+            '*',
+            'https://app.example.com:invalid',
+            'https://@app.example.com',
+        ):
             with self.subTest(origin=origin):
                 result = subprocess.run(
                     [sys.executable, '-c', code],
