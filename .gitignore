@@ -186,3 +186,5 @@ db.sqlite3
 # Arquivos estáticos coletados (gerados no build/deploy)
 /staticfiles/
 /frontend_dist/
+/frontend-release.json
+/deploy/tls/

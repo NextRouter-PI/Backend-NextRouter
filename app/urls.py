@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from app.frontend import favicon, frontend
+from app.health import live, ready
 
 
 @extend_schema_view(
@@ -20,6 +21,8 @@ class NextRouterSchemaView(SpectacularAPIView):
 
 
 urlpatterns = [
+    path('health/live/', live, name='health-live'),
+    path('health/ready/', ready, name='health-ready'),
     path('admin/', admin.site.urls),
     path('api/schema/', NextRouterSchemaView.as_view(), name='schema'),
     path('api/doc/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

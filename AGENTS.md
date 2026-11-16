@@ -6,6 +6,8 @@
   antes de encerrar. Ele substitui os antigos documentos de `docs/`.
 - Para o artefato frontend, consulte [BUILD_VUE.md](BUILD_VUE.md). É um tutorial
   do contrato reconhecido pelo backend; não comprova build Vue real/navegador/deploy.
+- Para ambiente/runtime e smoke local descartável, consulte [OPERACAO.md](OPERACAO.md).
+  Não confundir fixture TLS/WSS ou restore local com navegador/provedor/produção.
 - A adaptação **ainda não está concluída**. Modelagem 1.1–1.6 e serviços da Etapa 2
   têm validação PostgreSQL. A Etapa 3 substituiu callers por HTTP/admin/WS/worker
   datados (seção 13); build Vue real/navegador/entrega continuam pendentes. Seções
@@ -59,7 +61,7 @@
   `router.0003_retire_legacy`, testados só em bancos temporários. Guards bloqueiam
   conteúdo legado sem limpar/converter registros; não usar `--fake` nem aplicar
   em banco habitual sem autorização concreta. Admin não aceita PATCH de estados.
-  Worker exige empresa/lease/tentativas/retry/poll/lotes explícitos. Agenda opt-in
+  Worker exige empresa/lease/tentativas/retry/lotes explícitos e poll no loop. Agenda opt-in
   por grupo usa `router.0004_automation_schedule`, horizonte/lote/frequência no banco,
   checkpoint transacional e revisão na configuração; ver planejamento 14.2.
 - Regeneração aprovada: automática somente para datas futuras não publicadas;

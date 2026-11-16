@@ -14,3 +14,9 @@ staticfiles/
 **/*.pyc
 html-template-test/
 opencode.json
+**/tests/
+node_modules/
+.vscode/
+deploy/tls/
+tls/
+*.env

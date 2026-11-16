@@ -16,6 +16,46 @@ def _required(name):
     return value
 
 
+def _boolean(name, default='false'):
+    value = os.environ.get(name, default).strip().lower()
+    if value not in ('true', 'false'):
+        raise ImproperlyConfigured(f'{name} deve ser true ou false.')
+    return value == 'true'
+
+
+def _nonnegative_integer(name, default='0'):
+    value = os.environ.get(name, default).strip()
+    if not value.isascii() or not value.isdecimal() or int(value) > 2147483647:
+        raise ImproperlyConfigured(f'{name} deve ser um inteiro não negativo válido.')
+    return int(value)
+
+
+def _routing_url(name):
+    value = _required(name)
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        raise ImproperlyConfigured(f'{name} deve ser uma URL HTTP(S) válida.') from None
+    if (
+        parsed.scheme not in ('http', 'https')
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or port == 0
+        or any(
+            parsed.hostname.lower().rstrip('.') == demo or parsed.hostname.lower().rstrip('.').endswith('.' + demo)
+            for demo in ('project-osrm.org', 'nominatim.openstreetmap.org')
+        )
+    ):
+        raise ImproperlyConfigured(
+            f'{name} deve usar serviço autorizado, sem credenciais/query ou servidores demo públicos.'
+        )
+    return value
+
+
 DEBUG = False
 SECRET_KEY = _required('SECRET_KEY')
 if len(SECRET_KEY) < 50 or SECRET_KEY.startswith('django-insecure-'):
@@ -48,21 +88,34 @@ if (
 CORS_ALLOWED_ORIGINS = []
 CSRF_TRUSTED_ORIGINS = [PUBLIC_ORIGIN]
 WS_ALLOWED_ORIGINS = [PUBLIC_ORIGIN]
+FRONTEND_URL = FRONTEND_ADMIN_URL = PUBLIC_ORIGIN
+BACKEND_REVISION = os.environ.get('BACKEND_REVISION', '')
 
-DATABASES = {'default': dj_database_url.parse(_required('DATABASE_URL'), conn_max_age=600, conn_health_checks=True)}
+# ASGI não deve manter conexões persistentes por requisição; worker também fecha por ciclo.
+DATABASES = {'default': dj_database_url.parse(_required('DATABASE_URL'), conn_max_age=0, conn_health_checks=True)}
 if DATABASES['default']['ENGINE'] != 'django.db.backends.postgresql':
     raise ImproperlyConfigured('DATABASE_URL deve apontar para PostgreSQL em produção.')
 if not all(DATABASES['default'].get(key) for key in ('NAME', 'USER', 'PASSWORD', 'HOST')):
     raise ImproperlyConfigured('DATABASE_URL deve conter nome, usuário, senha e host do PostgreSQL.')
 
 REDIS_URL = _required('REDIS_URL')
+try:
+    _redis = urlsplit(REDIS_URL)
+    _redis_port = _redis.port
+except ValueError:
+    raise ImproperlyConfigured('REDIS_URL deve apontar para Redis/Redis TLS válido.') from None
+if _redis.scheme not in ('redis', 'rediss') or not _redis.hostname or _redis_port == 0:
+    raise ImproperlyConfigured('REDIS_URL deve apontar para Redis/Redis TLS.')
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache', 'LOCATION': REDIS_URL}}
+CHANNEL_LAYERS = {'default': {'BACKEND': 'channels_redis.core.RedisChannelLayer', 'CONFIG': {'hosts': [REDIS_URL]}}}
 PRIVATE_DOCUMENT_ROOT = _required('PRIVATE_DOCUMENT_ROOT')
-if Path(PRIVATE_DOCUMENT_ROOT).resolve().is_relative_to(Path(common.MEDIA_ROOT).resolve()):
-    raise ImproperlyConfigured('PRIVATE_DOCUMENT_ROOT deve ficar fora de MEDIA_ROOT.')
-OSRM_URL = _required('OSRM_URL')
-GEOCODING_URL = _required('GEOCODING_URL')
-if 'project-osrm.org' in OSRM_URL or 'nominatim.openstreetmap.org' in GEOCODING_URL:
-    raise ImproperlyConfigured('Não use servidores públicos de demonstração para rotas de alunos.')
+if not Path(PRIVATE_DOCUMENT_ROOT).is_absolute() or any(
+    Path(PRIVATE_DOCUMENT_ROOT).resolve().is_relative_to(Path(root).resolve())
+    for root in (common.MEDIA_ROOT, common.STATIC_ROOT, common.FRONTEND_DIST, *common.STATICFILES_DIRS)
+):
+    raise ImproperlyConfigured('PRIVATE_DOCUMENT_ROOT deve ser absoluto e ficar fora de diretórios públicos.')
+OSRM_URL = _routing_url('OSRM_URL')
+GEOCODING_URL = _routing_url('GEOCODING_URL')
 
 EMAIL_HOST = _required('EMAIL_HOST')
 EMAIL_HOST_USER = _required('EMAIL_HOST_USER')
@@ -75,7 +128,30 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_HSTS_SECONDS = _nonnegative_integer('HSTS_SECONDS')
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _boolean('HSTS_INCLUDE_SUBDOMAINS')
+SECURE_HSTS_PRELOAD = _boolean('HSTS_PRELOAD')
+if (SECURE_HSTS_INCLUDE_SUBDOMAINS or SECURE_HSTS_PRELOAD) and SECURE_HSTS_SECONDS == 0:
+    raise ImproperlyConfigured('Habilite HSTS antes de incluir subdomínios/preload; confirme o controle do domínio.')
+TRUST_PROXY_HEADERS = _boolean('TRUST_PROXY_HEADERS')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if TRUST_PROXY_HEADERS else None
+# Exceção mínima sem dados para o probe HTTP interno; readiness continua exigindo HTTPS.
+SECURE_REDIRECT_EXEMPT = [r'^health/live/$']
+IPWARE_PROXY_COUNT = 0
+IPWARE_HEADER_ORDER = ['REMOTE_ADDR']
+REST_FRAMEWORK = {**common.REST_FRAMEWORK, 'NUM_PROXIES': 1 if TRUST_PROXY_HEADERS else 0}
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {'operational': {'()': 'app.operational_logging.OperationalFormatter'}},
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'operational'},
+        'null': {'class': 'logging.NullHandler'},
+    },
+    'root': {'handlers': ['console'], 'level': 'INFO'},
+    'loggers': {
+        'django': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'django.server': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'daphne.access': {'handlers': ['null'], 'propagate': False},
+    },
+}

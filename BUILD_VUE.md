@@ -9,6 +9,7 @@ Vue acompanha a publicação do Django, na mesma origem.
 > Isso **não comprova integração real**: frontend separado, build reproduzível,
 > pipeline de publicação e testes em navegador continuam no marco conjunto 3/4.
 > Contrato HTTP/WS em [CONTRATO_API.md](CONTRATO_API.md).
+> Preparação/verificação de artefato e runtime local descritos em [OPERACAO.md](OPERACAO.md).
 
 ## 1. Conferir o projeto frontend
 
@@ -111,38 +112,39 @@ cookies, CSRF, API e WebSocket do Django.
 
 ## 4. Preparar o artefato para o backend
 
-Contrato implementado: copiar **o conteúdo** de `dist/` para `frontend_dist/` na raiz
-do pacote do backend. Exemplo em um checkout de entrega novo, ainda sem essa pasta:
+Contrato implementado: preparar **o conteúdo** de `dist/` como `frontend_dist/`,
+com manifesto de identidade **fora** dessa pasta. No backend, usando revisões Git
+completas (não nomes de branch/tag):
 
 ```sh
-# Execute o bloco completo em shell compatível com sh, com os caminhos reais.
-(
-  set -eu
-  FRONTEND_REPO=/caminho/para/frontend
-  BACKEND_REPO=/caminho/para/backend
-  test -f "$FRONTEND_REPO/dist/index.html"
-  test -f "$BACKEND_REPO/manage.py"
-  mkdir "$BACKEND_REPO/frontend_dist"
-  cp -R "$FRONTEND_REPO/dist/." "$BACKEND_REPO/frontend_dist/"
-)
+# Informe caminhos e hashes completos da entrega, sem segredos.
+pdm run prepare-frontend --source "$FRONTEND_REPO/dist" \
+  --destination "$NEW_RELEASE_ARTIFACT" \
+  --frontend-revision "$FRONTEND_REVISION" --backend-revision "$BACKEND_REVISION"
+pdm run verify-frontend --root "$NEW_RELEASE_ARTIFACT/frontend_dist" \
+  --backend-revision "$BACKEND_REVISION"
 ```
 
-O bloco interrompe na primeira falha. Um `mkdir` isolado que falha não impede o
-shell interativo de executar um `cp` na linha seguinte; por isso use o bloco completo.
-O `mkdir` sem `-p` falha se o destino já existir: não sobreponha uma entrega antiga
-deixando chunks obsoletos por acidente. Prepare uma nova área de build ou peça
-autorização para limpar apenas o artefato gerado. Não apague diretórios amplos.
+`NEW_RELEASE_ARTIFACT` deve ser uma pasta nova, fora da origem. A ferramenta recusa
+destino existente, symlinks, ocultos, mapas, manifestos públicos e arquivos fora da
+allowlist; confere recursos referenciados pelo HTML e hashes SHA-256 sem renomear
+chunks. O manifesto é gravado por último; uma cópia interrompida é recusada na
+verificação, sem limpar automaticamente o destino. Não apague diretórios amplos.
 
-O resultado esperado é `frontend_dist/index.html`, e não
-`frontend_dist/dist/index.html`. Não copiar `node_modules/`, código-fonte, `.env`
-ou a pasta `html-template-test/`.
+O resultado é `frontend_dist/index.html` e `frontend-release.json` como irmãos na
+pasta de entrega, nunca `frontend_dist/dist/index.html`. A preparação não executa
+npm/Node e não prova que o build corresponde ao código informado: a CI precisa
+obter e compilar a revisão fixada de forma confiável. Não incluir `node_modules/`,
+código-fonte, `.env` ou `html-template-test/` no artefato.
 
-Essa cópia manual serve para entender o processo. Na entrega definitiva, a CI ou
-o build de imagem deverá obter uma revisão fixada do frontend, compilar e montar
-o artefato automaticamente. Registrar commits do backend e frontend no release;
-não baixar uma branch mutável durante o startup do servidor.
+Em um checkout **novo e limpo** do backend na revisão identificada, montar os dois
+resultados preparados na raiz do contexto Docker, sem sobrepor entrega antiga.
+O target `release` exige ambos e valida revisão/hashes durante o build. A CI futura
+deve automatizar esse passo, registrar commits/digest da imagem e publicar/reverter
+a imagem conjunta. Não baixar branch mutável durante startup nem instalar Node no
+runtime Python. Detalhes de ambiente e limites reais em OPERACAO.md.
 
-Arquivos gerados não entram no Git (`/frontend_dist/` já está ignorado). A entrega
+Arquivos gerados não entram no Git (`/frontend_dist/` e `/frontend-release.json` ignorados). A entrega
 deve garantir que o artefato entre no pacote ou imagem por passo explícito de build.
 Node pode ficar só no estágio de build, fora do runtime Python.
 
@@ -160,14 +162,15 @@ Node pode ficar só no estágio de build, fora do runtime Python.
   nunca recebem fallback HTML. API/admin e respostas com cookies são `private, no-store`.
 - HTML usa `no-cache`; assets/favicons usam revalidação por ETag/Last-Modified. Não
   se presume fingerprint por regex de nome. Cache longo/imutável só deverá ser
-   habilitado quando o pipeline real comprovar versionamento/retenção dos assets.
+  habilitado quando o pipeline real comprovar versionamento/retenção dos assets.
 - Produção exige `PUBLIC_ORIGIN=https://host[:porta]`, sem barra final, com host em
   `ALLOWED_HOSTS`. CORS vazio, cookies Lax/HttpOnly/Secure e allowlists WS/CSRF
   independentes. Não mudar isso para contornar integração.
 
-**Etapa 4 ainda necessária:** compilar/revisar o artefato real, incluí-lo na imagem
-ou release, validar HTTPS/WSS/proxy/storage, coordenar rollback/API e testar o Vue
-em navegador. Nenhum build real foi executado nesta implementação.
+**Ainda pendente na Etapa 4:** compilar/revisar o artefato real, incluí-lo na imagem
+ou release, validar HTTPS/WSS/proxy/storage no provedor, coordenar rollback/API e
+testar o Vue em navegador. A referência Docker local passou pelo smoke com fixture
+(planejamento 14.3); nenhum build Vue real foi executado nesta implementação.
 
 ### Orientação de implementação para agentes
 
@@ -239,10 +242,14 @@ backend atual. O repositório Vue não foi inspecionado e nenhum comando npm/bui
 ou deploy foi executado nesta tarefa; ferramentas e configuração do frontend
 precisam ser confirmadas antes da execução.
 
-Na revisão de ambiguidades de 2026-11-15, o bloco de cópia da seção 4 foi testado
+Na revisão de ambiguidades de 2026-11-15, o bloco manual então existente na seção 4 foi testado
 com arquivos fictícios em diretório temporário: a primeira execução copiou o HTML;
 a segunda falhou sem sobrescrevê-lo. Isso valida a proteção do exemplo de shell,
 não o build ou o deploy real.
+
+Na Etapa 4, o preparador/verificador substitui o bloco manual: testa identidade,
+hashes, allowlist, referências, recusa de sobreposição e adulteração com fixtures.
+Isso ainda não comprova o build Vue real ou a integração em navegador.
 
 Na Etapa 3, fixtures fictícias validaram deep links/HEAD, expressões Vue sem
 interpolação, prefixos reservados/Accept, cache, ETag e negação de mapas/ocultos/
