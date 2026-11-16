@@ -814,6 +814,17 @@ Validação deste recorte: 23/23 testes (programação/frota + privacidade), 31,
 Primeira tentativa de makemigrations usou o nome do módulo em vez do label `router`,
 sem criar arquivo; corrigida. Lint ajustado antes do commit; schema/check ao fim do conjunto.
 
+Segundo recorte: `ResponsePolicy` sem horários universais fixados por default;
+`ServiceDay` único por grupo/data com prazos completos, snapshot/revisão e tombstone
+de cancelamento; `ServiceDayEligibility` fixa quem era esperado e serviços/ponto
+autorizados. `DailyResponse` é única por elegibilidade: ausência de linha é sem
+resposta; linha com ambos os serviços nulos é negativa. Ida/retorno e desistências
+são independentes. `DailyChangeRequest` separa decisão e aplicação, preserva proposta
+e versão esperada; aprovação exige autor/instante anterior ao fim da janela, e não
+modifica a resposta automaticamente. Reservas/cálculo/aplicação serão services da
+Etapa 2. Migrations incrementais `router.0009`/`0010` (auditoria terminal); 25/25 testes de transport passaram
+(10,372 s); lint conferido antes do commit. Modelos novos somente leitura no admin.
+
 **Continuação da Etapa 1:** baseline antes dos próximos models encontrou uma falha
 no teste de filtro por data de viagens (114/115 passaram). O teste usava data UTC,
 mas o filtro usa America/Sao_Paulo. Corrigido para data local, com relógio fixo em
