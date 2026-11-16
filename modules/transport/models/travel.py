@@ -37,6 +37,12 @@ class Travel(models.Model):
         default='draft',
     )
     published_revision = models.PositiveIntegerField(null=True, blank=True)
+    current_snapshot = models.ForeignKey(
+        'router.RouteSnapshot', on_delete=models.PROTECT, null=True, blank=True, related_name='current_for_travels'
+    )
+    published_snapshot = models.ForeignKey(
+        'router.RouteSnapshot', on_delete=models.PROTECT, null=True, blank=True, related_name='published_for_travels'
+    )
 
     driver = models.ForeignKey(
         Driver,
@@ -105,6 +111,30 @@ class Travel(models.Model):
         db_table = 'router_travel'
         ordering = ('-started_at',)
         constraints = (
+            models.CheckConstraint(
+                condition=models.Q(service_day__isnull=False)
+                | models.Q(
+                    current_snapshot__isnull=True, published_snapshot__isnull=True, published_revision__isnull=True
+                ),
+                name='legacy_travel_no_snapshot_pointers',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(published_snapshot__isnull=True, published_revision__isnull=True)
+                | models.Q(published_snapshot__isnull=False, published_revision__isnull=False),
+                name='travel_publication_pointer_pair',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(service_day__isnull=True)
+                | ~models.Q(planning_status='ready')
+                | models.Q(current_snapshot__isnull=False),
+                name='dated_travel_ready_has_snapshot',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(service_day__isnull=True)
+                | ~models.Q(status='in_progress')
+                | models.Q(current_snapshot=models.F('published_snapshot')),
+                name='dated_travel_start_published_snapshot',
+            ),
             models.CheckConstraint(
                 condition=models.Q(service_day__isnull=False) | models.Q(path__isnull=False, driver__isnull=False),
                 name='legacy_travel_route_driver_required',
@@ -191,6 +221,19 @@ class Travel(models.Model):
         if day and service and day['route_group_id'] != service['route_group_id']:
             errors['service'] = 'O serviço deve pertencer ao grupo do atendimento.'
         same_company(errors, 'vehicle', related_values(self, 'vehicle', 'company_id'), self.company_id)
+        for field, revision in (('current_snapshot', self.revision), ('published_snapshot', self.published_revision)):
+            snapshot = related_values(self, field, 'travel_id', 'revision', 'state')
+            if snapshot and (snapshot['travel_id'] != self.pk or snapshot['revision'] != revision):
+                errors[field] = 'O percurso deve corresponder à viagem e à revisão informadas.'
+            if (
+                snapshot
+                and field == 'current_snapshot'
+                and self.planning_status == 'ready'
+                and snapshot['state'] != 'ready'
+            ):
+                errors[field] = 'O percurso atual ainda não está pronto.'
+            if snapshot and field == 'published_snapshot' and snapshot['state'] != 'ready':
+                errors[field] = 'O percurso publicado precisa ter resultado pronto.'
         if self.driver_id:
             from modules.organizations.models import CompanyMembership
 

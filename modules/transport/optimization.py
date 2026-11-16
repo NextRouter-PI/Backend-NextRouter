@@ -33,6 +33,8 @@ def resolve_waypoint(data):
 
 
 def process_optimization(job):
+    if job.snapshot_id:
+        raise OSRMError('O cálculo por revisão aguarda o worker da operação nova.', status_code=409)
     path = job.path
     if Travel.objects.filter(path=path, status=Travel.Status.IN_PROGRESS).exists():
         raise OSRMError('Aguarde a viagem em andamento terminar antes de alterar a rota.', status_code=400)
@@ -138,12 +140,12 @@ def claim_job():
     with transaction.atomic():
         now = timezone.now()
         stale = RouteOptimizationJob.objects.filter(
-            status=RouteOptimizationJob.Status.RUNNING, updated_at__lt=now - timedelta(minutes=5)
+            snapshot__isnull=True, status=RouteOptimizationJob.Status.RUNNING, updated_at__lt=now - timedelta(minutes=5)
         )
         stale.filter(attempts__gte=3).update(status=RouteOptimizationJob.Status.FAILED, error='Tempo limite excedido.')
         stale.filter(attempts__lt=3).update(status=RouteOptimizationJob.Status.PENDING, available_at=now)
         jobs = RouteOptimizationJob.objects.filter(
-            status=RouteOptimizationJob.Status.PENDING, available_at__lte=now
+            snapshot__isnull=True, status=RouteOptimizationJob.Status.PENDING, available_at__lte=now
         ).order_by('pk')
         job = jobs.select_for_update(skip_locked=True).first()
         if job:
