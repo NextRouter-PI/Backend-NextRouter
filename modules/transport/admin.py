@@ -19,6 +19,7 @@ for model, operations in (
     admin.site.register(model, type(f'{model.__name__}Admin', (DomainCommandAdmin,), {'commands': operations}))
 
 for model in (
+    models.AutomationSchedule,
     models.PassengerServiceAuthorization,
     models.RecurringServiceStop,
     models.ResponsePolicy,

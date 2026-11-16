@@ -11,6 +11,7 @@ from modules.organizations.services.memberships import (
     withdraw_membership,
 )
 from modules.transport.api.serializers.configuration import (
+    AutomationInput,
     GroupInput,
     PointInput,
     PolicyInput,
@@ -27,6 +28,7 @@ from modules.transport.api.serializers.operation import (
     StopInput,
     VehicleAssignmentInput,
 )
+from modules.transport.services.automation import configure_automation
 from modules.transport.services.calendar import revise_day
 from modules.transport.services.configuration import (
     authorize_services,
@@ -76,6 +78,7 @@ GROUP_COMMANDS = {
         lambda obj: {'company_id': obj.company_id, 'group_id': obj.pk},
     ),
     'policy': ('Configurar política', PolicyInput, configure_policy, by_id('group_id')),
+    'automation': ('Configurar agenda automática', AutomationInput, configure_automation, by_id('group_id')),
 }
 SERVICE_COMMANDS = {
     'stops': ('Configurar paradas', StopsInput, configure_stops, by_id('service_id')),

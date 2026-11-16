@@ -1,23 +1,27 @@
-"""Passo reentrante para futuro worker; limites são argumentos, não políticas globais."""
+"""Manutenção reentrante, limitada por tipo e com rotação das pendências bloqueadas."""
 
 from django.db import transaction
+from django.db.models import CharField, F, Q, Value
+from django.db.models.fields.json import KT
+from django.db.models.functions import Cast, NullIf
 from django.utils import timezone
 
 from modules.transport.models import DailyChangeRequest, DriverInvitation, Notification, ServiceDay
 
-from .common import active_actor, company_actor, get, lock_company, notify
+from .common import active_actor, company_actor, get, lock_company, notify, require
 from .planning import close_day
 from .requests import supersede_request
 
 
 @transaction.atomic
-def process_due(*, actor_id, company_id):
+def process_due(*, actor_id, company_id, batch_size):
+    require(type(batch_size) is int and 1 <= batch_size <= 1000, 'invalid_batch', 'Informe lote entre 1 e 1000.')
     company = lock_company(company_id)
     company_actor(company, actor_id)
     now = timezone.now()
     for request in DailyChangeRequest.objects.filter(
         response__eligibility__day__route_group__company=company, status='pending', expires_at__lte=now
-    ).order_by('pk'):
+    ).order_by('expires_at', 'pk')[:batch_size]:
         supersede_request(request, now=now, status='expired')
         notify(
             recipients=[request.requested_by_id],
@@ -27,7 +31,9 @@ def process_due(*, actor_id, company_id):
             key=f'request:{request.pk}:expired',
             status='expired',
         )
-    for invitation in DriverInvitation.objects.filter(travel__company=company, status='pending', expires_at__lte=now):
+    for invitation in DriverInvitation.objects.filter(
+        travel__company=company, status='pending', expires_at__lte=now
+    ).order_by('expires_at', 'pk')[:batch_size]:
         invitation.status, invitation.closed_at = 'expired', now
         invitation.save(update_fields=['status', 'closed_at'])
         notify(
@@ -41,9 +47,19 @@ def process_due(*, actor_id, company_id):
     outcomes = {}
     from .common import DomainError
 
-    for day in ServiceDay.objects.filter(route_group__company=company, canceled_at=None, normal_deadline__lte=now):
-        if day.configuration_snapshot.get('closed_revision') == day.revision:
-            continue
+    days = (
+        ServiceDay.objects
+        .filter(route_group__company=company, canceled_at=None, normal_deadline__lte=now)
+        .annotate(
+            closed_revision_text=Cast(KT('configuration_snapshot__closed_revision'), CharField()),
+            attempted_at=NullIf(
+                Cast(KT('configuration_snapshot__maintenance_attempted_at'), CharField()), Value('null')
+            ),
+        )
+        .filter(Q(closed_revision_text__isnull=True) | ~Q(closed_revision_text=Cast('revision', CharField())))
+        .order_by(F('attempted_at').asc(nulls_first=True), 'pk')
+    )
+    for day in days[:batch_size]:
         try:
             with transaction.atomic():
                 close_day(actor_id=actor_id, day_id=day.pk)
@@ -54,6 +70,9 @@ def process_due(*, actor_id, company_id):
             day.configuration_snapshot = {**day.configuration_snapshot, 'operational_issue': exc.code}
             day.save(update_fields=['configuration_snapshot'])
             day.travels.filter(status='scheduled').update(planning_status='blocked')
+        day.refresh_from_db()
+        day.configuration_snapshot = {**day.configuration_snapshot, 'maintenance_attempted_at': now.isoformat()}
+        day.save(update_fields=['configuration_snapshot'])
     return outcomes
 
 

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from modules.organizations.models import CompanyRouteGroup, OperationalPoint
-from modules.transport.models import RecurringService, ResponsePolicy, Vehicle
+from modules.transport.models import AutomationSchedule, RecurringService, ResponsePolicy, Vehicle
 from shared.api import InputModelSerializer, InputSerializer
 
 
@@ -154,3 +154,33 @@ class GenerateInput(InputSerializer):
 class CancelDateInput(InputSerializer):
     date = serializers.DateField()
     reason = serializers.CharField(max_length=500)
+
+
+class AutomationInput(InputSerializer):
+    enabled = serializers.BooleanField()
+    horizon_days = serializers.IntegerField(min_value=1, max_value=31)
+    batch_size = serializers.IntegerField(min_value=1, max_value=31)
+    interval_seconds = serializers.IntegerField(min_value=1, max_value=2147483647)
+    next_run_at = serializers.DateTimeField()
+    expected_revision = serializers.IntegerField(min_value=0)
+
+
+class AutomationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AutomationSchedule
+        fields = (
+            'id',
+            'route_group',
+            'enabled',
+            'horizon_days',
+            'batch_size',
+            'interval_seconds',
+            'next_run_at',
+            'cursor_date',
+            'cycle_end_date',
+            'last_attempted_at',
+            'last_completed_at',
+            'last_error_code',
+            'revision',
+            'configured_at',
+        )

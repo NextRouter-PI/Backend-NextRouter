@@ -3,6 +3,8 @@ from django.shortcuts import get_object_or_404
 from modules.organizations.models import CompanyRouteGroup, OperationalPoint
 from modules.transport.access import companies_for
 from modules.transport.api.serializers.configuration import (
+    AutomationInput,
+    AutomationSerializer,
     CancelDateInput,
     GenerateInput,
     GroupInput,
@@ -18,7 +20,8 @@ from modules.transport.api.serializers.configuration import (
     VehicleSerializer,
 )
 from modules.transport.api.serializers.daily import CancelDaySerializer, DaySerializer
-from modules.transport.models import RecurringService, ResponsePolicy, Vehicle
+from modules.transport.models import AutomationSchedule, RecurringService, ResponsePolicy, Vehicle
+from modules.transport.services.automation import configure_automation
 from modules.transport.services.calendar import generate_horizon
 from modules.transport.services.configuration import (
     configure_group,
@@ -97,6 +100,25 @@ class GroupViewSet(ConfigurationViewSet):
             configure_policy(actor_id=request.user.pk, group_id=self.get_object().pk, **self.input(PolicyInput)),
             PolicySerializer,
         )
+
+    @domain_action('Configure a agenda automática opt-in', request=AutomationInput, response=AutomationSerializer)
+    def automation(self, request, pk=None):
+        return self.respond(
+            configure_automation(
+                actor_id=request.user.pk, group_id=self.get_object().pk, **self.input(AutomationInput)
+            ),
+            AutomationSerializer,
+        )
+
+    @domain_action(
+        'Consulte o progresso da agenda automática',
+        methods=['get'],
+        response=AutomationSerializer,
+        url_path='automation-status',
+    )
+    def automation_status(self, request, pk=None):
+        schedule = get_object_or_404(AutomationSchedule, route_group=self.get_object())
+        return self.respond(schedule, AutomationSerializer)
 
     @domain_action(
         'Gere um horizonte explícito de atendimentos', request=GenerateInput, response=DaySerializer(many=True)

@@ -14,6 +14,7 @@ from modules.transport.models import (
     TravelParticipation,
     Vehicle,
 )
+from modules.transport.services.automation import configure_automation, process_schedules
 from modules.transport.services.calendar import generate_day
 from modules.transport.services.common import DomainError
 from modules.transport.services.demand import answer_day
@@ -136,6 +137,45 @@ class OperationalConcurrencyTests(ServiceTestCase):
         results = self.race(claim, claim)
         self.assertTrue(all(result[0] == 'ok' for result in results))
         self.assertEqual(sum(result[1] is not None for result in results), 1)
+
+    def test_two_schedulers_complete_one_generation_cycle_once(self):
+        schedule = configure_automation(
+            actor_id=self.company.user_id,
+            group_id=self.group.pk,
+            enabled=True,
+            horizon_days=1,
+            batch_size=1,
+            interval_seconds=60,
+            next_run_at=self.now,
+            expected_revision=0,
+        )
+
+        def tick():
+            return process_schedules(actor_id=self.company.user_id, company_id=self.company.pk, batch_size=1)
+
+        results = self.race(tick, tick)
+        self.assertTrue(all(result[0] == 'ok' for result in results))
+        self.assertEqual(sum(len(result[1]) for result in results), 1)
+        schedule.refresh_from_db()
+        self.assertEqual(schedule.next_run_at, self.now + timedelta(seconds=60))
+        self.assertEqual(self.group.days.get(date=self.now.date()).travels.count(), 2)
+
+    def test_two_automation_configurations_cannot_overwrite_same_revision(self):
+        def configure():
+            return configure_automation(
+                actor_id=self.company.user_id,
+                group_id=self.group.pk,
+                enabled=True,
+                horizon_days=2,
+                batch_size=1,
+                interval_seconds=60,
+                next_run_at=self.now,
+                expected_revision=0,
+            ).pk
+
+        results = self.race(configure, configure)
+        self.assertEqual(sum(result[0] == 'ok' for result in results), 1)
+        self.assertIn(('error', 'stale_revision'), results)
 
     def test_start_and_recalculation_never_start_obsolete_publication(self):
         travel = self.ready_travel()
