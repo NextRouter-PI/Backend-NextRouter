@@ -14,6 +14,8 @@ no conjunto autorizado; ver seção 11. Etapa 0 ainda tem exceções pendentes.
 Não declarar conclusão integral da transição: os callers/campos legados necessários
 permanecem até as Etapas 2/3. Ainda sem ativação operacional do domínio novo.
 A API/admin legados ainda operam com o domínio anterior; o backend não serve o build Vue.
+Etapa 2 iniciada pelos serviços isolados de solicitação/decisão/retirada de vínculo
+(seção 12), ainda sem ativação operacional ou substituição dos callers.
 Não interpretar exemplos de modelos, estados, caminhos ou serviços como código existente.
 
 ### Como interpretar este documento
@@ -758,7 +760,7 @@ descrever como implementado algo que existe apenas como plano.
 | Tutorial de build Vue separado | Registrado em BUILD_VUE.md; integração ainda não implementada. |
 | Etapa 0 — especificação técnica detalhada e estratégia de migrations | Decisões de vínculo, pedidos, publicação, viagem única e regeneração registradas. Exceções restantes na seção 3.4. Conjunto de schema da Etapa 1 expressamente autorizado; sem aplicação no banco habitual. |
 | Etapa 1 — modelagem | Cobertura estrutural 1.1–1.6 implementada e testada (seção 11), sem declarar substituição integral: callers/campos antigos ainda necessários têm remoção coordenada nas Etapas 2/3. Nenhum novo fluxo operacional ativado. |
-| Etapa 2 — regras | Não iniciada. |
+| Etapa 2 — regras | Iniciada: serviços isolados de solicitar/aprovar/recusar/retirar vínculo, com auditoria e aviso atômicos. Encerramento/configuração e demais recortes pendentes; ver seção 12. Sem ativação operacional. |
 | Etapa 3 — API/admin/integração | Não iniciada. |
 | Etapa 4 — ambiente/build/operação | Não iniciada. |
 
@@ -1371,3 +1373,75 @@ do fluxo novo nem criar sincronização por signals para sustentar dois domínio
   check-deploy ou deploy. SQLite comprova as negações estruturais testadas, **não locks**.
 - Documentação Django 6.0 de constraints/validação consultada via Context7; links,
   blocos de código e `git diff --check` conferidos. Sem novos settings/dependências.
+
+## 12. Etapa 2 — serviços transacionais, em andamento
+
+### 12.1. Primeiro recorte 2.1 — solicitação, decisão e retirada de vínculo
+
+**Escopo desta continuação (2026-11-15):** o dono solicitou implementar a Etapa 2.
+Iniciado o trabalho independente das decisões pendentes da seção 3.4. Nenhuma
+migration, mudança de settings/dependências ou escrita no banco habitual. Não
+interpretar este recorte como conclusão da Etapa 2 nem autorização para decidir
+os efeitos ainda pendentes de encerramento, regeneração ou execução.
+
+**Implementação:** `modules/organizations/services/memberships.py`, sem dependência
+de request/Response, com entradas por IDs (ator usa a PK UUID do usuário) e retorno
+de `CompanyMembership`. Erros `MembershipError` são `ValidationError` de domínio,
+com mensagem em português e código estável; tradução HTTP fica para a Etapa 3.
+
+| Serviço | Contrato neste recorte |
+|---|---|
+| `request_membership` | Titular ativo informa exatamente um perfil (aluno/motorista) e empresa aprovada/ativa. Reobtém dados, não considera flags/grupo legados como vínculo novo. Pedido pendente à mesma empresa retorna o ciclo existente; qualquer ciclo ativo ou pendente a outra empresa é conflito. Ciclos terminais permitem novo pedido sem reescrever história. |
+| `approve_membership` | Somente usuário titular da empresa aprovada/ativa; revalida titular ativo. Pendente vira ativo com revisor/instante; não exige grupo, aloca viagem nem publica programação. |
+| `reject_membership` | Somente usuário titular da empresa aprovada/ativa; pendente vira recusado com revisor/instante. Não encerra vínculo ativo. |
+| `withdraw_membership` | Somente titular ativo retira pedido pendente; não exige que a empresa continue aprovada/ativa. Preserva autor/instante; impede decisão posterior. |
+
+- Repetir a mesma decisão/retirada retorna o resultado sem novo evento/aviso nem
+  substituição de motivo/instante. Decisão oposta ou transição de estado terminal
+  é conflito. Repetições revalidam autorização; staff/superusuário não têm bypass.
+- Motivo opcional tem até 500 caracteres e fica apenas no evento; não entra no
+  aviso. Relógio anterior à solicitação resulta em erro de domínio sem escrita.
+- Ordem **local** de locks: perfil estável → empresa → vínculo existente → usuários
+  por PK crescente. O perfil serializa também a ausência de ciclo; não basta
+  bloquear pedidos diferentes ou consultar `.exists()`. Inserts de evento/aviso
+  pertencem à mesma transação da decisão. A ordem global com viagens/jobs ainda
+  precisa ser integrada antes de implementar encerramento/start/publicação.
+- Solicitação/retirada notificam a empresa; aprovação/recusa notificam o titular.
+  Aviso contém somente status, referência ao ciclo e chave por ciclo/ação. Falha
+  na persistência do evento ou aviso desfaz a transição inteira. Sem e-mail, WS,
+  chamada externa, signal de espelhamento ou alteração dos perfis legados.
+
+**Coexistência:** serviços novos ainda não são chamados por API/admin/worker.
+Admin novo permanece somente leitura e o caminho operacional continua legado.
+Este recorte prepara o serviço compartilhado; não habilita outra fonte de verdade.
+Não expor ações novas sem substituir coordenadamente os callers da seção 11.2.
+
+**Próximos bloqueios:** encerramento de vínculo e troca de grupo exigem fechar os
+efeitos sobre atendimentos/viagens futuros já gerados. Regeneração precisa definir
+conflitos sem descartar respostas/alocações e a granularidade do dia parcialmente
+publicado. Não implementar uma política silenciosa de cancelamento/transferência.
+Os serviços restantes de 2.1 e as subetapas 2.2–2.6 ainda não estão concluídos.
+
+**Evidências desta execução:**
+
+- Baseline anterior à implementação: **168/168 testes**, 166,962 s; lint passou
+  (135 arquivos). Ambiente temporário, serviços externos desabilitados.
+- Recorte: **18 testes de serviço passaram** (4,178 s para 22 descobertos),
+  cobrindo ambos os perfis, autorização/negações, idempotência, estado/horários,
+  histórico, efeitos mínimos e rollback por falha de evento/aviso. Quatro testes
+  de concorrência preparados com `TransactionTestCase`, threads/conexões distintas,
+  barreira inicial e limites de espera; **ignorados em SQLite**, não comprovados.
+- Suíte completa: **190 descobertos, 186 passaram e 4 ignorados**, 147,948 s.
+  `check` passou, sem mudanças de models; `schema` validou com `--fail-on-warn`,
+  sem novos endpoints. Lint teve ajustes intermediários de estilo/formatação.
+- Variáveis de shell: `DATABASE_URL=sqlite:////tmp/opencode/nextrouter-stage2.sqlite3`,
+  Redis/geocodificação/OSRM/SMTP/Cloudinary vazios, documentos em
+  `/tmp/opencode/nextrouter-stage2-documents`. Test runner criou/destruiu seu banco;
+  nenhum migrate no banco habitual. Schema só em `/tmp/opencode/nextrouter-schema.yaml`.
+- Referência: documentação oficial Django 6.0 de `select_for_update` e testes
+  transacionais (consulta direta; ferramentas Context7 indisponíveis na sessão).
+- Validação final de estilo: `pdm run lint` passou (139 arquivos formatados).
+  Links locais, blocos Markdown e `git diff --check` conferidos, sem problemas.
+- Continua o aviso de `staticfiles/` ausente. Sem PostgreSQL, Redis multiprocesso,
+  navegador/Vue, worker persistente, chamadas externas reais, check-deploy ou deploy.
+  Não declarar validação de concorrência nem entrega operacional deste recorte.
