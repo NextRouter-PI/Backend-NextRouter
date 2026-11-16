@@ -786,6 +786,16 @@ sobrescrever o destino. Nenhum build Vue real executado; sem novo baseline funci
 
 ## 10. Etapa 0 — inventário e preparação da transição
 
+**Continuação da Etapa 1:** baseline antes dos próximos models encontrou uma falha
+no teste de filtro por data de viagens (114/115 passaram). O teste usava data UTC,
+mas o filtro usa America/Sao_Paulo. Corrigido para data local, com relógio fixo em
+2026-11-16 01h UTC (ainda dia 15 local), sem mudar comportamento da API. Lint do
+baseline passou (123 arquivos). Após corrigir um erro intermediário de posicionamento
+dos imports, testes de privacidade passaram 10/10 (26,407 s) e a suíte completa
+115/115 (136,356 s); lint passou. Ambiente SQLite temporário
+`/tmp/opencode/nextrouter-stage1.sqlite3`, Redis/geocodificação/OSRM/SMTP/Cloudinary
+desabilitados por variáveis de shell; nenhum banco habitual alterado.
+
 ### 10.1. Escopo e evidências desta execução (2026-11-15)
 
 Primeiro avanço da Etapa 0, sobre o código da revisão `78acfb3`, com árvore de
