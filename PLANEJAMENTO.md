@@ -14,8 +14,9 @@ no conjunto autorizado; ver seção 11. Etapa 0 ainda tem exceções pendentes.
 Não declarar conclusão integral da transição: os callers/campos legados necessários
 permanecem até as Etapas 2/3. Ainda sem ativação operacional do domínio novo.
 A API/admin legados ainda operam com o domínio anterior; o backend não serve o build Vue.
-Etapa 2 iniciada pelos serviços isolados de vínculo e atribuição/troca de grupo
-(seção 12), ainda sem ativação operacional ou substituição dos callers.
+Etapa 2 com serviços de configuração, demanda, planejamento, cálculo e execução
+implementados/testados em isolamento (seção 12). O marco final permanece pendente
+de concorrência real em PostgreSQL; ainda sem ativação ou substituição dos callers.
 Não interpretar exemplos de modelos, estados, caminhos ou serviços como código existente.
 
 ### Como interpretar este documento
@@ -760,7 +761,7 @@ descrever como implementado algo que existe apenas como plano.
 | Tutorial de build Vue separado | Registrado em BUILD_VUE.md; integração ainda não implementada. |
 | Etapa 0 — especificação técnica detalhada e estratégia de migrations | Decisões de vínculo, pedidos, publicação, viagem única e regeneração registradas. Exceções restantes na seção 3.4. Conjunto de schema da Etapa 1 expressamente autorizado; sem aplicação no banco habitual. |
 | Etapa 1 — modelagem | Cobertura estrutural 1.1–1.6 implementada e testada (seção 11), sem declarar substituição integral: callers/campos antigos ainda necessários têm remoção coordenada nas Etapas 2/3. Nenhum novo fluxo operacional ativado. |
-| Etapa 2 — regras | Iniciada: serviços isolados de solicitar/aprovar/recusar/retirar/encerrar vínculo e atribuir/trocar grupo, com auditoria e aviso atômicos. Configuração restante e subetapas 2.2–2.6 pendentes; ver seção 12. Sem ativação operacional. |
+| Etapa 2 — regras | Cobertura de serviços 2.1–2.5 implementada, com testes de negócio, falhas e efeitos de 2.6. Marco final de 2.6 pendente: testes concorrentes PostgreSQL preparados, não executados. Sem ativação operacional; ver 12.5/12.6. |
 | Etapa 3 — API/admin/integração | Não iniciada. |
 | Etapa 4 — ambiente/build/operação | Não iniciada. |
 
@@ -1550,3 +1551,103 @@ pareada/ordenada. Passaram no recorte de **79 descobertos, 75 passaram e 4 ignor
 pelo Django **6.1 instalado**, sem mudar dependências. Instalação limpa validada pelo
 runner SQLite; isso não comprova locks em PostgreSQL. Não declarar o marco final da
 Etapa 2 somente por estes complementos de schema; acompanhamento operacional abaixo.
+
+### 12.5. Serviços do caminho novo — configuração até execução
+
+**Escopo real:** implementação de serviços compartilháveis, não publicação de uma
+segunda API/operação. `modules/transport/services.py` foi convertido em pacote no
+mesmo conjunto que migra os callers: código antigo está em `services/legacy.py`;
+views/consumers e mocks legados apontam explicitamente para ele. Não coexistem
+arquivo e pacote homônimos. O management command antigo continua processando
+**somente jobs de Path**. Nenhum endpoint ou ação de escrita administrativa nova
+foi habilitado; admin estrutural continua somente leitura. Integração coordenada
+dos callers/remoção do legado permanece no marco das Etapas 2/3.
+
+| Recorte | Serviços/garantias presentes |
+|---|---|
+| 2.1 — configuração | `configuration.py`: política, grupo/destino, pontos, frota, serviços independentes, paradas e autorizações humanas. Querysets por empresa, checks locais e campos protegidos; ida habitual única. Troca de grupo/encerramento passam a reaplicar a configuração a futuras datas não publicadas. Nada escolhe motorista, veículo ou participantes por heurística. |
+| 2.2 — calendário/demanda | `calendar.py`: dia único por grupo/data e viagem única por serviço/dia, elegibilidade e pontos congelados, horizonte/lote explícitos e geração idempotente. Política só define prazos de dias novos; prazos efetivos existentes não são reabertos. Cancelamentos persistem. Publicação de qualquer viagem congela regeneração automática do dia inteiro; `revise_day` exige empresa/revisão esperada e ausência de execução iniciada. Conflitos preservam resposta/alocação e bloqueiam prontidão. |
+| 2.2 — resposta/fechamento | `demand.py`/`planning.py`: resposta lógica editável na janela normal, revisão esperada, ida/retorno independentes, negativa distinta de sem resposta. Fechamento confere demanda/autorização/capacidade antes de escrever; falha não aloca um subconjunto silencioso. Alocação/evento e enfileiramento são transacionais. Serviço sem demanda fica pendente para decisão empresarial, não é cancelado automaticamente. |
+| 2.3 — pedidos/desistência | `requests.py`: envio/decisão dentro da prorrogação, decisão e aplicação separadas, reserva contada na capacidade. Proposta calcula origem/destino afetados sem transferir antes. Aplicação revalida estados, pertencimento, revisões, lista, agenda, designações, capacidade e resultados; consome reserva e transfere atomicamente. Falha conserva escolha/alocação anteriores e libera reserva. Desistência por trecho invalida o pedido conflitante, inclusive inclusão aprovada de não respondente; outro trecho é preservado. Nova inclusão após desistência exige novo pedido aprovado dentro da janela. |
+| 2.4 — percursos/publicação | `routing.py` calcula somente entradas congeladas, agrupa pessoas no mesmo ponto e mantém o ponto comum obrigatório na ordem correta. Segmento de aproximação da volta vem antes do embarque coletivo; segmento final adicional da ida vem depois do destino comum. OSRM calcula ordem/geometria; não escolhe pessoas. Sem reta/fallback inventado. `planning.py` publica por viagem com percurso/revisão/agenda/lista/designações atuais; proposta pendente bloqueia publicação/início mesmo se outro job normal terminar. História publicada anterior é preservada. |
+| 2.4/2.6 — jobs | `jobs.py`: claim com UUID/lease, tentativas e atraso explícitos, recuperação de lease abandonado, rejeição de token vencido/antigo e de entrada obsoleta. OSRM é recusado dentro de transação; gravação reobtém dados sob lock. Erros persistem como códigos estáticos, sem endereço/coordenadas/exceção externa. `maintenance.py` expira pedidos pendentes/convites e prepara fechamentos reentrantes; pendências de fechamento ficam observáveis no snapshot do dia. São entradas para futuro worker, não um novo processo habilitado em produção. |
+| 2.5 — substituição | `invitations.py`: motorista designado informa indisponibilidade; empresa escolhe o vínculo substituto, define prazo e revoga convite anterior. Só convidado ativo aceita/recusa convite corrente antes do prazo; nenhuma resposta implica aceite. Aceite designa a pessoa escolhida e invalida prontidão para recálculo/revisão. Não seleciona substituto automaticamente. |
+| 2.5 — execução | `execution.py`: start/finish/cancel, cancelamento parcial do dia e tombstone de data ainda não gerada, presença/ausência/desembarque e avanço de parada. Só motorista designado opera; empresa cancela antes de início. Correções são somente empresariais, motivadas, referenciam o último evento e gravam evento de correção mais estado resultante com IDs idempotentes. Não duplicam embarques simultâneos, fabricam desembarque ou reabrem viagem encerrada. Fechamento exige resolver presenças pendentes/embarcados. |
+| 2.5 — localização | `tracking.py`: atualização somente pelo motorista na viagem ativa, limites temporais/frequência existentes e coordenadas válidas; leitura exige empresa/designação/alocação e retorna desatualização explícita. Desistência retira acesso ao vivo. Finalização limpa posição. Callback opcional ocorre só depois de commit e falha de entrega não desfaz a decisão nem loga coordenadas. Transporte WS/sessão/Origin continua para a Etapa 3; não conectar o consumer legado a viagens novas. |
+| 2.6 — efeitos/segurança | `common.py`: mutex empresarial e mensagens/códigos independentes de HTTP, avisos mínimos deduplicados na mesma transação. `governance.py`: bloqueia desaprovação empresarial e desativação de conta durante operação; admin de empresas, formulário/save de usuário e endpoints existentes de desativação usam essa barreira. Revogação de sessões permanece no serviço de conta. Sem bypass implícito de staff para gerir viagens de outra empresa. |
+
+#### Contratos técnicos e limites da implementação
+
+- Ordem dos casos de uma empresa: **Company primeiro**, depois objetos operacionais
+  por PK e usuários em ordem crescente quando bloqueados. Vínculos mantêm a ordem
+  de perfil/vínculo já registrada em 12.3 após Company. Desativação que cruza perfis
+  bloqueia empresas por PK antes dos usuários; início bloqueia as contas da lista.
+  Essa estratégia é deliberadamente conservadora: serializa escritas de uma empresa
+  e não promete escalabilidade já medida. Locks de jobs nunca precedem Company.
+- Janela: `opens_at <= agora < normal_deadline`; prorrogação começa na igualdade
+  do prazo normal e termina em `agora >= extension_deadline`. Worker atrasado não
+  estende envio/decisão. Pedido aprovado pode concluir cálculo depois da janela,
+  desde que revisão/elegibilidade/capacidade continuem válidas e nenhuma viagem
+  envolvida tenha começado. Reserva aprovada permanece contada até aplicar/falhar/
+  invalidar; `expires_at` registra a janela, não libera a vaga silenciosamente.
+- Mudanças num trecho não invalidam pedido independente só porque a revisão global
+  da resposta aumentou: aplicação revalida a escolha/desistência congeladas daquele
+  trecho, além das revisões das viagens. Se fechamento atrasado introduzir outra
+  viagem de origem depois da aprovação, a proposta não pode transferir sem novo
+  cálculo correspondente a todas as viagens agora envolvidas.
+- Nenhum número de horizonte, lease, tentativas, retry ou prazo de convite foi
+  inventado como política universal. Horizonte/lote e limites de processamento são
+  argumentos explícitos; os números dos testes são fixtures fictícias. Agendamento,
+  limites operacionais de carga e execução persistente continuam na Etapa 4.
+- Configuração habitual pode ficar incompleta; duração/margem ausentes, ponto inválido,
+  motorista/veículo indisponíveis e conflitos impedem operação válida. Cálculo válido
+  sem motorista não viola a constraint de prontidão: snapshot pode estar calculado,
+  mas viagem permanece bloqueada. Publicação/início revalidam aptidão e agenda.
+- Não há escrita nova por PATCH genérico, admin ou worker legado. O conjunto prepara
+  a camada para o contrato da Etapa 3; ainda não é o fluxo SuperTransporte acessível
+  pelo navegador. Avaliações, objetos perdidos, descoberta, retenção e estatísticas
+  dependentes continuam com seus marcos/decisões próprios, sem regras novas implícitas.
+
+### 12.6. Evidências e pendência do marco final da Etapa 2
+
+Validações em bancos temporários, com `DATABASE_URL=sqlite:////tmp/opencode/nextrouter-stage2-finish.sqlite3`,
+Redis/geocodificação/OSRM/SMTP/Cloudinary vazios e documentos em
+`/tmp/opencode/nextrouter-stage2-finish-documents`. O runner construiu/destruiu o
+banco desde zero com `router.0013/0014`; não houve migrate no banco habitual.
+
+- Recortes intermediários: 37 testes de calendário/pedidos/jobs passaram (8,152 s);
+  17 de execução/substituição passaram (5,596 s); 91 incluindo configuração e
+  regressões de vínculos/grupos passaram (20,834 s). Falhas intermediárias corrigidas:
+  expectativa de hora UTC versus local nos testes, negação por permissão HTTP antes
+  de chegar ao guard e invalidação da prontidão antes de retirar motorista obrigatório.
+- Suíte completa anterior aos últimos casos de tombstone/embarque simultâneo:
+  **299 descobertos, 289 passaram e 10 ignorados**, 189,751 s. Lint passou
+  (164 arquivos), check sem problema/migration pendente, OpenAPI validado com
+  `--fail-on-warn`. Nenhum endpoint operacional novo foi exposto no schema.
+- Validação final após os últimos casos e o adaptador de segmento fixo OSRM:
+  **305 descobertos, 295 passaram e 10 ignorados**, 189,420 s. Lint passou
+  (165 arquivos formatados); check e schema passaram. Uma tentativa intermediária
+  de 305 casos encontrou somente import ausente no teste de rollback do tombstone;
+  corrigido e suíte completa repetida, não contado como sucesso antes da correção.
+  Links locais, blocos Markdown e `git diff --check` passaram. Nenhuma migration
+  aplicada fora do banco temporário de teste; nenhum push/merge realizado.
+- Testes operacionais novos usam `TransactionTestCase`, relógio controlado e
+  OSRM mockado; o mock verifica execução fora de transação. Cobrem conservação da
+  escolha anterior, falha/retry/lease obsoleto, reserva distinta da alocação,
+  transferência/capacidade, decisão no limite, pedidos por trecho, publicação,
+  substituição, execução/correção, isolamento da localização e callback pós-commit.
+  Hash MD5 é **somente override de fixtures de teste**, sem mudar o runtime/settings.
+- Dez testes concorrentes exigem PostgreSQL: seis já existentes de vínculos/grupos
+  e quatro novos de geração, último assento reservado, start versus recálculo e
+  dois workers. Foram ignorados explicitamente no SQLite. PostgreSQL/docker/podman
+  não estavam disponíveis para iniciar ambiente isolado; não usar banco real para
+  contornar isso nem declarar locks/corridas comprovados.
+- Continua aviso de `staticfiles/` ausente. Sem Redis multiprocesso, Vue/navegador,
+  novo worker persistente, serviços externos reais, check-deploy ou deploy. Referência
+  de transações/`select_for_update` consultada na documentação oficial Django 6.0
+  (compatível com o mínimo declarado); runtime/migrations locais usam Django 6.1.
+
+**Conclusão precisa:** os blocos de serviços da Etapa 2 foram implementados em
+isolamento; **não marcar o marco final de 2.6 como concluído** sem executar e revisar
+a concorrência PostgreSQL. A remoção/substituição dos callers e a ativação coordenada
+do domínio novo continuam na Etapa 3, sem escrita paralela com a operação legada.

@@ -1,3 +1,5 @@
+"""Serviços legados; não recebem viagens datadas."""
+
 import logging
 from datetime import timedelta
 from math import isfinite

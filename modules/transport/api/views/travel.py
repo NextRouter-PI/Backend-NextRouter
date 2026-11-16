@@ -26,7 +26,7 @@ from modules.transport.api.serializers.travel import (
 from modules.transport.models.confirm_passenger_route import ConfirmPassengerRoute
 from modules.transport.models.travel import Travel
 from modules.transport.models.vehicle import Vehicle
-from modules.transport.services import LocationRejected, save_travel_location
+from modules.transport.services.legacy import LocationRejected, save_travel_location
 from shared.openapi import (
     RESP_400_VALIDATION,
     RESP_401_UNAUTHORIZED,

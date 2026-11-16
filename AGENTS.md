@@ -49,6 +49,9 @@
   ou empresa encerram vínculo, bloqueado durante participação operacional ativa.
 - Modelos novos de vínculos, programação, dias, respostas/pedidos, viagens datadas,
   participantes/reservas, snapshots, convites e avisos ainda não têm escrita operacional.
+  Serviços da Etapa 2 existem em `modules/organizations/services/` e
+  `modules/transport/services/`, mas continuam isolados dos callers operacionais.
+  Código legado de transport foi movido para `services/legacy.py` com seus imports.
   Admin novo é somente leitura; endpoints/GPS legados não recebem viagens datadas.
   Worker legado só processa jobs de Path, nunca jobs novos de snapshot.
   Não habilitar caminho novo mantendo API/admin/WS legados com outra fonte de verdade;
@@ -68,6 +71,13 @@
   nesta versão, sem viagens adicionais. Desistência por trecho invalida pedido conflitante.
 - Política por grupo: prazo normal + prorrogação opcional com aceite manual.
   Desistência antes do embarque é permitida após prazo. Detalhes no planejamento.
+- Sem resposta também pode ser `DailyResponse.answered_at IS NULL`: suporte a pedido
+  sem fabricar negativa. Agenda candidata fica no snapshot até aplicação atômica.
+  Duração/margem habituais não têm defaults universais; ausentes bloqueiam prontidão.
+- Cancelamento de dia preserva viagens iniciadas/finalizadas e informa parcialidade.
+  Só a empresa corrige presença, com motivo/referência/auditoria; sem desembarque
+  fabricado ou reabertura de execução encerrada. Bloquear desaprovação/desativação
+  cadastral durante operação. Guards compartilhados cobrem os callers já adaptados.
 - Preparar viagens a partir da configuração habitual não é escolher motorista por
   algoritmo. Copiar escolhas humanas é permitido; selecionar substitutos por
   heurística não. Aceite de pedido, cálculo e publicação são operações distintas.

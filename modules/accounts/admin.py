@@ -5,6 +5,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
+from modules.transport.services.governance import deactivate_account, guard_account_deactivation
+
 from .models import EmailToken, User, UserSession
 from .services import revoke_session
 
@@ -19,6 +21,12 @@ class UserAdminChangeForm(UserChangeForm):
     cep = forms.CharField(label='CEP', max_length=9, required=False)
     phone = forms.CharField(label='Telefone', max_length=15, required=False)
     cpf = forms.CharField(label='CPF', max_length=14, required=False)
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.instance.pk and cleaned.get('is_active') is False:
+            guard_account_deactivation(user_id=self.instance.pk)
+        return cleaned
 
     def clean_cep(self):
         value = self.cleaned_data.get('cep')
@@ -56,6 +64,11 @@ class UserAdmin(BaseUserAdmin):
         ('Datas', {'fields': ('last_login', 'created_at'), 'classes': ('collapse',)}),
     )
     add_fieldsets = ((None, {'classes': ('wide',), 'fields': ('email', 'password1', 'password2')}),)
+
+    def save_model(self, request, obj, form, change):
+        if change and not obj.is_active:
+            deactivate_account(actor_id=request.user.pk, user_id=obj.pk)
+        super().save_model(request, obj, form, change)
 
     class Media:
         js = ('core/js/cep_mask.js', 'core/js/phone_mask.js', 'core/js/name_mask.js', 'core/js/cpf_mask.js')

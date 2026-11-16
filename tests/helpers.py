@@ -109,7 +109,7 @@ class BaseAPITestCase(APITestCase):
         media_override.enable()
         self.addCleanup(media_override.disable)
 
-        for target in ('modules.transport.services.geocode_address',):
+        for target in ('modules.transport.services.legacy.geocode_address',):
             patcher = mock.patch(target, return_value=(-26.3, -48.8))
             patcher.start()
             self.addCleanup(patcher.stop)

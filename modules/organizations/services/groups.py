@@ -71,4 +71,11 @@ def assign_passenger_group(*, actor_id, membership_id, route_group_id, transport
         payload={'status': 'active'},
         created_at=now,
     )
+    from modules.transport.services.calendar import regenerate_future_days
+
+    affected = {group.pk: group}
+    if current:
+        affected[current.route_group_id] = current.route_group
+    for affected_group in sorted(affected.values(), key=lambda item: item.pk):
+        regenerate_future_days(affected_group)
     return result

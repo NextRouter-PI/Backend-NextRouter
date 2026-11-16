@@ -99,7 +99,7 @@ class OperationalPointTests(TestCase):
     def test_creation_and_user_address_changes_do_not_geocode_or_modify_point(self):
         passenger = create_passenger('point-passenger@example.com')
         with (
-            mock.patch('modules.transport.services.geocode_address') as geocode,
+            mock.patch('modules.transport.services.legacy.geocode_address') as geocode,
             mock.patch('modules.transport.osrm.optimize_coordinates') as osrm,
         ):
             point = create_operational_point(self.company)

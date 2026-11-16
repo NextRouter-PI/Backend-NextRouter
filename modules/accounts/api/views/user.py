@@ -7,7 +7,8 @@ from rest_framework.viewsets import ModelViewSet
 
 from modules.accounts.api.serializers import UserCreateSerializer, UserListAndRetriveSerializer, UserPatchSerializer
 from modules.accounts.models import User
-from modules.accounts.services import revoke_sessions
+from modules.transport.services.common import DomainError
+from modules.transport.services.governance import deactivate_account
 from shared.openapi import RESP_400_VALIDATION, RESP_401_UNAUTHORIZED, document_viewset
 
 
@@ -81,8 +82,11 @@ class UserViewSet(ModelViewSet):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        instance.is_active = False
-        instance.save(update_fields=['is_active'])
-        revoke_sessions(instance)
+        try:
+            deactivate_account(actor_id=request.user.pk, user_id=instance.pk)
+        except DomainError as exc:
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError(exc.messages) from exc
 
         return Response(status=status.HTTP_200_OK)
