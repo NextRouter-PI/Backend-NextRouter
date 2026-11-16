@@ -1,3 +1,6 @@
+from datetime import UTC, datetime
+from unittest import mock
+
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -57,12 +60,13 @@ class PrivacyTests(BaseAPITestCase):
             [pending_driver.pk],
         )
 
-    def test_travel_and_vehicle_filters_preserve_tenant_scope(self):
+    @mock.patch('django.utils.timezone.now', return_value=datetime(2026, 11, 16, 1, tzinfo=UTC))
+    def test_travel_and_vehicle_filters_preserve_tenant_scope(self, _now):
         company = create_company('company@example.com')
         group = create_route_group(company)
         driver = Driver.objects.create(user=create_user('driver@example.com'), route_group=group, is_approved=True)
         path = Path.objects.create(route_group=group, name='Trajeto')
-        today = timezone.now()
+        today = timezone.localtime()
         travel = Travel.objects.create(
             company=company, driver=driver, path=path, status=Travel.Status.FINISHED, started_at=today
         )
