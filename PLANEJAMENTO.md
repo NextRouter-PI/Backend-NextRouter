@@ -14,7 +14,7 @@ no conjunto autorizado; ver seção 11. Etapa 0 ainda tem exceções pendentes.
 Não declarar conclusão integral da transição: os callers/campos legados necessários
 permanecem até as Etapas 2/3. Ainda sem ativação operacional do domínio novo.
 A API/admin legados ainda operam com o domínio anterior; o backend não serve o build Vue.
-Etapa 2 iniciada pelos serviços isolados de solicitação/decisão/retirada de vínculo
+Etapa 2 iniciada pelos serviços isolados de vínculo e atribuição/troca de grupo
 (seção 12), ainda sem ativação operacional ou substituição dos callers.
 Não interpretar exemplos de modelos, estados, caminhos ou serviços como código existente.
 
@@ -211,7 +211,7 @@ independentes. Não tratar as recomendações abaixo como regras já aprovadas.
 
 | Questão ainda não fechada | Recomendação a apresentar e impacto |
 |---|---|
-| Regeneração automática: conflitos com respostas/alocações existentes | Decidido: reaplicar automaticamente apenas a datas futuras não publicadas; publicadas só por revisão explícita. Preservar decisões/histórico/cancelamentos. Ainda detalhar resolução quando configuração nova torna resposta/alocação inválida e granularidade em dia parcialmente publicado, sem descartar pessoas silenciosamente. |
+| Regeneração automática: conflitos com respostas/alocações existentes | Decidido nesta continuação: preservar registros conflitantes, sinalizar pendência e bloquear publicação/início até resolução explícita pela empresa; nenhuma exclusão/transferência automática. Qualquer viagem publicada congela a regeneração automática de todo o grupo/data; mudanças exigem revisão explícita. Automática somente em datas futuras não publicadas; preservar decisões/histórico/cancelamentos. Ver seção 12.2. |
 | Cancelamento do dia com alguma viagem já iniciada | Não cancelar retroativamente viagens ativas/finalizadas. Confirmar cancelamento apenas das ainda não iniciadas e indicação de cancelamento parcial. |
 | Encerrar viagem com aluno ainda marcado como embarcado; erro de marcação | Definir correção auditada e regra de fechamento, sem fabricar desembarque automático. |
 | Desaprovação/desativação durante viagem ativa | Encerramento comum de vínculo já foi decidido: bloquear durante participação operacional em andamento (seção 10.8). Ainda definir efeitos de desaprovação empresarial/desativação de conta, quem conclui a operação e acesso residual; não presumir que esse bloqueio resolve todos esses eventos. |
@@ -760,7 +760,7 @@ descrever como implementado algo que existe apenas como plano.
 | Tutorial de build Vue separado | Registrado em BUILD_VUE.md; integração ainda não implementada. |
 | Etapa 0 — especificação técnica detalhada e estratégia de migrations | Decisões de vínculo, pedidos, publicação, viagem única e regeneração registradas. Exceções restantes na seção 3.4. Conjunto de schema da Etapa 1 expressamente autorizado; sem aplicação no banco habitual. |
 | Etapa 1 — modelagem | Cobertura estrutural 1.1–1.6 implementada e testada (seção 11), sem declarar substituição integral: callers/campos antigos ainda necessários têm remoção coordenada nas Etapas 2/3. Nenhum novo fluxo operacional ativado. |
-| Etapa 2 — regras | Iniciada: serviços isolados de solicitar/aprovar/recusar/retirar vínculo, com auditoria e aviso atômicos. Encerramento/configuração e demais recortes pendentes; ver seção 12. Sem ativação operacional. |
+| Etapa 2 — regras | Iniciada: serviços isolados de solicitar/aprovar/recusar/retirar/encerrar vínculo e atribuir/trocar grupo, com auditoria e aviso atômicos. Configuração restante e subetapas 2.2–2.6 pendentes; ver seção 12. Sem ativação operacional. |
 | Etapa 3 — API/admin/integração | Não iniciada. |
 | Etapa 4 — ambiente/build/operação | Não iniciada. |
 
@@ -1054,7 +1054,7 @@ coluna `company` e conservar as flags/grupo atuais como uma segunda fonte de ver
 | Vínculo empresarial (tentativa/ciclo) | Empresa obrigatória; exatamente um perfil proprietário (passageiro **ou** motorista); estado, solicitante e criação obrigatórios; decisão/revisor, retirada/autor e encerramento/autor opcionais enquanto o evento não ocorreu. | Estrutura implementada em `CompanyMembership` (10.9). Unicidade condicional de um ciclo **pendente ou ativo** por perfil, não uma unicidade independente para cada estado. Checks de proprietário exclusivo e coerência estado/timestamps; aprovação, ownership e impedimento de novo pedido exigem serviço transacional. FKs históricas protegidas contra cascata; retenção continua pendente. |
 | Evento de vínculo | Vínculo obrigatório; ação, autor e instante obrigatórios; motivo opcional, limitado a 500 caracteres. | Estrutura implementada em `MembershipEvent` (10.9), com uma ação de cada tipo por ciclo para deduplicação. Trilho append-only será garantido nos services e superfícies expostas, não por triggers ou por sobrescrever save. Aviso persistente será gravado na mesma transação quando essa entidade estiver disponível. Payload não replica CPF, endereço ou documentos. Exclusão/anonimização administrativa depende de retenção, não de DELETE empresarial. |
 | Participação do aluno no grupo | `PassengerGroupMembership`, implementado em 10.10: vínculo e grupo obrigatórios, ponto habitual opcional durante configuração, início/autor e fim/autor. | No máximo uma participação aberta por vínculo no banco. Validação local rejeita motorista, falta de aprovação, grupo/ponto de outra empresa e participação fora do ciclo empresarial. Serviço deverá revalidar sob lock; não usar essa relação para o motorista nem presumir que constraints entre tabelas existem. |
-| Ponto operacional/autorização de serviço | `OperationalPoint` em 10.10; `RecurringService`/`PassengerServiceAuthorization` e snapshots acrescentados na continuação (seção 11). Destino opcional no grupo durante transição. | Não copia alterações posteriores do perfil nem faz cálculo em save. FK para ponto não é snapshot: dados concretos são congelados em RouteSnapshot/RouteStop. Regeneração automática de futuras datas não publicadas aprovada; conflitos/granularidade ainda na seção 3.4. |
+| Ponto operacional/autorização de serviço | `OperationalPoint` em 10.10; `RecurringService`/`PassengerServiceAuthorization` e snapshots acrescentados na continuação (seção 11). Destino opcional no grupo durante transição. | Não copia alterações posteriores do perfil nem faz cálculo em save. FK para ponto não é snapshot: dados concretos são congelados em RouteSnapshot/RouteStop. Regeneração automática de futuras datas não publicadas aprovada; conflitos/granularidade posteriormente decididos na seção 12.2. |
 
 Essa decomposição preserva uma identidade por usuário e histórico por ciclo de
 vínculo. A tabela compartilhada `CompanyMembership` usa uma relação explícita com
@@ -1196,7 +1196,8 @@ exigindo revisão atual pronta, decisão da empresa e aviso quando revisada.
 
 **Complemento posterior:** na autorização global da Etapa 1, escolheu regeneração
 automática somente de futuras datas não publicadas. Esse complemento substitui a
-pendência geral acima; conflitos e dia parcialmente publicado ainda precisam ser fechados.
+pendência geral acima; conflitos e dia parcialmente publicado foram fechados depois,
+na seção 12.2, antes de implementar regeneração.
 
 **Autorização expressa:** criar `OperationalPoint` e `PassengerGroupMembership`,
 adicionar `destination` opcional ao grupo, incluir constraints/validações locais,
@@ -1297,7 +1298,7 @@ a implementar os services transacionais, geração, worker novo, API ou WS novos
 
 | Subetapa | Estrutura presente e validação | Transição/limite real |
 |---|---|---|
-| 1.1 — vínculo empresarial | CompanyMembership/MembershipEvent; perfil exclusivo, um ciclo pendente/ativo por perfil, autoria/horários, histórico protegido. | Perfil/grupo/flags legados só saem junto de seus callers nas Etapas 2/3. Encerramento real e bloqueio por embarque ainda sem serviço. |
+| 1.1 — vínculo empresarial | CompanyMembership/MembershipEvent; perfil exclusivo, um ciclo pendente/ativo por perfil, autoria/horários, histórico protegido. | Perfil/grupo/flags legados só saem junto de seus callers nas Etapas 2/3. Serviços isolados de encerramento e bloqueio operacional acrescentados depois na seção 12.3; ainda sem ativação. |
 | 1.2 — configuração habitual | OperationalPoint, PassengerGroupMembership, RecurringService, PassengerServiceAuthorization, RecurringServiceStop; sentidos/semana/vigência, ida habitual única, pontos e frota por empresa. | Vehicle aceita **ou** propriedade empresarial nova **ou** grupo legado (XOR); nunca ambos. Veículo novo exige capacidade conhecida/positiva. Destination/ponto/designações podem ficar pendentes durante configuração, não ao operar. |
 | 1.3 — política/dia | ResponsePolicy, ServiceDay, ServiceDayEligibility; prazos completos congelados, grupo/data únicos, cancelamento com autoria/motivo e elegibilidade histórica. | Sem rotina de geração/regeneração, calendário externo, valores universais de horário ou exclusão automática de decisões conflitantes. |
 | 1.4 — demanda/pedidos | DailyResponse e DailyChangeRequest; ausência de linha versus negativa, ida/retorno separados, revisão esperada, decisão no prazo e aplicação separada da aprovação. | ConfirmPassengerRoute continua **somente legado** até remoção coordenada. Nenhum booleano é reinterpretado como embarque ou intenção nova. |
@@ -1416,11 +1417,12 @@ Admin novo permanece somente leitura e o caminho operacional continua legado.
 Este recorte prepara o serviço compartilhado; não habilita outra fonte de verdade.
 Não expor ações novas sem substituir coordenadamente os callers da seção 11.2.
 
-**Próximos bloqueios:** encerramento de vínculo e troca de grupo exigem fechar os
+**Bloqueios identificados no primeiro recorte (depois respondidos em 12.2):**
+encerramento de vínculo e troca de grupo exigiam fechar os
 efeitos sobre atendimentos/viagens futuros já gerados. Regeneração precisa definir
 conflitos sem descartar respostas/alocações e a granularidade do dia parcialmente
 publicado. Não implementar uma política silenciosa de cancelamento/transferência.
-Os serviços restantes de 2.1 e as subetapas 2.2–2.6 ainda não estão concluídos.
+O recorte seguinte de 2.1 está em 12.3. Etapa 2 ainda não concluída.
 
 **Evidências desta execução:**
 
@@ -1445,3 +1447,67 @@ Os serviços restantes de 2.1 e as subetapas 2.2–2.6 ainda não estão conclu�
 - Continua o aviso de `staticfiles/` ausente. Sem PostgreSQL, Redis multiprocesso,
   navegador/Vue, worker persistente, chamadas externas reais, check-deploy ou deploy.
   Não declarar validação de concorrência nem entrega operacional deste recorte.
+
+### 12.2. Decisões para continuar 2.1/2.2
+
+O dono escolheu explicitamente nesta continuação:
+
+1. **Preservar e sinalizar:** mudança habitual que invalida resposta/alocação futura
+   não publicada preserva resposta, decisão e alocação; registra pendência e bloqueia
+   publicação/início até resolução explícita. Não excluir ou transferir automaticamente.
+2. **Congelar o atendimento:** qualquer viagem já publicada impede regeneração
+   automática de todo o grupo/data, inclusive das viagens ainda não publicadas.
+   Mudanças nesse atendimento exigem revisão explícita.
+3. **Resolver antes de alterar:** encerramento de vínculo ou troca de grupo é bloqueado
+   enquanto houver alocações futuras não canceladas/desistidas. A empresa resolve
+   explicitamente antes; respostas e histórico não são apagados. Participação
+   operacional em andamento continua bloqueando, conforme seção 10.8.
+
+Estas decisões fecham os conflitos/granularidade de regeneração pendentes na seção
+3.4; não definem os demais eventos excepcionais nem valores de agenda/horizonte.
+
+### 12.3. Segundo recorte 2.1 — encerramento e atribuição/troca de grupo
+
+- `end_membership`: titular ou empresa encerra vínculo ativo, sem apagar perfil,
+  usuário, respostas ou viagens. Fecha a participação vigente em grupo no mesmo
+  instante e preserva os intervalos anteriores. Autor, motivo e evento/aviso são
+  atômicos; destinatário é a contraparte. Repetição não duplica nem reescreve autoria.
+  Retirada de pedido permanece uma operação diferente. Não exige empresa aprovada
+  para encerrar; ator precisa estar ativo. Isso não define a política geral de
+  desaprovação/desativação durante execução, ainda pendente na seção 3.4.
+- `assign_passenger_group` em `organizations/services/groups.py`: só a empresa
+  aprovada/ativa titular, para vínculo ativo de aluno ativo. Revalida grupo/ponto
+  pelo queryset da empresa; ponto pode ficar pendente durante configuração. Fecha
+  o intervalo anterior e cria outro; vínculo/aprovação não mudam. Aviso mínimo ao
+  aluno na mesma transação; autoria/tempo nos próprios intervalos. Repetição do
+  mesmo grupo/ponto não cria registros/avisos. Staff não tem bypass.
+- Mudar somente o ponto também preserva o intervalo antigo e copia autorizações
+  humanas válidas no mesmo grupo; não as infere. Trocar de grupo exige autorizações
+  novas explícitas. Elegibilidades e respostas existentes não são reescritas por
+  esses serviços; aplicação de conflitos/regeneração ainda depende do gerador.
+- Barreira compartilhada em `organizations/services/participation.py`: motorista
+  designado ou passageiro `allocated`/`on_board` em viagem datada em andamento
+  bloqueia mudança/encerramento, mesmo em data anterior. Passageiro que desistiu,
+  não compareceu ou desembarcou não é participação operacional ativa.
+- Viagem datada agendada de hoje/futura (ou com fim planejado ainda futuro) com
+  designação do motorista/alocação efetiva do aluno bloqueia com `future_allocation`.
+  Viagem cancelada e aluno desistente não bloqueiam. Não usa `confirm` legado,
+  não remove alocações nem resolve reservas/pedidos automaticamente.
+- **Ordem de locks revisada para integração futura:** empresa → perfil estável →
+  vínculo → usuários por PK → configuração/grupos. Substitui a ordem local do
+  primeiro recorte (12.1), antes de integrar viagens/jobs. Toda futura escrita de
+  alocação/start/geração deve disputar primeiro a mesma empresa, além dos locks
+  específicos. O mutex empresarial torna a barreira válida entre estes serviços;
+  não alegar proteção contra ORM arbitrário ou callers legados que não usam tal
+  ordem. Nenhum caminho novo foi ativado em API/admin/worker.
+
+**Validação:** 44 testes passaram e quatro concorrentes foram ignorados no recorte
+intermediário (48 descobertos, 9,362 s). Após duas regressões adicionais de serviços
+e dois testes concorrentes de grupos, suíte completa: **220 descobertos, 214 passaram,
+6 ignorados**, 170,329 s. Inclui encerramento versus grupo concorrente preparado
+para PostgreSQL, mas não executado. `check` passou sem mudança de models. Ambiente
+isolado idêntico a 12.1, sem alteração de schema/settings/dependências ou dados reais.
+Aviso de `staticfiles/` continua. Lint teve apenas ajustes de formatação.
+Validação final: lint passou (142 arquivos formatados), schema validado sem novos
+endpoints e `git diff --check` sem problemas. Sem PostgreSQL/Redis/navegador,
+worker real, chamadas externas reais ou deploy; concorrência não comprovada.

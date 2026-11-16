@@ -55,7 +55,11 @@
   substituição de callers e remoção do legado têm marco explícito no planejamento.
 - Regeneração aprovada: automática somente para datas futuras não publicadas;
   publicadas exigem revisão explícita. Preservar respostas/decisões/histórico e
-  cancelados. Ainda fechar conflitos e granularidade de dia parcialmente publicado.
+  cancelados. Conflitos preservam registros e geram pendência bloqueante até resolução
+  explícita. Uma viagem publicada congela a regeneração automática de todo o grupo/data.
+- Encerramento de vínculo/troca de grupo exige resolver antes alocações/designações
+  futuras não canceladas/desistidas, além do bloqueio durante participação em andamento.
+  Serviços novos ainda isolados dos callers; ver seção 12 do planejamento.
 - Pedidos precisam ser aprovados antes do fim da prorrogação. Aprovação **não**
   transfere imediatamente: preserva escolha/alocação anterior até cálculo validado;
   proposta pode reservar capacidade. Aplicação revalida e transfere atomicamente.
