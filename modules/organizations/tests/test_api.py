@@ -16,6 +16,7 @@ from tests.helpers import (
     pdf_file,
     png_file,
     unique_cnpj,
+    unique_cpf,
 )
 
 
@@ -198,7 +199,7 @@ class ProfileTests(BaseAPITestCase):
         company = create_company('empresa@example.com')
         driver = Driver.objects.create(
             user=User.objects.create_user(
-                email='motorista@example.com', password=PASSWORD, name='Motorista', cpf=masked_cpf()
+                email='motorista@example.com', password=PASSWORD, name='Motorista', cpf=unique_cpf()
             )
         )
         for url, user in (

@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
@@ -24,12 +25,23 @@ ALLOWED_HOSTS = [host.strip() for host in _required('ALLOWED_HOSTS').split(',') 
 if not ALLOWED_HOSTS or '*' in ALLOWED_HOSTS or any('://' in host for host in ALLOWED_HOSTS):
     raise ImproperlyConfigured('ALLOWED_HOSTS deve conter apenas nomes de host, sem curingas ou protocolo.')
 
-CORS_ALLOWED_ORIGINS = [
-    origin.strip().rstrip('/') for origin in _required('CORS_ALLOWED_ORIGINS').split(',') if origin.strip()
-]
-if not CORS_ALLOWED_ORIGINS or not all(origin.startswith('https://') for origin in CORS_ALLOWED_ORIGINS):
-    raise ImproperlyConfigured('CORS_ALLOWED_ORIGINS deve conter apenas origens HTTPS.')
-CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+PUBLIC_ORIGIN = _required('PUBLIC_ORIGIN')
+_origin = urlsplit(PUBLIC_ORIGIN)
+if (
+    _origin.scheme != 'https'
+    or not _origin.hostname
+    or _origin.hostname not in ALLOWED_HOSTS
+    or _origin.username
+    or _origin.password
+    or _origin.path
+    or _origin.query
+    or _origin.fragment
+    or '*' in PUBLIC_ORIGIN
+):
+    raise ImproperlyConfigured('PUBLIC_ORIGIN deve ser uma origem HTTPS sem caminho, de um host autorizado.')
+CORS_ALLOWED_ORIGINS = []
+CSRF_TRUSTED_ORIGINS = [PUBLIC_ORIGIN]
+WS_ALLOWED_ORIGINS = [PUBLIC_ORIGIN]
 
 DATABASES = {'default': dj_database_url.parse(_required('DATABASE_URL'), conn_max_age=600, conn_health_checks=True)}
 if DATABASES['default']['ENGINE'] != 'django.db.backends.postgresql':
@@ -55,7 +67,8 @@ MEDIA_URL = '/media/'
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True

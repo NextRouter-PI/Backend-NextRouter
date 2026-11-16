@@ -25,6 +25,7 @@ _origins = [
 ]
 CORS_ALLOWED_ORIGINS = list(dict.fromkeys(_origins))
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+WS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 # Desenvolvimento local usa SQLite na raiz, independentemente do diretório do comando.
 # DATABASE_URL permite usar um banco temporário nos testes, inclusive PostgreSQL

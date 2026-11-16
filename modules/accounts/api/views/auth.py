@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import transaction
-from django.middleware.csrf import get_token
+from django.middleware.csrf import get_token, rotate_token
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiExample, extend_schema, inline_serializer
@@ -50,7 +50,7 @@ SESSION_RESPONSE = inline_serializer(
 
 
 def cookie_options():
-    return {'httponly': True, 'secure': not settings.DEBUG, 'samesite': 'Lax' if settings.DEBUG else 'None'}
+    return {'httponly': True, 'secure': settings.SESSION_COOKIE_SECURE, 'samesite': 'Lax', 'path': '/'}
 
 
 def set_auth_cookies(response, data):
@@ -70,7 +70,6 @@ def clear_auth_cookies(response):
             '',
             max_age=0,
             expires='Thu, 01 Jan 1970 00:00:00 GMT',
-            path='/',
             **cookie_options(),
         )
     return response
@@ -99,15 +98,15 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         tags=['Autenticação'],
         summary='Acesse a conta',
         description=(
-            'Público, com CSRF. Verifica e-mail/senha e cria sessão; retorna JWT no corpo e cookies HttpOnly. '
+            'Público, com CSRF. Verifica e-mail/senha e cria sessão em cookies HttpOnly; nunca retorna JWT. '
             'Login limitado por taxa.'
         ),
         responses={
             200: inline_serializer(
-                'AuthTokensResponse',
+                'AuthSessionResponse',
                 fields={
-                    'access': serializers.CharField(),
-                    'refresh': serializers.CharField(),
+                    'detail': serializers.CharField(),
+                    'csrfToken': serializers.CharField(),
                 },
             ),
             400: RESP_400_VALIDATION,
@@ -125,8 +124,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 request_only=True,
             ),
             OpenApiExample(
-                'Tokens fictícios (não utilizáveis)',
-                value={'access': '<jwt-ficticio>', 'refresh': '<jwt-ficticio>'},
+                'Sessão criada',
+                value={'detail': 'Sessão iniciada.', 'csrfToken': '<csrf-mascarado>'},
                 response_only=True,
                 status_codes=['200'],
             ),
@@ -166,13 +165,9 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             ip_address=get_request_ip(request),
             expires_at=timezone.now() + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'],
         )
-        # TODO: remover tokens do corpo da requisição
-        response = Response({
-            'access': tokens['access'],
-            'refresh': tokens['refresh'],
-        })
+        rotate_token(request)
+        response = Response({'detail': 'Sessão iniciada.', 'csrfToken': get_token(request)})
         set_auth_cookies(response, tokens)
-        get_token(request)
         return response
 
 
@@ -181,7 +176,7 @@ class CustomTokenRefreshView(APIView):
     authentication_classes = ()
 
     def get_authenticate_header(self, request):
-        return 'Bearer'
+        return 'Cookie'
 
     @extend_schema(
         tags=['Autenticação'],
@@ -192,7 +187,7 @@ class CustomTokenRefreshView(APIView):
         ),
         request=None,
         responses={
-            200: inline_serializer('AccessTokenResponse', fields={'access': serializers.CharField()}),
+            200: DETAIL_RESPONSE,
             401: RESP_401_UNAUTHORIZED,
             403: RESP_403_FORBIDDEN,
         },
@@ -200,6 +195,8 @@ class CustomTokenRefreshView(APIView):
     @transaction.atomic
     def post(self, request):
         enforce_csrf(request)
+        if request.data:
+            raise ValidationError('A renovação usa somente cookie, sem corpo de requisição.')
         raw = request.COOKIES.get('refresh_token')
         if not raw:
             raise AuthenticationFailed('Refresh token ausente.')
@@ -212,6 +209,7 @@ class CustomTokenRefreshView(APIView):
                     refresh_jti=token['jti'],
                     is_active=True,
                     user__is_active=True,
+                    expires_at__gt=timezone.now(),
                 )
                 .first()
             )
@@ -222,10 +220,11 @@ class CustomTokenRefreshView(APIView):
             tokens = serializer.validated_data
             session.access_jti = AccessToken(tokens['access'])['jti']
             session.refresh_jti = RefreshToken(tokens['refresh'])['jti']
-            session.save(update_fields=['access_jti', 'refresh_jti', 'last_activity'])
+            session.expires_at = timezone.now() + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']
+            session.save(update_fields=['access_jti', 'refresh_jti', 'expires_at', 'last_activity'])
         except TokenError as exc:
             raise InvalidToken('Token inválido ou expirado.') from exc
-        response = Response({'access': tokens['access']})
+        response = Response({'detail': 'Sessão renovada.'})
         set_auth_cookies(response, tokens)
         return response
 
@@ -244,8 +243,7 @@ class CustomLogoutView(APIView):
     def post(self, request):
         enforce_csrf(request)
         auth = CustomAuthentication()
-        header = auth.get_header(request)
-        raw_access = auth.get_raw_token(header) if header else request.COOKIES.get('access_token')
+        raw_access = request.COOKIES.get('access_token')
         if raw_access:
             try:
                 token = auth.get_validated_token(raw_access)

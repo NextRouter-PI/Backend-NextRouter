@@ -49,12 +49,13 @@ class EmailChangeViewSet(EmailTokenViewSet):
         serializer_class = EmailChangeConfirmSerializer if confirm else EmailChangeCodeSerializer
         serializer = serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if confirm and not request.user.check_password(serializer.validated_data['password']):
-            raise ValidationError({'password': 'Senha atual incorreta.'})
         pending = EmailToken.objects.filter(user=request.user, token_type='new-email').first()
         if not pending:
             raise ValidationError({'code': 'Código inválido ou inexistente.'})
-        return check_email_token(pending.email, serializer.validated_data['code'], 'new-email', request.user)
+        token = check_email_token(pending.email, serializer.validated_data['code'], 'new-email', request.user)
+        if confirm and not request.user.check_password(serializer.validated_data['password']):
+            raise ValidationError({'password': 'Senha atual incorreta.'})
+        return token
 
     @extend_schema(
         tags=['Autenticação'],
