@@ -17,6 +17,9 @@ A API/admin legados ainda operam com o domínio anterior; o backend não serve o
 Etapa 2 com serviços de configuração, demanda, planejamento, cálculo e execução
 implementados/testados em isolamento (seção 12). O marco final permanece pendente
 de concorrência real em PostgreSQL; ainda sem ativação ou substituição dos callers.
+Histórico local de migrations reiniciado, por autorização do dono, para **bancos
+novos/vazios**, com usuário UUID desde a criação; ver seção 12.8. As referências
+numéricas antigas abaixo são evidências históricas, não arquivos ainda disponíveis.
 Não interpretar exemplos de modelos, estados, caminhos ou serviços como código existente.
 
 ### Como interpretar este documento
@@ -759,7 +762,7 @@ descrever como implementado algo que existe apenas como plano.
 |---|---|
 | Registro do plano e substituição dos documentos anteriores | Concluído em 2026-11-15. |
 | Tutorial de build Vue separado | Registrado em BUILD_VUE.md; integração ainda não implementada. |
-| Etapa 0 — especificação técnica detalhada e estratégia de migrations | Decisões de vínculo, pedidos, publicação, viagem única e regeneração registradas. Exceções restantes na seção 3.4. Conjunto de schema da Etapa 1 expressamente autorizado; sem aplicação no banco habitual. |
+| Etapa 0 — especificação técnica detalhada e estratégia de migrations | Decisões de vínculo, pedidos, publicação, viagem única e regeneração registradas. Exceções restantes na seção 3.4. Nova base de migrations autorizada para bancos vazios; instalação SQLite local criada sem descarte (12.8). |
 | Etapa 1 — modelagem | Cobertura estrutural 1.1–1.6 implementada e testada (seção 11), sem declarar substituição integral: callers/campos antigos ainda necessários têm remoção coordenada nas Etapas 2/3. Nenhum novo fluxo operacional ativado. |
 | Etapa 2 — regras | Cobertura de serviços 2.1–2.5 implementada, com testes de negócio, falhas e efeitos de 2.6. Marco final de 2.6 pendente: testes concorrentes PostgreSQL preparados, não executados. Sem ativação operacional; ver 12.5/12.6. |
 | Etapa 3 — API/admin/integração | Não iniciada. |
@@ -1678,3 +1681,48 @@ do domínio novo continuam na Etapa 3, sem escrita paralela com a operação leg
   processos separados confirmaram URL ausente/vazia/com espaços, SQLite temporário
   e seleção explícita de PostgreSQL, sem conexão a esse servidor. Não executados
   suíte funcional, concorrência PostgreSQL, schema, Redis ou navegador nesta mudança.
+
+### 12.8. Nova base de migrations para instalação limpa (2026-11-16)
+
+**Autorização:** o dono solicitou remover/recriar o histórico local e depois
+confirmou resolver esse bloqueio para concluir a Etapa 2. Não há produção nem
+necessidade de preservar dados de desenvolvimento. A estratégia escolhida é uma
+**nova base para bancos vazios**, não conversão de um banco com o histórico antigo.
+Nenhuma migration de Django ou de bibliotecas é removida; labels/tabelas dos models
+atuais e seus campos legados necessários à transição permanecem.
+
+- Os 30 arquivos antigos dos quatro apps locais foram substituídos por quatro
+  `0001_initial.py`, gerados pelo Django 6.1 instalado: `authenticator`,
+  `organizations`, `router` e `uploader`. Os `__init__.py` foram preservados.
+- `authenticator.0001_initial` cria User com UUID diretamente, incluindo M2M de
+  grupos/permissões; admin, sessões, JWT e referências dos outros apps seguem essa
+  identidade. Não há conversão `bigint::uuid` nem movimentação física de tabelas
+  entre apps. Ownership já nasce nos módulos atuais, com `swappable_dependency`
+  para o usuário. A antiga migração de ContentTypes só atendia a mudança de módulo
+  e não é necessária numa instalação vazia; `post_migrate` cria os tipos atuais.
+- Todos os modelos/constraints atuais foram preservados, inclusive os legados.
+  Isso não remove callers, ativa serviços novos ou altera regras de produto.
+- **Não aplicar esta base sobre bancos do histórico anterior**, nem usar `--fake`
+  ou `--fake-initial` para contornar divergências. O mesmo nome `0001_initial` não
+  significa o mesmo schema. Outros desenvolvedores precisam de banco novo; qualquer
+  descarte de banco existente exige identificar o destino e confirmar os dados.
+  O histórico anterior permanece recuperável no Git, não no grafo ativo.
+- Regressões em `tests/test_migration_schema.py`: usuário UUID já no primeiro
+  estado de migração e tipos/FKs reais de todas as referências à identidade,
+  inclusive tabelas M2M, admin e blacklist JWT.
+- Baseline desta execução, antes da troca: **305 descobertos, 295 passaram e 10
+  ignorados**, 193,787 s, com SQLite temporário e serviços externos desabilitados.
+  Após gerar a nova base, os dois testes de schema passaram (0,824 s), assim como
+  check (sem divergência dos models), schema e lint (166 arquivos). Suíte completa
+  após a troca: **307 descobertos, 297 passaram e 10 ignorados**, 203,587 s, com
+  SQLite temporário. Continua o aviso de `staticfiles/` ausente.
+- Como `db.sqlite3` não existia, as migrations foram também aplicadas desde zero
+  nesse **novo SQLite local**, com guarda que cancela se o arquivo já existir e
+  integrações externas desabilitadas. Nenhum banco preexistente foi apagado ou
+  alterado. Bancos e arquivos auxiliares permanecem ignorados no Git.
+- PostgreSQL ainda não executado nesta sessão: CLI Docker presente, mas daemon
+  indisponível; sem servidor nas portas 5432/55432 e sem binários PostgreSQL locais.
+  Instalação SQLite não comprova portabilidade nem concorrência PostgreSQL. As
+  mudanças de API/WS, novo worker, Redis, Vue/navegador e deploy continuam fora deste
+  recorte. Referência de dependências/usuário inicial consultada via Context7 para
+  Django 6.1. Sem alterações de settings/dependências nesta recriação.
