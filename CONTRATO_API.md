@@ -76,6 +76,13 @@ Schema executável em `/api/schema/`, interface em `/api/doc/`.
 | `driver-ratings/` | Participantes autorizados da viagem; aluno vê apenas sua avaliação. | POST `{travel_id, score: 1..5, comment?}`; repetição igual retorna registro, mudança conflitante é recusada. Sem PATCH/DELETE. |
 | `lost-items/` | Empresa/motorista da viagem e autor ainda vinculado; outros alunos não veem relatos. | POST `{travel_id, item_description, operation_id}`; `/{id}/transition/` com `{target_status: found\|returned, operation_id}`, somente empresa. Eventos de custódia persistentes e atômicos. |
 
+Leitura da configuração habitual: `group-memberships/` inclui
+`habitual_outbound_id` (ID ou `null`), além de `service_ids`. `recurring-services/`
+inclui `point_ids`, na ordem das paradas configuradas (lista vazia quando ausentes).
+Esses campos de resposta não abrem PATCH genérico: as escritas continuam nas ações
+`authorize-services/` e `stops/`. Não deduzir a ida habitual pela primeira autorização,
+nem confundir paradas configuradas com o percurso calculado de uma viagem datada.
+
 `passengers/` e `drivers/` agora representam **identidade**, não vínculo: titular
 edita apenas seu perfil; empresa ativa lê dados mínimos de vinculados. Não há
 DELETE empresarial, `approve/`, `reject/` ou `request-route-group/`. O solicitante

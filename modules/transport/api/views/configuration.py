@@ -154,6 +154,9 @@ class ServiceViewSet(ConfigurationViewSet):
     write_serializer_class = ServiceInput
     filterset_fields = ('route_group', 'direction')
 
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related('configured_stops')
+
     def create(self, request):
         data = self.input(ServiceInput)
         group = get_object_or_404(
@@ -176,6 +179,7 @@ class ServiceViewSet(ConfigurationViewSet):
     def stops(self, request, pk=None):
         service = self.get_object()
         configure_stops(actor_id=request.user.pk, service_id=service.pk, **self.input(StopsInput))
+        service.refresh_from_db()
         return self.respond(service)
 
 

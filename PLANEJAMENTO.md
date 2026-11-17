@@ -2102,3 +2102,32 @@ Links locais, blocos/tabelas Markdown e `git diff --check` conferidos.
 backup externo, push ou deploy. Retenção/LGPD, autorização de serviços com dados
 reais, emissão/renovação TLS e aceite operacional no provedor seguem pendentes.
 Banco habitual não foi migrado nem alterado. Este smoke não conclui a adaptação.
+
+## 15. Cliente HTML de desenvolvimento — atualização em 2026-11-17
+
+### 15.1. Autorização, baseline e leitura da configuração habitual
+
+O dono autorizou adaptar `html-template-test/` ao contrato datado, como site funcional
+mais painel técnico, servido pelo Django na mesma origem **somente em desenvolvimento**.
+HTML sem CSS/estilização ou frameworks; JavaScript apenas funcional. Mapa adiado:
+seleções por listas/checkboxes nesta entrega. Inclui rotas locais, testes, documentação
+e dois complementos de leitura na API: ida habitual e IDs das paradas configuradas.
+Sem settings, novas dependências, migrations novas, produção, repositório Vue ou banco
+habitual. Testes usam bancos temporários; não há autorização para migrar/semear o habitual.
+
+Baseline iniciado antes das alterações: SQLite **391 descobertos, 372 passaram e 19
+ignorados** (299,213 s), lint aprovado (187 arquivos), check sem problemas/divergência
+e OpenAPI validado. Integrações externas desabilitadas; aviso de `staticfiles/` ausente
+preservado. Sem PostgreSQL/Redis ou navegador nesse baseline.
+
+Primeiro complemento: `GroupMembershipSerializer.habitual_outbound_id` retorna a
+autorização habitual efetiva ou `null`; `ServiceSerializer.point_ids` retorna as
+paradas configuradas em ordem. Relações prefetched evitam consultas por registro;
+a ação `stops/` relê o serviço para não devolver cache anterior. Não há nova escrita,
+alteração de regra ou exposição fora dos querysets já autorizados.
+
+Validação do complemento: **5/5** testes focais SQLite (1,772 s), incluindo OpenAPI,
+ordem/limpeza das paradas, retorno atualizado da ação, habitual diferente da primeira
+autorização, `null`, escopo/negações e serialização sem queries com prefetch. Lint
+aprovado (188 arquivos) e `git diff --check` sem problemas. Sem migrations ou dados
+reais. A entrega das páginas ainda está em implementação no próximo recorte.
