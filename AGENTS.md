@@ -37,8 +37,9 @@
 - `modules/organizations/`: empresas, perfis, aprovação e grupos.
 - `modules/transport/`: serviços/horários, frota, viagens, trajetos, jobs e WS.
 - `modules/uploads/`: documentos privados; `shared/`: endereços, erros e paginação.
-- `tests/helpers.py`: helpers de API. `html-template-test/`: cliente legado local,
-  nunca publicar ou incluir no build/coleta de estáticos.
+- `tests/helpers.py`: helpers de API. `html-template-test/`: site/painel manual local
+  do contrato datado, sem estilização, servido somente com DEBUG (planejamento 15).
+  Nunca publicar em produção ou incluir no build/coleta de estáticos. Mapa adiado.
 
 ## Arquitetura e regras obrigatórias
 

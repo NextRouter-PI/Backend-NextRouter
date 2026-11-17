@@ -1,84 +1,175 @@
-# `html-template-test/` — Páginas HTML para Teste Manual da API NextRouter
+# Site HTML de testes locais
 
-> **Cliente legado desativado como contrato:** a Etapa 3 substituiu esta API. Não
-> utilizar estas páginas contra a operação datada nem armazenar JWT no navegador.
-> Consulte [CONTRATO_API.md](../CONTRATO_API.md) e [PLANEJAMENTO.md](../PLANEJAMENTO.md).
+Cliente do contrato datado atual, em **HTML sem estilização** e com JavaScript
+funcional, sem CSS, frameworks, npm ou build. Inclui fluxos navegáveis por perfil
+e [painel técnico](painel.html) com todas as operações do OpenAPI executável.
+As chamadas são reais: não há login fictício, sucesso simulado ou alocação automática.
+**Mapa adiado**; a seleção de alunos usa listas/checkboxes.
 
-> **AVISO DE SEGURANÇA**: Esta pasta é uma ferramenta exclusiva para ambiente de desenvolvimento local. Não a exponha em produção, não a inclua em `STATIC_ROOT`/coleta de arquivos estáticos nem grave senhas, tokens ou segredos reais nos arquivos.
+Fontes de verdade: [CONTRATO_API.md](../CONTRATO_API.md),
+[PLANEJAMENTO.md](../PLANEJAMENTO.md) (seção 15) e `/api/schema/`.
+Inventário por fluxo em [COBERTURA.md](COBERTURA.md).
 
-## 1. Como Servir e Abrir as Páginas
+## 1. Como abrir
 
-Em um terminal na raiz do repositório, inicie o backend Django/Daphne em modo de desenvolvimento (`http://localhost:8000`):
-
-```bash
-pdm run runserver 127.0.0.1:8000
-```
-
-Em outro terminal na raiz do repositório, sirva a pasta `html-template-test/` na porta `5173` (já liberada em `CORS_ALLOWED_ORIGINS` e `CSRF_TRUSTED_ORIGINS` no `app/settings/dev.py`):
-
-```bash
-python3 -m http.server 5173 --bind 127.0.0.1 --directory html-template-test
-```
-
-Abra no navegador:
+Use o Django/Daphne, **na mesma origem** da API e do WebSocket:
 
 ```text
-http://localhost:5173/index.html
+http://127.0.0.1:8000/html-template-test/
 ```
 
-*(Importante: use o mesmo host `localhost` tanto no navegador quanto na URL base da API `http://localhost:8000` para que o navegador compartilhe os cookies `csrftoken`, `access_token` e `refresh_token` com `SameSite=Lax`.)*
+Não abra por `file://`, `python -m http.server`, porta 5173 ou uma URL de API
+configurada no navegador. Não é necessário relaxar CORS, CSRF ou Origin WS.
+A raiz `/` e o contrato do artefato Vue não foram alterados.
 
-## 2. Como Configurar a URL Base e Fazer Login
+### Ambiente local já preparado
 
-1. Em `index.html`, confirme o campo **URL Base da API** (`http://localhost:8000` por padrão) e clique em **Salvar URL Base**.
-2. Na seção **2. Sessão Atual e Troca Rápida de Papel**, digite o e-mail e a senha no formulário `POST /api/login/` (você pode clicar nos botões de preenchimento rápido de e-mail para Empresa, Motorista, Passageiro ou Admin caso tenha executado `python manage.py seed_demo_data`).
-3. Ao autenticar:
-   - O backend define os cookies HttpOnly (`access_token` e `refresh_token`) e o cookie `csrftoken`.
-   - A página guarda o token de acesso (`nr_access_token`), o token CSRF (`nr_csrf_token`) e os dados de `/api/users/me/` no `sessionStorage` da aba.
-   - Todas as páginas exibem no topo quem está logado e o papel atual (`company`, `driver`, `passenger` ou `admin`).
-4. Para trocar de papel nas chamadas REST, autentique com outro usuário em `index.html` ou selecione uma sessão já autenticada no seletor **Alternar token Bearer salvo nesta aba**. Para o WebSocket (`ws-localizacao.html`), faça login diretamente no `POST /api/login/` com o usuário desejado para atualizar o cookie HttpOnly `access_token`.
+Antes de iniciar, confirme um banco descartável com as migrations atuais aplicadas.
+O SQLite habitual do repositório pode estar incompatível; **não o use nem migre
+seguindo automaticamente este tutorial**. Os exports precisam estar no terminal
+do servidor para prevalecer sobre `.env`:
 
-## 3. Roteiro Sugerido de Teste Ponta a Ponta
+```sh
+# Defina HTML_TEST_DATABASE_URL com o banco descartável previamente preparado/autorizado.
+: "${HTML_TEST_DATABASE_URL:?Informe o banco descartável autorizado}"
+export DATABASE_URL="$HTML_TEST_DATABASE_URL"
+export REDIS_URL=
+export GEOCODING_URL=
+export OSRM_URL=
+export EMAIL_HOST=
+export CLOUDINARY_URL=
+pdm run asgi
+```
 
-1. **Cadastro e Aprovação da Empresa (`contas.html` + `empresas.html` + `/admin/`)**:
-   - Em `contas.html`, envie `POST /api/registration/request/` com o e-mail da empresa e copie o código de 6 dígitos impresso no console do Django.
-   - Em `empresas.html`, envie 3 arquivos PDF em `POST /api/uploads/documents/` para preencher os 3 campos `attachment_key` e envie `POST /api/companies/`.
-   - Acesse `http://localhost:8000/admin/organizations/company/` como administrador e aprove a empresa (`is_approved=True`).
-   - Faça login como a empresa em `index.html` e consulte `GET /api/companies/me/stats/` em `empresas.html`.
-2. **Criação de Grupo de Rota, Horário, Motorista e Veículo (`grupos-horarios.html` + `veiculos-motoristas.html`)**:
-   - Em `grupos-horarios.html`, crie um grupo em `POST /api/company-route-groups/` (anote o `id` do grupo) e crie um horário em `POST /api/route-schedules/`.
-   - Cadastre ou autentique um motorista, solicite entrada no grupo em `vinculos.html` (`PATCH /api/drivers/{id}/request-route-group/`) e, autenticado como empresa, aprove-o (`PATCH /api/drivers/{id}/approve/`).
-   - Em `veiculos-motoristas.html`, cadastre um veículo ativo vinculado ao grupo e ao motorista em `POST /api/vehicles/`.
-3. **Pedido de Entrada do Passageiro e Aprovação (`vinculos.html`)**:
-   - Autenticado como passageiro (ou após cadastrar um em `POST /api/passengers/`), envie `PATCH /api/passengers/{id}/request-route-group/` informando o `route_group`.
-   - Autenticado como empresa dona do grupo, envie `PATCH /api/passengers/{id}/approve/`. Verifique no terminal do Django o disparo assíncrono do e-mail de aprovação pós-commit.
-4. **Criação de Trajeto e Otimização OSRM (`trajeto-osrm.html`)**:
-   - Autenticado como empresa, crie um trajeto em `POST /api/paths/` vinculado ao grupo.
-   - Envie `POST /api/paths/{id}/optimize/` informando `passenger_ids` e/ou `stops`, `start` e `end`. Confira a melhor ordem (`order`), `distance_meters`, `duration_seconds`, `points` e `geometry`.
-5. **Agendamento da Viagem e Confirmação de Presença (`viagens-presenca.html`)**:
-   - Autenticado como empresa, crie a viagem em `POST /api/travels/` (`status = scheduled`).
-   - Autenticado como passageiro aprovado do grupo, confirme presença em `POST /api/confirmations/` com `confirm = true` (repita o envio para verificar a idempotência).
-6. **Início da Viagem e Localização em Tempo Real (`viagens-presenca.html` + `ws-localizacao.html`)**:
-   - Autenticado como motorista designado, inicie a viagem em `PATCH /api/travels/{id}/start/` (`status = in_progress`).
-   - Em `ws-localizacao.html`, conecte na **Parte 1 (Motorista)** e na **Parte 2 (Acompanhamento)** informando o `travel_id`.
-   - Envie um ponto avulso ou inicie a **Sequência Simulada de Pontos** e observe as atualizações chegando em tempo real no painel de acompanhamento.
-7. **Encerramento da Viagem (`viagens-presenca.html`)**:
-   - Autenticado como motorista designado, envie `PATCH /api/travels/{id}/finish/` (`status = finished`).
-   - Verifique em `ws-localizacao.html` o recebimento da mensagem `{"type": "closed"}` e o fechamento automático do WebSocket (`código 1000`).
-8. **Relato de Objeto Perdido e Avaliação do Motorista (`objetos-avaliacoes.html`)**:
-   - Autenticado como o passageiro que confirmou presença na viagem encerrada, relate um item em `POST /api/lost-items/` e avalie o motorista em `POST /api/driver-ratings/` (nota de `1` a `5`).
-   - Autenticado como empresa ou motorista, atualize o status do objeto perdido em `PATCH /api/lost-items/{id}/` para `found` ou `returned`.
+Prefira `127.0.0.1` em todos os links, sem alternar para `localhost` durante a sessão.
+Sem Redis, os canais funcionam somente em **um** processo ASGI. Isso não comprova
+operação multiprocesso ou produção. O servidor não aplica migrations nem cria dados.
 
-## 4. Limitações Conhecidas
+### Preparação manual opcional — somente banco novo e fictício autorizado
 
-- **WebSocket no Navegador e Cookies**: A API nativa `WebSocket` do navegador não permite enviar cabeçalhos `Authorization: Bearer` customizados; portanto, o canal `ws/travels/{travel_id}/location/` autentica sempre pelo cookie HttpOnly `access_token` do último login efetuado no navegador. Para testar motorista e passageiro simultaneamente em WebSocket, use duas janelas (normal + anônima/outro perfil de navegador) ou alterne o login em `index.html`.
-- **Rate Limit de Localização**: O backend rejeita coordenadas enviadas com intervalo inferior a `LOCATION_MIN_INTERVAL_SECONDS` (padrão `2` segundos); na simulação de sequência do WebSocket, mantenha o intervalo em `>= 2500` ms.
-- **Serviços Externos (OSRM e Nominatim)**: O endpoint `POST /api/paths/{id}/optimize/` exige que `OSRM_URL` e `GEOCODING_URL` estejam configurados no `.env` e acessíveis; caso o OSRM esteja indisponível, o backend retorna `503 Service Unavailable` sem sobrescrever o trajeto anterior.
-# Aviso da transição da Etapa 3
+Se ainda não houver banco preparado, os comandos abaixo criam **outro** diretório
+e aplicam as migrations existentes nele. Obtenha autorização concreta antes de
+executá-los; não substitua o caminho pelo banco habitual, não use `--fake` e não
+reaproveite um banco legado:
 
-Os clientes desta pasta documentam o contrato **anterior** e não devem ser usados
-como cliente da operação datada. Endpoints de confirmação/Path/horários pareados,
-Bearer e troca de vínculo no perfil foram removidos. Não guardar JWT no storage;
-sessões antigas salvas por estes clientes não fazem parte do contrato atual.
-Consulte [CONTRATO_API.md](../CONTRATO_API.md) e os testes de HTTP/WS para os fluxos
-novos. Esta pasta é histórica, excluída da imagem e da entrega de assets/SPA.
+```sh
+HTML_TEST_ROOT=$(mktemp -d /tmp/opencode/nextrouter-html-XXXXXX)
+export DATABASE_URL="sqlite:///$HTML_TEST_ROOT/db.sqlite3"
+export PRIVATE_DOCUMENT_ROOT="$HTML_TEST_ROOT/private-documents"
+export REDIS_URL=
+export GEOCODING_URL=
+export OSRM_URL=
+export EMAIL_HOST=
+export CLOUDINARY_URL=
+pdm run migrate
+# Digite uma senha fictícia em tempo de uso, sem gravá-la no histórico/arquivos.
+read -r -s -p 'Senha fictícia da demonstração: ' DEMO_PASSWORD
+export DEMO_PASSWORD
+pdm run python manage.py seed_demo_data --confirm-fictitious
+unset DEMO_PASSWORD
+pdm run asgi
+```
+
+A fixture existente usa `company@fixture.example.invalid`,
+`driver@fixture.example.invalid`, `passenger@fixture.example.invalid` e
+`moderator@fixture.example.invalid`. A senha é a informada no ambiente; não é
+exibida, redefinida em reexecuções ou incluída nos HTMLs. Os códigos de cadastro/
+recuperação usam o e-mail de autenticação (console local com SMTP desabilitado).
+
+Não se cria worker, provedor de trajeto ou publicação automaticamente. Com OSRM
+desabilitado, um cálculo não fica pronto por abrir esta página. Configure um serviço
+autorizado e execute o worker separadamente com todos os limites explícitos do
+[contrato](../CONTRATO_API.md). Nunca envie coordenadas reais a um provedor por
+seguir este roteiro. Remova recursos descartáveis somente depois de encerrar seus
+processos e conferir exatamente os caminhos próprios.
+
+## 2. Sessão e segurança
+
+- Login usa bootstrap CSRF e cookies HttpOnly. Access/refresh não são lidos, exibidos
+  ou persistidos pelo JavaScript; não há Bearer, JWT em URL ou storage.
+- O perfil é consultado pelos endpoints `me/`; `/api/users/me/` não possui um campo
+  de papel. Moderação no Admin tem sessão separada e não concede bypass operacional.
+- Recarregar a página consulta a sessão real. Abas compartilham cookies; use perfis
+  de navegador separados para operar como empresa, motorista e aluno simultaneamente.
+- GET autenticado pode tentar uma renovação e repetir **somente essa leitura**.
+  Refresh é single-flight na página e coordenado por Web Locks entre abas; sem essa
+  API, use renovação manual em uma única aba. BroadcastChannel transmite apenas eventos,
+  nunca credenciais. Login/logout em outra aba invalidam a interface; foco relê a conta.
+- Mutações nunca são repetidas automaticamente. 403 não dispara refresh; 409 exige
+  releitura e nova decisão. Um UUID idempotente precisa ser mantido ao verificar uma
+  falha de rede. Novo UUID significa nova operação.
+- Campos opcionais oferecem **não enviar**, **enviar valor** e, quando permitido,
+  **enviar nulo**. Política, duração/margem e limites de agenda não têm defaults
+  inventados. Instantes são ISO 8601 com fuso explícito.
+- Resultados autorizados ficam no DOM da página, sem persistência ou console de
+  payloads. Diagnósticos mascaram valores livres, códigos, CPF, endereço e coordenadas.
+  Use somente dados fictícios; não exporte capturas com dados reais.
+
+## 3. Fluxo sugerido
+
+1. **Conta/empresa:** solicite/verifique código, envie documentos e confirme cadastro.
+   Modere a empresa pelo Admin, sem alterar estado operacional em formulários genéricos.
+2. **Configuração:** pontos → grupo/destino → frota/motorista → política → serviços
+   com dias, vigência, duração e margem escolhidos pela empresa.
+3. **Vínculos:** titular solicita; empresa aprova, atribui grupo/ponto e autoriza serviços.
+4. **Seleção habitual:** em Programação habitual, carregue grupo, serviço e alunos.
+   Na ida, marcar escolhe a ida habitual e mantém outras autorizações; desmarcar
+   somente retira o caráter habitual. No retorno, altera apenas aquela autorização.
+   Para retirar outra autorização, use a ação individual `authorize-services/`.
+   Salvamento é **individual**, não transação coletiva. Confira resultados parciais.
+   Há releitura prévia, mas a API não oferece revisão otimista dessa configuração;
+   não há promessa de proteção completa contra edições concorrentes.
+5. **Atendimento:** gere horizonte/dias explicitamente ou configure agenda opt-in.
+   O aluno responde na janela normal; ausência de resposta é diferente de negativa.
+6. **Planejamento:** após prazo, feche o dia, acompanhe jobs/snapshots, resolva
+   pendências e publique cada viagem. Aprovar pedido não transfere antes de cálculo
+   válido/aplicação. Convite de substituto exige aceite explícito.
+7. **Execução:** motorista designado inicia a publicação atual, registra presença,
+   avança paradas e finaliza sem pendências. Correção é empresarial e auditada.
+8. **Localização:** selecione viagem ativa e conecte. Motorista envia ponto avulso
+   explicitamente; GPS apenas preenche os campos com permissão, sem envio automático.
+   Ausência/stale/fechamento são visíveis. Renovação reconecta o socket, não reenvia GPS.
+9. **Pós-viagem:** aluno desembarcado avalia/relata objeto; empresa conduz
+   `reported → found → returned`. Avisos são consultados e marcados como lidos.
+
+Nas listas, use **Carregar / atualizar registros**, filtros, paginação e
+**Abrir e escolher ação**. As ações usam a revisão lida do servidor; não há PATCH
+genérico de estados. Depois de uma mutação bem-sucedida, reabra a ação para obter
+estado/revisão atualizados antes da próxima operação.
+
+## 4. Validação
+
+Os testes Python verificam entrega/allowlist, negações em produção, HEAD/métodos,
+traversal/symlinks, navegação sem CSS, contrato e campos de leitura. A suíte executa
+também os testes nativos JS quando Node >=22 está disponível:
+
+```sh
+node --test tests/html_client.test.mjs
+```
+
+Smoke opcional com **Node >=22 e Firefox já instalados**, sem npm, Playwright ou
+driver. O comando exige confirmação fictícia, cria banco/arquivos/perfis em diretório
+novo sob `/tmp/opencode`, ignora URLs herdadas de serviços, migra/semeia apenas o
+próprio banco e encerra/remove somente os próprios recursos:
+
+```sh
+node scripts/test_html_browser.mjs --confirm-fictitious
+```
+
+O smoke usa OSRM fictício apenas na preparação de uma viagem pelo domínio, sem
+chamar a rede. Testa páginas/formulários, sessão, seleção, início e WS pelo navegador
+local. Não comprova o Vue real, HTTPS/WSS, concorrência PostgreSQL, Redis multiprocesso,
+provedor, GPS real/celular suspenso ou todas as regras de negócio em cada formulário.
+Consulte a evidência executada e os limites atuais no planejamento; existência do
+roteiro ou de cobertura no catálogo não significa execução aprovada.
+
+## 5. Isolamento da produção
+
+O servidor local tem allowlist de HTML/JS/catálogo, aceita GET/HEAD e exige DEBUG.
+README, cobertura, diretórios, ocultos, symlinks e arquivos não listados não são
+publicados. Há `private, no-store`, CSP sem estilos/scripts inline e links sem
+referer para outras origens. `Referrer-Policy: same-origin` preserva o Origin dos
+POSTs locais necessário ao CSRF. Nenhuma pasta inteira do repositório vira raiz pública.
+
+`html-template-test/` continua fora de STATICFILES_DIRS, collectstatic, Docker e do
+artefato Vue. Em produção, as URLs retornam 404 mesmo se os arquivos existirem.

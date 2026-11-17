@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NextRouter — painel técnico</title>
+  <script type="module" src="assets/site.js"></script>
+</head>
+<body data-page="panel">
+  <header><p>Somente desenvolvimento local e dados fictícios.</p><nav><a href="index.html">Início e fluxos</a> | <a href="/api/doc/">Swagger</a> | <a href="/api/redoc/">Redoc</a> | <a href="/admin/">Admin (sessão separada)</a></nav></header>
+  <main>
+    <h1>Painel técnico do contrato atual</h1>
+    <p>Formulários por operação do OpenAPI, com path/query/body e tipos atuais. IDs de usuário, sessão e operação são UUID; demais IDs são inteiros. Campos opcionais podem ser omitidos ou enviados como nulos quando o contrato permitir.</p>
+    <p>Use este painel para casos técnicos e negações, inclusive endpoints administrativos e aliases de autenticação ainda existentes. Não há bypass de permissão, CSRF ou janela operacional.</p>
+    <p>Resultados autorizados são exibidos somente na página, sem persistência. Diagnósticos não mostram senhas, códigos, documentos pessoais, endereços ou coordenadas. Não exporte dados reais.</p>
+    <section id="session" aria-label="Sessão"></section>
+    <div id="workspace"></div>
+  </main>
+  <noscript>JavaScript é necessário para carregar o OpenAPI e enviar operações JSON.</noscript>
+</body>
+</html>
