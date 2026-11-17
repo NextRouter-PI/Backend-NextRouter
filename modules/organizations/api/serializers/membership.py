@@ -39,13 +39,33 @@ class MembershipEventSerializer(serializers.ModelSerializer):
 
 class GroupMembershipSerializer(serializers.ModelSerializer):
     service_ids = serializers.SerializerMethodField()
+    habitual_outbound_id = serializers.SerializerMethodField()
 
     class Meta:
         model = PassengerGroupMembership
-        fields = ('id', 'membership', 'route_group', 'transport_point', 'started_at', 'ended_at', 'service_ids')
+        fields = (
+            'id',
+            'membership',
+            'route_group',
+            'transport_point',
+            'started_at',
+            'ended_at',
+            'service_ids',
+            'habitual_outbound_id',
+        )
 
     def get_service_ids(self, obj) -> list[int]:
         return [authorization.service_id for authorization in obj.service_authorizations.all()]
+
+    def get_habitual_outbound_id(self, obj) -> int | None:
+        return next(
+            (
+                authorization.service_id
+                for authorization in obj.service_authorizations.all()
+                if authorization.is_habitual
+            ),
+            None,
+        )
 
 
 class AssignGroupInput(InputSerializer):

@@ -95,6 +95,8 @@ class VehicleInput(InputModelSerializer):
 
 
 class ServiceSerializer(serializers.ModelSerializer):
+    point_ids = serializers.SerializerMethodField()
+
     class Meta:
         model = RecurringService
         fields = (
@@ -112,7 +114,11 @@ class ServiceSerializer(serializers.ModelSerializer):
             'destination',
             'planned_duration',
             'turnaround_duration',
+            'point_ids',
         )
+
+    def get_point_ids(self, obj) -> list[int]:
+        return [stop.point_id for stop in obj.configured_stops.all()]
 
 
 class ServiceInput(InputModelSerializer):
