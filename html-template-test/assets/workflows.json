@@ -1,0 +1,40 @@
+{
+  "pages": [
+    {"file": "index.html", "key": "home", "title": "Início e sessão", "resources": ["companies"], "operations": []},
+    {"file": "contas.html", "key": "accounts", "title": "Contas e segurança", "resources": ["sessions"], "operations": ["POST /api/registration/request/", "POST /api/registration/verify/", "POST /api/registration/confirm/", "POST /api/password-reset/request/", "POST /api/password-reset/verify/", "POST /api/password-reset/confirm/", "GET /api/users/me/", "PATCH /api/users/me/", "POST /api/email-change/request/", "POST /api/email-change/verify/", "POST /api/email-change/confirm/", "POST /api/me/revoke-sessions/", "POST /api/me/deactivate/"]},
+    {"file": "empresas.html", "key": "companies", "title": "Empresas e documentos", "resources": [], "operations": ["GET /api/companies/me/", "PATCH /api/companies/me/", "GET /api/companies/me/stats/", "POST /api/uploads/documents/", "POST /api/uploads/images/", "GET /api/uploads/documents/{id}/download/"]},
+    {"file": "vinculos.html", "key": "memberships", "title": "Vínculos e grupos", "resources": ["memberships", "group-memberships", "membership-events", "passengers"], "operations": ["GET /api/passengers/me/", "PATCH /api/passengers/me/"]},
+    {"file": "grupos-horarios.html", "key": "configuration", "title": "Programação habitual", "resources": ["operational-points", "company-route-groups", "response-policies", "recurring-services"], "operations": []},
+    {"file": "veiculos-motoristas.html", "key": "fleet", "title": "Veículos e motoristas", "resources": ["vehicles", "drivers"], "operations": ["GET /api/drivers/me/", "PATCH /api/drivers/me/"]},
+    {"file": "agenda-respostas.html", "key": "daily", "title": "Agenda e respostas", "resources": ["service-days", "eligibilities", "daily-responses", "change-requests"], "operations": []},
+    {"file": "trajeto-osrm.html", "key": "planning", "title": "Cálculo e publicação", "resources": ["travels", "optimization-jobs", "route-snapshots", "route-stops", "travel-publications"], "operations": []},
+    {"file": "viagens-presenca.html", "key": "execution", "title": "Viagens e execução", "resources": ["travels", "driver-invitations", "travel-participations", "participation-events", "route-stops"], "operations": []},
+    {"file": "ws-localizacao.html", "key": "location", "title": "Localização autorizada", "resources": [], "operations": ["GET /api/travels/{id}/location/"]},
+    {"file": "objetos-avaliacoes.html", "key": "history", "title": "Objetos e avaliações", "resources": ["lost-items", "driver-ratings"], "operations": []},
+    {"file": "avisos.html", "key": "notifications", "title": "Avisos", "resources": ["notifications"], "operations": []},
+    {"file": "painel.html", "key": "panel", "title": "Painel técnico", "resources": [], "operations": []}
+  ],
+  "columns": {
+    "companies": ["id", "trade_name", "city", "state"],
+    "sessions": ["id", "device", "current", "created_at"],
+    "memberships": ["id", "applicant_name", "company", "passenger", "driver", "status"],
+    "group-memberships": ["id", "membership", "route_group", "transport_point", "service_ids", "habitual_outbound_id"],
+    "company-route-groups": ["id", "name", "destination"],
+    "operational-points": ["id", "name", "city", "state"],
+    "recurring-services": ["id", "name", "direction", "target_time", "vehicle", "point_ids"],
+    "vehicles": ["id", "plate", "capacity", "status", "garage_point"],
+    "service-days": ["id", "date", "route_group", "window", "revision", "issues"],
+    "eligibilities": ["id", "day", "passenger", "authorized_services", "response"],
+    "change-requests": ["id", "response", "leg", "status", "application", "expires_at"],
+    "travels": ["id", "date", "direction", "status", "planning_status", "revision", "publication_current"],
+    "travel-participations": ["id", "travel", "name", "leg", "status"],
+    "driver-invitations": ["id", "travel", "status", "expires_at"],
+    "optimization-jobs": ["id", "snapshot", "status", "attempts", "error"],
+    "route-snapshots": ["id", "travel", "revision", "state", "distance_meters", "duration_seconds"],
+    "route-stops": ["id", "snapshot", "position", "state", "participants"],
+    "travel-publications": ["id", "travel", "snapshot", "revision", "published_at"],
+    "notifications": ["id", "kind", "resource_type", "resource_id", "read_at"],
+    "lost-items": ["id", "travel", "item_description", "status"],
+    "driver-ratings": ["id", "travel", "score", "comment"]
+  }
+}

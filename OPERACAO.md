@@ -16,7 +16,7 @@ habitual sem os incrementos e uma estratégia concretamente autorizada.
   conforme BUILD_VUE.md. A revisão completa do backend deve coincidir com o manifesto.
   Sem frontend, o build de release falha; o target `backend` serve apenas para
   trabalhos isolados, não para declarar entrega conjunta.
-- Node, PDM, repositório Git, `.env`, testes, dados locais e cliente HTML legado não
+- Node, PDM, repositório Git, `.env`, testes, dados locais e cliente HTML de desenvolvimento não
   fazem parte do runtime. Coleta de `/static/` ocorre offline no build, usando
   `app.settings.build`, sem PostgreSQL/Redis/SMTP ou segredos. **Nunca** iniciar web
   ou worker com esses settings de build.
@@ -195,3 +195,9 @@ testes e correções do build em [PLANEJAMENTO.md](PLANEJAMENTO.md), seção 14.
 Mesmo aprovado, **não** comprova compilação Vue, navegador (inclusive cookies de
 terceiros bloqueados), GPS em celular suspenso, provedor, backup externo ou deploy.
 Esses aceites e as decisões de retenção/LGPD continuam abertos.
+
+O site manual de `html-template-test/` é um recorte separado de desenvolvimento:
+servido pelo Django somente com DEBUG, sem alterar a imagem, o artefato ou a raiz
+Vue. Preparação isolada, smoke opcional Firefox e seus limites estão no
+[README do cliente](html-template-test/README.md) e no planejamento, seção 15;
+não reinterpretar o smoke TLS acima como validação dessas páginas ou do Vue real.

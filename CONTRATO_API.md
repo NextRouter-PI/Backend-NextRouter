@@ -200,8 +200,12 @@ Códigos: 4001 sessão, 4003 acesso, 4009 operação encerrada/inacessível, 100
   no ambiente. Sem reset, senha no log ou dados reais; estrutura idempotente usa
   os serviços novos. Backfill legado de documentos/endereço pessoal foi desativado.
 - `paths/`, `route-schedules/`, `confirmations/` e ações de vínculo no perfil foram
-  removidos, sem alias que escreva no domínio antigo. Clientes HTML legados não
-  representam este contrato e nunca são servidos/coletados como assets.
+  removidos, sem alias que escreva no domínio antigo. `html-template-test/` foi
+  atualizado para este contrato: site manual sem estilização mais painel derivado
+  do OpenAPI, servido em `/html-template-test/` **somente com DEBUG**. Cookies/CSRF
+  e WS usam a mesma origem. A pasta continua fora de produção, Docker, coleta de
+  estáticos e artefato Vue; não é a entrega do frontend separado. Preparação e
+  limites em [html-template-test/README.md](html-template-test/README.md).
 
 ## SPA e marco integrado
 

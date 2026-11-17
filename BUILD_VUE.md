@@ -157,7 +157,8 @@ Node pode ficar só no estágio de build, fora do runtime Python.
   extensões de código/imagem/fonte aprovadas; sem source maps, arquivos ocultos,
   manifestos JSON ou symlinks. Arquivo público adicional aprovado: `/favicon.ico`.
 - `/static/` continua exclusivo da coleta Django/admin. `collectstatic` não copia
-  o Vue nem publica `html-template-test/`, mídia privada ou o repositório.
+  o Vue nem publica `html-template-test/`, mídia privada ou o repositório. O cliente
+  HTML tem rota exclusiva de desenvolvimento com DEBUG; não faz parte do build Vue.
 - Prefixos reservados, arquivos inexistentes, requisições JSON e POST desconhecido
   nunca recebem fallback HTML. API/admin e respostas com cookies são `private, no-store`.
 - HTML usa `no-cache`; assets/favicons usam revalidação por ETag/Last-Modified. Não

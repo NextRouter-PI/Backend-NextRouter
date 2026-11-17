@@ -18,7 +18,7 @@ Backend reconhece o artefato Vue, mas somente fixtures foram testadas: build rea
 navegador e entrega conjunta continuam pendentes no marco integrado 3/4. Retenção/
 expurgo e ambiente no provedor permanecem pendentes; runtime local descartável com
 fixture validado em 14.3. Seções 10–12 registram os
-marcos históricos; a situação atual prevalecente está nas seções 13–14.
+marcos históricos; a situação atual prevalecente está nas seções 13–15.
 Histórico local de migrations reiniciado, por autorização do dono, para **bancos
 novos/vazios**, com usuário UUID desde a criação; ver seção 12.8. As referências
 numéricas antigas abaixo são evidências históricas, não arquivos ainda disponíveis.
@@ -771,6 +771,7 @@ descrever como implementado algo que existe apenas como plano.
 | Etapa 2 — regras | Serviços 2.1–2.5 e concorrência de 2.6 validados em PostgreSQL 16.16 (13.1). Callers substituídos na Etapa 3 (13.3–13.4); não confundir validação dos serviços com entrega do fluxo pelo navegador. |
 | Etapa 3 — API/admin/integração | Backend HTTP/admin/WS/worker, contrato SPA e remoção física do legado implementados/testados (13.3–13.4), incluindo PostgreSQL e Redis reais descartáveis. Integração com Vue real/navegador ainda não concluída. |
 | Etapa 4 — ambiente/build/operação | Agenda persistente, artefato identificado e runtime local implementados; smoke HTTPS/WSS/recuperação/restore aprovado só com fixture (seção 14). Frontend real/navegador e provedor pendentes; sem deploy nem alterações no banco habitual. |
+| Cliente HTML de desenvolvimento | Atualizado para o domínio datado, sem estilização, na mesma origem somente com DEBUG; mapa adiado. Evidências e limites na seção 15; não substitui o Vue real. |
 
 **Validações do registro inicial (2026-11-15, antes da revisão de ambiguidades):** `pdm run test` passou
 46/46 com SQLite de teste isolado e integrações externas desabilitadas; `pdm run lint`
@@ -2130,4 +2131,87 @@ Validação do complemento: **5/5** testes focais SQLite (1,772 s), incluindo Op
 ordem/limpeza das paradas, retorno atualizado da ação, habitual diferente da primeira
 autorização, `null`, escopo/negações e serialização sem queries com prefetch. Lint
 aprovado (188 arquivos) e `git diff --check` sem problemas. Sem migrations ou dados
-reais. A entrega das páginas ainda está em implementação no próximo recorte.
+reais. Naquele primeiro recorte, a entrega das páginas ainda estava em implementação.
+
+### 15.2. Site manual, painel técnico e entrega local
+
+Substituídos os dez HTMLs legados; adicionadas páginas de agenda/respostas, avisos e
+painel técnico. Sem CSS, estilos inline, bibliotecas visuais ou build; JavaScript
+somente para sessão, API, seleções, paginação/formulários e WS. O catálogo técnico
+enumera o OpenAPI em execução, incluindo métodos, schemas, cadastro polimórfico,
+multipart, UUIDs e aliases atuais. Os nomes locais antigos de algumas páginas foram
+preservados, não os endpoints operacionais removidos.
+
+`app/html_templates.py` entrega allowlist explícita de HTML/JS/catálogo em
+`/html-template-test/`, com GET/HEAD, DEBUG obrigatório, no-store e CSP sem estilos
+ou scripts inline. Negados README/cobertura, ocultos, traversal, symlinks, arquivos
+ausentes e métodos de escrita. A raiz Vue e `/assets/` não mudaram; pasta continua
+fora de STATICFILES_DIRS, collectstatic, Docker e release.
+
+Sessão somente por cookies: bootstrap/login com CSRF, identidade/perfis relidos após
+recarga, refresh single-flight/Web Locks, eventos entre abas sem credenciais e sem
+persistência no storage. GET pode repetir uma leitura após uma renovação; mutações
+nunca têm replay automático, 403 não dispara refresh. Diagnósticos por allowlist,
+sem logs de payload ou valores livres. Dados autorizados permanecem só no DOM.
+
+Seleção habitual humana por grupo/serviço usa os campos de 15.1 e preserva outras
+autorizações. Gravações são individuais, com resultados parciais explícitos e releitura
+prévia: não se promete transação coletiva nem revisão otimista inexistente na API.
+Mapa continua adiado. WS deriva esquema/host, mostra posição ausente/stale, permite
+ponto avulso pelo motorista e GPS somente como preenchimento explícito. Sem envio
+em background, promessas para celular suspenso ou bypass das regras operacionais.
+
+Validações iniciais do cliente: **17/17** testes focais SQLite (2,765 s), incluindo
+entrega/produção, configuração e schema, e **11/11** testes JS nativos. Suíte SQLite
+completa: **403 descobertos, 384 passaram e 19 ignorados** (307,872 s); lint aprovado
+(190 arquivos), check sem problemas/divergência e OpenAPI validado. Essas execuções
+antecedem a correção da política de referrer descrita abaixo; evidência final segue
+no encerramento deste recorte.
+
+`scripts/test_html_browser.mjs` usa Node/Firefox já instalados, sem npm/driver ou
+dependências novas. Exige confirmação fictícia, cria outro banco/arquivos/perfis em
+diretório próprio sob `/tmp/opencode`, instala as migrations existentes apenas ali,
+semeia fixture e inicia um ASGI local. OSRM é fixture só na preparação; não chama
+provedores. Encerra os próprios processos e remove somente seu diretório.
+
+O smoke Firefox detectou que `Referrer-Policy: no-referrer` na página fazia o fetch
+same-origin enviar `Origin: null`, corretamente recusado pelo CSRF. A entrega local
+passou a usar `same-origin`: preserva Origin/CSRF e não envia referer para outras
+origens. Nenhuma allowlist, CSRF ou configuração de produção foi relaxada.
+
+Validação final após os ajustes de navegador e escolha de relações:
+
+- **18/18** testes focais SQLite (repetição final: 2,293 s), incluindo recusa do smoke sem confirmação,
+  contrato/negações, arquivos, HEAD, symlinks e configuração de leitura. A suíte
+  completa de 403 acima não foi repetida por esses ajustes locais e documentação.
+- **14/14** testes JS nativos (Node 26.13.0), incluindo paginação com filtros,
+  coordenação de refresh também no painel/alias, CSRF, ausência de replay, diagnóstico
+  e preservação de autorizações. Não é necessário Node para servir/executar o cliente
+  no navegador.
+- Smoke **Firefox aprovado** com 13 páginas e **150 formulários** do OpenAPI:
+  login/recarga, seleção habitual com gravação individual e releitura (retirar e
+  restaurar a ida habitual), opções de grupo em formulário, ausência de CSS,
+  contextos separados de empresa/motorista/aluno, início por formulário com revisão,
+  WS autenticado, aluno sem permissão de enviar, ponto fictício recebido, POST sem
+  CSRF recusado, refresh com nova conexão WS e logout sem afetar o outro perfil.
+- Lint aprovado (190 arquivos), check sem problemas/divergência e schema validado;
+  sintaxe de sete arquivos JS e links/blocos de sete documentos conferidos.
+  `git diff --check` sem problemas. Referências Django/DRF via Context7 e protocolo
+  WebDriver BiDi da W3C consultados; sem instalar ferramentas.
+
+No reforço do harness, duas repetições concluíram o fluxo mas ficaram presas na
+limpeza: Node mantém `exitCode=null` quando o filho morre por sinal. Corrigido para
+considerar também `signalCode` e reutilizar a mesma espera de `exit`, com regressão
+JS em processo filho real. Somente os quatro processos e dois diretórios desses
+smokes foram identificados/validados por PID, parentesco e ambiente fictício e
+encerrados/removidos. O roteiro só anuncia aprovação depois da limpeza completa.
+A repetição final com o harness corrigido terminou normalmente e confirmou a remoção
+dos recursos próprios, além das mesmas 13 páginas e 150 formulários.
+
+**Limites:** smoke em HTTP/WS local com SQLite e uma instância ASGI, fixture e OSRM
+fictício somente na preparação. Não executa todas as operações dos 150 formulários,
+nem prova carga, concorrência PostgreSQL, Redis multiprocesso, HTTPS/WSS do cliente,
+GPS real, suspensão em celular, navegador com cookies de terceiros bloqueados,
+provedor, deploy ou Vue real. Esses aceites do marco 3/4 continuam pendentes. Nenhuma
+migration nova/settings/dependência, edição no frontend separado ou alteração no
+banco habitual; migrations/seed apenas no banco novo pertencente ao smoke.

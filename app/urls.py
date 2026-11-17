@@ -7,6 +7,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 
 from app.frontend import favicon, frontend
 from app.health import live, ready
+from app.html_templates import html_template
 
 
 @extend_schema_view(
@@ -21,6 +22,8 @@ class NextRouterSchemaView(SpectacularAPIView):
 
 
 urlpatterns = [
+    path('html-template-test/', html_template, name='html-template-index'),
+    path('html-template-test/<path:filename>', html_template, name='html-template-file'),
     path('health/live/', live, name='health-live'),
     path('health/ready/', ready, name='health-ready'),
     path('admin/', admin.site.urls),

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NextRouter — agenda e respostas</title>
+  <script type="module" src="assets/site.js"></script>
+</head>
+<body data-page="daily">
+  <header><p>Somente desenvolvimento local e dados fictícios.</p><nav><a href="index.html">Início</a> | <a href="grupos-horarios.html">Gerar/configurar dias</a> | <a href="trajeto-osrm.html">Planejamento</a> | <a href="painel.html">Painel técnico</a></nav></header>
+  <main>
+    <h1>Atendimento por data, respostas e pedidos</h1>
+    <p>Leia a janela e a revisão atuais. Datas e horários operacionais usam America/Sao_Paulo; instantes precisam de fuso explícito.</p>
+    <p>O aluno responde pela elegibilidade: ida e retorno independentes, somente serviços autorizados. Ausência de resposta ou answered_at nulo não é negativa. Nulo enviado em uma resposta efetiva significa não viajar naquele trecho.</p>
+    <p>Durante a prorrogação, inclusão/troca vira pedido manual. Aprovação não transfere a alocação: cálculo válido e aplicação são passos separados. Falha mantém a escolha anterior.</p>
+    <p>Desistência por trecho é permitida antes do embarque. Cancelamento do dia pode ser parcial, preservando viagens iniciadas/finalizadas; confira partial e preserved_travel_ids.</p>
+    <section id="session" aria-label="Sessão"></section>
+    <div id="workspace"></div>
+  </main>
+  <noscript>JavaScript é necessário para escolhas autorizadas, revisões e ações JSON.</noscript>
+</body>
+</html>
