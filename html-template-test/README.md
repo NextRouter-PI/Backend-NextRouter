@@ -6,8 +6,8 @@ e [painel técnico](painel.html) com todas as operações do OpenAPI executável
 As chamadas são reais: não há login fictício, sucesso simulado ou alocação automática.
 **Mapa adiado**; a seleção de alunos usa listas/checkboxes.
 
-Fontes de verdade: [CONTRATO_API.md](../CONTRATO_API.md),
-[PLANEJAMENTO.md](../PLANEJAMENTO.md) (seção 15) e `/api/schema/`.
+Fontes de verdade na raiz do workspace: [CONTRATO_API.md](../../CONTRATO_API.md),
+[PLANEJAMENTO.md](../../PLANEJAMENTO.md) (seção 15) e o OpenAPI em `/api/schema/`.
 Inventário por fluxo em [COBERTURA.md](COBERTURA.md).
 
 ## 1. Como abrir
@@ -23,6 +23,8 @@ configurada no navegador. Não é necessário relaxar CORS, CSRF ou Origin WS.
 A raiz `/` e o contrato do artefato Vue não foram alterados.
 
 ### Ambiente local já preparado
+
+Execute os comandos deste guia em `backend/`.
 
 Antes de iniciar, confirme um banco descartável com as migrations atuais aplicadas.
 O SQLite habitual do repositório pode estar incompatível; **não o use nem migre
@@ -79,7 +81,7 @@ recuperação usam o e-mail de autenticação (console local com SMTP desabilita
 Não se cria worker, provedor de trajeto ou publicação automaticamente. Com OSRM
 desabilitado, um cálculo não fica pronto por abrir esta página. Configure um serviço
 autorizado e execute o worker separadamente com todos os limites explícitos do
-[contrato](../CONTRATO_API.md). Nunca envie coordenadas reais a um provedor por
+[contrato](../../CONTRATO_API.md). Nunca envie coordenadas reais a um provedor por
 seguir este roteiro. Remova recursos descartáveis somente depois de encerrar seus
 processos e conferir exatamente os caminhos próprios.
 
