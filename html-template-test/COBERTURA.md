@@ -1,7 +1,7 @@
 # Cobertura do cliente HTML — contrato datado
 
-[README](README.md) · [Contrato](../CONTRATO_API.md) ·
-[Planejamento](../PLANEJAMENTO.md), seção 15.
+[README](README.md) · [Contrato](../../CONTRATO_API.md) ·
+[Planejamento](../../PLANEJAMENTO.md), seção 15.
 
 ## Catálogo executável
 
