@@ -2,14 +2,12 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from django.core.exceptions import ImproperlyConfigured
-
 # Constrói o caminho base do projeto, usado para definir caminhos relativos
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 # Segurança e configuração básica
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
-FRONTEND_ADMIN_URL = os.getenv('FRONTEND_ADMIN_URL', '')
+FRONTEND_URL = 'http://127.0.0.1:5173'
+FRONTEND_ADMIN_URL = ''
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
@@ -73,23 +71,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'app.wsgi.application'
 ASGI_APPLICATION = 'app.asgi.application'
 
-REDIS_URL = os.getenv('REDIS_URL')
-if REDIS_URL:
-    CACHES = {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache', 'LOCATION': REDIS_URL}}
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {'hosts': [REDIS_URL]},
-        },
-    }
-else:
-    # Sem Redis configurado (ex.: desenvolvimento local): usa a camada em memória.
-    # Funciona apenas dentro de um único processo — não use em produção com múltiplos workers.
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        },
-    }
+# Banco, cache e canais são escolhidos explicitamente em dev.py/prod.py.
 
 # Validação de senhas
 AUTH_PASSWORD_VALIDATORS = [
@@ -120,16 +102,14 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
-# Necessário também em desenvolvimento quando collectstatic roda no build.
+# Coleta Django/admin é explícita e separada do build Vue em frontend_dist/.
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 FRONTEND_DIST = BASE_DIR / 'frontend_dist'
 
 # Configurações de arquivos de mídia (App Uploader)
 MEDIA_ENDPOINT = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
-PRIVATE_DOCUMENT_ROOT = os.getenv('PRIVATE_DOCUMENT_ROOT') or str(BASE_DIR / 'private-documents')
-if Path(PRIVATE_DOCUMENT_ROOT).resolve().is_relative_to(Path(MEDIA_ROOT).resolve()):
-    raise ImproperlyConfigured('PRIVATE_DOCUMENT_ROOT deve ficar fora de MEDIA_ROOT.')
+PRIVATE_DOCUMENT_ROOT = str(BASE_DIR / 'private-documents')
 FILE_UPLOAD_PERMISSIONS = 0o640
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880
 
@@ -147,10 +127,7 @@ MEDIA_STORAGE_BACKEND = (
 MEDIA_URL = '/media/'
 STATICFILES_STORAGE_BACKEND = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# django-cloudinary-storage usa `MEDIA_URL` como prefixo de pasta por padrão quando
-# `CLOUDINARY_STORAGE['PREFIX']` não é definido. Como aqui `MEDIA_URL` é uma URL absoluta
-# (ex.: "http://127.0.0.1:8000/media/"), isso corrompia o nome/pasta de todo arquivo salvo
-# no Cloudinary. Fixamos um prefixo relativo próprio, independente de `MEDIA_URL`.
+# Prefixo de imagens independente de MEDIA_URL; documentos privados não usam Cloudinary.
 CLOUDINARY_STORAGE = {'PREFIX': 'media'}
 
 STORAGES = {
