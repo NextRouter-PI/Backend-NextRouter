@@ -91,27 +91,27 @@ def create_operational_point(company, **extra):
 
 class BaseAPITestCase(APITestCase):
     """
-    Desliga a geocodificação (chamada de rede ao Nominatim), limpa o cache de throttling
-    e salva os arquivos enviados numa pasta temporária em vez de /media.
+    Limpa o cache local de throttling e isola os arquivos de cada caso.
+    O perfil tests.settings desliga serviços externos para toda a suíte.
     """
 
     def setUp(self):
         super().setUp()
         cache.clear()
 
-        media_root = tempfile.mkdtemp()
+        media_root = tempfile.mkdtemp(prefix='nextrouter-media-')
         self.addCleanup(shutil.rmtree, media_root, ignore_errors=True)
-        private_root = tempfile.mkdtemp()
+        private_root = tempfile.mkdtemp(prefix='nextrouter-private-')
         self.addCleanup(shutil.rmtree, private_root, ignore_errors=True)
         media_override = override_settings(MEDIA_ROOT=media_root, PRIVATE_DOCUMENT_ROOT=private_root)
         media_override.enable()
         self.addCleanup(media_override.disable)
 
-    def request_code(self, email, token_type='new-user'):
-        """Pede o código como o front-end faz e devolve o código lido do e-mail enviado."""
+    def request_code(self, email):
+        """Solicita o código de cadastro pelo contrato atual e o lê do e-mail em memória."""
         mail.outbox.clear()
         response = self.client.post(
-            '/api/email-tokens/send-email/', {'email': email, 'token_type': token_type}, format='json'
+            '/api/registration/request/', {'email': email}, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         return re.search(r'\b(\d{6})\b', mail.outbox[-1].body).group(1)

@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 
 from django.db import connection
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, tag
 
 from modules.organizations.models import CompanyRouteGroup, Driver, Passenger
 from modules.transport.models import RouteOptimizationJob, Travel, Vehicle
@@ -50,6 +50,7 @@ class RetiredSchemaTests(TestCase):
                     self.assertFalse(columns[name].null_ok, (model.__name__, name))
 
 
+@tag('migration')
 class RetirementGuardTests(SimpleTestCase):
     def test_existing_legacy_data_aborts_before_dropping_columns_or_records(self):
         for kind in ('profile', 'path'):

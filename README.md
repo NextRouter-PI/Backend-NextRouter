@@ -41,6 +41,7 @@ limitar GPS e renovação de sessão. Não exponha o servidor de desenvolvimento
 
 ## Documentação
 
+- [Testes opt-in e isolamento](tests/README.md)
 - [Desenvolvimento e ambientes](../OPERACAO.md) · [Build integrado](../BUILD_VUE.md)
 - [Contrato da API](../CONTRATO_API.md) · [Plano e evidências](../PLANO_IMPLEMENTACAO.md)
 - [Contexto do backend](../CONTEXTO_BACKEND.md) · [Frontend](../frontend/README.md)

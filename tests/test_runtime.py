@@ -55,6 +55,9 @@ assert s.DATABASES['default']['CONN_MAX_AGE'] == 0
 assert s.REST_FRAMEWORK['NUM_PROXIES'] == 0
 assert s.IPWARE_HEADER_ORDER == ['REMOTE_ADDR']
 assert s.FRONTEND_URL == s.FRONTEND_ADMIN_URL == s.PUBLIC_ORIGIN
+assert s.CORS_ALLOWED_ORIGINS == []
+assert s.WS_ALLOWED_ORIGINS == s.CSRF_TRUSTED_ORIGINS == [s.PUBLIC_ORIGIN]
+assert s.CSRF_COOKIE_SAMESITE == s.SESSION_COOKIE_SAMESITE == 'Lax'
 """)
         self.assertEqual(result.returncode, 0, result.stderr)
         result = self.settings_process(
@@ -69,8 +72,14 @@ assert not s.SECURE_HSTS_INCLUDE_SUBDOMAINS and not s.SECURE_HSTS_PRELOAD
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_invalid_security_flags_public_storage_and_demo_services_are_rejected(self):
+    def test_invalid_origins_security_flags_public_storage_and_demo_services_are_rejected(self):
         for extra in (
+            {'PUBLIC_ORIGIN': 'https://evil.example.com'},
+            {'PUBLIC_ORIGIN': 'http://app.example.com'},
+            {'PUBLIC_ORIGIN': 'https://app.example.com/path'},
+            {'PUBLIC_ORIGIN': '*'},
+            {'PUBLIC_ORIGIN': 'https://app.example.com:invalid'},
+            {'PUBLIC_ORIGIN': 'https://@app.example.com'},
             {'TRUST_PROXY_HEADERS': 'yes'},
             {'HSTS_SECONDS': '-1'},
             {'HSTS_PRELOAD': 'true'},

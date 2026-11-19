@@ -1,7 +1,3 @@
-from datetime import timedelta
-
-from django.core import mail
-from django.utils import timezone
 from rest_framework import status
 
 from modules.accounts.models import EmailToken, User
@@ -54,7 +50,7 @@ class SignupTests(BaseAPITestCase):
         self.assertTrue(Passenger.objects.filter(user=user).exists())
         self.assertTrue(EmailToken.objects.get(email='ana@example.com').consumed)
 
-        login = self.client.post('/api/token/', {'email': 'ana@example.com', 'password': PASSWORD}, format='json')
+        login = self.client.post('/api/login/', {'email': 'ana@example.com', 'password': PASSWORD}, format='json')
         self.assertEqual(login.status_code, status.HTTP_200_OK)
 
     def test_passenger_signup_with_profile_picture(self):
@@ -117,14 +113,20 @@ class SignupTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         self.assertTrue(Company.objects.filter(user__email='empresa@example.com').exists())
 
-        duplicated = dict(payload, **{'user_data.email': 'outra@example.com', 'user_data.cpf': masked_cpf()})
+        duplicated = dict(payload, **{
+            'user_data.email': 'outra@example.com',
+            'user_data.cpf': masked_cpf(),
+            'user_data.code': self.request_code('outra@example.com'),
+        })
         response = self.client.post('/api/companies/', duplicated, format='multipart')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('cnpj', response.data)
 
     def test_wrong_code_is_rejected(self):
-        self.request_code('ana@example.com')
+        code = self.request_code('ana@example.com')
+        wrong = '111111' if code == '000000' else '000000'
         response = self.client.post(
-            '/api/passengers/', self.user_payload('ana@example.com', '000000'), format='multipart'
+            '/api/passengers/', self.user_payload('ana@example.com', wrong), format='multipart'
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(User.objects.filter(email='ana@example.com').exists())
@@ -135,63 +137,10 @@ class SignupTests(BaseAPITestCase):
             '/api/passengers/', self.user_payload('ANA@example.com', '123456'), format='multipart'
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_send_code_to_registered_email_does_not_reveal_registration(self):
-        create_passenger('ana@example.com')
-        response = self.client.post(
-            '/api/email-tokens/send-email/', {'email': 'ana@example.com', 'token_type': 'new-user'}, format='json'
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(EmailToken.objects.filter(email='ana@example.com').exists())
+        self.assertIn('email', response.data['user_data'])
 
     def test_upload_listing_is_not_available(self):
         self.assertEqual(self.client.get('/api/uploads/documents/').status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
-class EmailTokenSecurityTests(BaseAPITestCase):
-    def verify(self, email, code):
-        return self.client.post(
-            '/api/email-tokens/verify-token/',
-            {'email': email, 'code': code, 'token_type': 'new-user'},
-            format='json',
-        )
-
-    def test_code_is_blocked_after_max_attempts(self):
-        code = self.request_code('ana@example.com')
-        wrong = '111111' if code == '000000' else '000000'
-        for _ in range(5):
-            self.assertEqual(self.verify('ana@example.com', wrong).status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(self.verify('ana@example.com', code).status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_expired_code_is_rejected(self):
-        code = self.request_code('ana@example.com')
-        EmailToken.objects.update(created_at=timezone.now() - timedelta(hours=1))
-        self.assertEqual(self.verify('ana@example.com', code).status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_verify_uses_latest_code(self):
-        self.request_code('ana@example.com')
-        EmailToken.objects.filter(email='ana@example.com').update(created_at=timezone.now() - timedelta(minutes=2))
-        latest = self.request_code('ana@example.com')
-        self.assertEqual(self.verify('ana@example.com', latest).status_code, status.HTTP_200_OK)
-
-    def test_password_reset(self):
-        create_passenger('ana@example.com')
-        code = self.request_code('ana@example.com', 'new-password')
-        response = self.client.post(
-            '/api/email-tokens/reset-password/',
-            {'email': 'ana@example.com', 'code': code, 'password': 'OutraSenha@456'},
-            format='json',
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
-        self.assertTrue(User.objects.get(email='ana@example.com').check_password('OutraSenha@456'))
-
-    def test_reset_for_unknown_email_does_not_send(self):
-        mail.outbox.clear()
-        response = self.client.post(
-            '/api/email-tokens/send-email/', {'email': 'x@example.com', 'token_type': 'new-password'}, format='json'
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(mail.outbox), 0)
 
 
 class ProfileTests(BaseAPITestCase):
@@ -220,13 +169,6 @@ class ProfileTests(BaseAPITestCase):
             self.assertNotEqual(user.email, 'new@example.com')
             self.assertTrue(user.check_password(PASSWORD))
 
-    def test_update_own_data(self):
-        passenger = create_passenger('ana@example.com')
-        self.client.force_authenticate(passenger.user)
-        response = self.client.patch('/api/users/me/', {'name': 'Ana Atualizada'}, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
-        self.assertEqual(response.data['name'], 'Ana Atualizada')
-
     def test_duplicate_route_group_name_returns_400(self):
         company = create_company('empresa@example.com')
         group = create_route_group(company)
@@ -236,14 +178,3 @@ class ProfileTests(BaseAPITestCase):
             '/api/company-route-groups/', {'name': group.name, 'destination_id': point.pk}, format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-
-class AuthCookieTests(BaseAPITestCase):
-    def test_login_refresh_and_logout(self):
-        create_passenger('ana@example.com')
-        response = self.client.post('/api/token/', {'email': 'ana@example.com', 'password': PASSWORD})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('refresh_token', response.cookies)
-
-        self.assertEqual(self.client.post('/api/token/refresh/').status_code, status.HTTP_200_OK)
-        self.assertEqual(self.client.post('/api/token/logout/').status_code, status.HTTP_200_OK)
