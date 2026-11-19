@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.conf import settings
 from django.test import SimpleTestCase
 
 
@@ -23,7 +24,11 @@ def receive_in_child(group, ready, received):
     asyncio.run(run())
 
 
-@skipUnless(os.environ.get('NEXTROUTER_REDIS_TEST') == '1', 'Use scripts/test_redis.sh com Redis descartável.')
+@skipUnless(
+    os.environ.get('NEXTROUTER_REDIS_TEST') == '1'
+    and settings.CHANNEL_LAYERS.get('default', {}).get('BACKEND') == 'channels_redis.core.RedisChannelLayer',
+    'Exige Redis descartável e settings explícitos com Redis; o perfil dev usa somente memória.',
+)
 class RedisMultiprocessTests(SimpleTestCase):
     def test_broadcast_crosses_process_boundary(self):
         context = multiprocessing.get_context('spawn')
