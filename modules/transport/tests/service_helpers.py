@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, time, timedelta
 from unittest.mock import patch
 
+from django.core.cache import cache
 from django.db import connection
 from django.test import TransactionTestCase, override_settings
 
@@ -18,6 +19,7 @@ from tests.helpers import create_company, create_operational_point, create_passe
 class ServiceTestCase(TransactionTestCase):
     def setUp(self):
         super().setUp()
+        cache.clear()
         self.now = datetime(2026, 11, 15, 12, tzinfo=UTC)
         clock = patch('django.utils.timezone.now', side_effect=lambda: self.now)
         clock.start()

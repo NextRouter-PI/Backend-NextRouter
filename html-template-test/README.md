@@ -142,11 +142,11 @@ estado/revisão atualizados antes da próxima operação.
 ## 4. Validação
 
 Os testes Python verificam entrega/allowlist, negações em produção, HEAD/métodos,
-traversal/symlinks, navegação sem CSS, contrato e campos de leitura. A suíte executa
-também os testes nativos JS quando Node >=22 está disponível:
+traversal/symlinks, navegação sem CSS, contrato e campos de leitura. Os testes
+nativos JS são separados e opt-in (Node >=22); a suíte Python não inicia Node:
 
 ```sh
-node --test tests/html_client.test.mjs
+pdm run test-html
 ```
 
 Smoke opcional com **Node >=22 e Firefox já instalados**, sem npm, Playwright ou

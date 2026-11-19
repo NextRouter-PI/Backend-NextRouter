@@ -27,7 +27,7 @@ def receive_in_child(group, ready, received):
 @skipUnless(
     os.environ.get('NEXTROUTER_REDIS_TEST') == '1'
     and settings.CHANNEL_LAYERS.get('default', {}).get('BACKEND') == 'channels_redis.core.RedisChannelLayer',
-    'Exige Redis descartável e settings explícitos com Redis; o perfil dev usa somente memória.',
+    'Exige opt-in e Redis descartável em settings específicos; a suíte local usa memória.',
 )
 class RedisMultiprocessTests(SimpleTestCase):
     def test_broadcast_crosses_process_boundary(self):

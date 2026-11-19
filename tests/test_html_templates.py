@@ -1,6 +1,4 @@
 import json
-import shutil
-import subprocess
 import tempfile
 from html.parser import HTMLParser
 from pathlib import Path
@@ -136,38 +134,3 @@ class HtmlTemplateDeliveryTests(SimpleTestCase):
                 'http://localhost:8000',
             ):
                 self.assertNotIn(forbidden, content, name)
-
-    def test_native_javascript_regressions_when_node_is_available(self):
-        node = shutil.which('node')
-        if not node:
-            self.skipTest('Node ausente; o cliente não depende dele em runtime, mas os testes JS exigem Node >=22.')
-        version = subprocess.check_output([node, '--version'], text=True).strip()
-        if int(version.removeprefix('v').split('.')[0]) < 22:
-            self.skipTest('Testes JS opcionais exigem Node >=22; não instalar/atualizar dependências automaticamente.')
-        result = subprocess.run(
-            [node, '--test', 'tests/html_client.test.mjs'],
-            cwd=settings.BASE_DIR,
-            capture_output=True,
-            text=True,
-            timeout=60,
-            check=False,
-        )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-    def test_browser_smoke_refuses_to_prepare_data_without_explicit_confirmation(self):
-        node = shutil.which('node')
-        if not node:
-            self.skipTest('Node ausente; smoke de navegador é opcional.')
-        version = subprocess.check_output([node, '--version'], text=True).strip()
-        if int(version.removeprefix('v').split('.')[0]) < 22:
-            self.skipTest('Smoke opcional exige Node >=22.')
-        result = subprocess.run(
-            [node, 'scripts/test_html_browser.mjs'],
-            cwd=settings.BASE_DIR,
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn('Exige --confirm-fictitious', result.stderr)
