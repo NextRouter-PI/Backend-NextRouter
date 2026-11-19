@@ -2,10 +2,12 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "Live Preview",
-			"workspacePath": "/home/paulo-artur-pereira/Documentos/router/Backend-NextRouter",
+			"type": "process",
+			"command": "pdm",
+			"args": ["run", "dev"],
+			"options": { "cwd": "${workspaceFolder}" },
 			"problemMatcher": [],
-			"label": "Live Preview: Executar Servidor",
+			"label": "Django: desenvolvimento local",
 			"group": {
 				"kind": "build",
 				"isDefault": true

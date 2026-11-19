@@ -44,25 +44,33 @@ dev = [
 ]
 
 [tool.pdm.scripts]
-dev = "python manage.py runserver"
-runserver = "python manage.py runserver"
-asgi = { cmd = "daphne -b 127.0.0.1 -p 8000 app.asgi:application", env = { DJANGO_SETTINGS_MODULE = "app.settings.dev" } }
-worker = "python manage.py process_route_jobs"
+# Desenvolvimento: somente o backend; LAN exige o IPv4 explícito da máquina.
+dev = "python -m scripts.dev"
+dev-lan = "python -m scripts.dev --lan-host"
+worker = "python manage.py process_route_jobs --settings=app.settings.dev"
+
+# Administração local: operações manuais, nunca chamadas pelo startup.
+createsuperuser = "python manage.py createsuperuser --settings=app.settings.dev"
+migrate = "python manage.py migrate --settings=app.settings.dev"
+shell = "python manage.py shell --settings=app.settings.dev"
+shellp = "python manage.py shell_plus --settings=app.settings.dev"
+
+# Validações opt-in. Os runners locais preexistentes continuam separados do dev.
+test = "python manage.py test --noinput --settings=app.settings.dev"
+test-static = "node scripts/test_static_serving.mjs"
+serve-static = "node scripts/test_static_serving.mjs --serve"
+check = { composite = ["python manage.py check --settings=app.settings.dev", "python manage.py makemigrations --check --dry-run --settings=app.settings.dev"] }
+lint = { composite = ["ruff check .", "ruff format --check ."] }
+format = { composite = ["ruff format .", "ruff check --fix ."] }
+schema = "python manage.py spectacular --settings=app.settings.dev --validate --fail-on-warn --file /tmp/opencode/nextrouter-schema.yaml"
+
+# Produção/entrega identificada: configuração explícita, fora da rotina local.
 prod-web = "python -m scripts.runtime web"
 prod-worker = "python -m scripts.runtime worker"
 release-check = "python -m scripts.runtime release"
+check-deploy = "python manage.py check --deploy --settings=app.settings.prod"
 prepare-frontend = "python -m scripts.frontend_artifact prepare"
 verify-frontend = "python -m scripts.frontend_artifact verify"
-createsuperuser = "python manage.py createsuperuser"
-migrate = "python manage.py migrate"
-shell = "python manage.py shell"
-shellp = "python manage.py shell_plus"
-test = "python manage.py test --noinput --settings=app.settings.dev"
-check = { composite = ["python manage.py check", "python manage.py makemigrations --check --dry-run"] }
-check-deploy = "python manage.py check --deploy --settings=app.settings.prod"
-lint = { composite = ["ruff check .", "ruff format --check ."] }
-format = { composite = ["ruff format .", "ruff check --fix ."] }
-schema = "python manage.py spectacular --validate --fail-on-warn --file /tmp/opencode/nextrouter-schema.yaml"
 
 [tool.pdm]
 distribution = false
