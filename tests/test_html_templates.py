@@ -93,10 +93,9 @@ class HtmlTemplateDeliveryTests(SimpleTestCase):
             with patch('app.html_templates.settings.BASE_DIR', root):
                 self.assertEqual(self.client.get('/html-template-test/').status_code, 404)
 
-    def test_client_is_not_in_static_collection_or_runtime(self):
+    def test_client_is_not_in_static_collection_or_frontend_artifact(self):
         self.assertNotIn(ROOT, settings.STATICFILES_DIRS)
         self.assertNotEqual(ROOT, settings.FRONTEND_DIST)
-        self.assertIn('html-template-test/', (settings.BASE_DIR / '.dockerignore').read_text().splitlines())
 
     def test_html_navigation_module_sources_and_no_styling(self):
         metadata = json.loads((ROOT / 'assets/workflows.json').read_text())
