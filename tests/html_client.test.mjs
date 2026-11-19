@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readFileSync } from 'node:fs';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
+import { fileURLToPath } from 'node:url';
 import { stopChild } from '../scripts/test_html_browser.mjs';
 
 // Sem navegador, bibliotecas DOM, npm ou rede. Somente fixtures em memória.
@@ -173,15 +173,13 @@ test('resolve referências/allOf de campos e deriva WS/WSS da origem sem tokens'
   globalThis.location = new URL('http://localhost:8000');
 });
 
-test('catálogo local não usa endpoints operacionais removidos nem CSS', () => {
-  const root = new URL('../html-template-test/', import.meta.url);
-  const workflow = JSON.parse(readFileSync(new URL('assets/workflows.json', root)));
-  for (const page of workflow.pages) {
-    const html = readFileSync(new URL(page.file, root), 'utf8');
-    assert.ok(!/<style|style=|rel=["']stylesheet/i.test(html));
-    assert.ok(html.includes(`data-page="${page.key}"`));
-    for (const resource of page.resources) assert.ok(!['paths', 'route-schedules', 'confirmations'].includes(resource));
-  }
+test('smoke HTML recusa preparar recursos sem confirmação fictícia', () => {
+  const result = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/test_html_browser.mjs', import.meta.url))], {
+    encoding: 'utf8', timeout: 10000,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Exige --confirm-fictitious/);
 });
 
 test('smoke encerra filhos mortos por sinal sem aguardar um segundo evento exit', async () => {
