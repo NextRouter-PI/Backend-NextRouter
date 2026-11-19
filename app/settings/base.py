@@ -216,6 +216,6 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False') == 'True'
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'webmaster@localhost')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL') or EMAIL_HOST_USER or 'webmaster@localhost'
 # Sem timeout, um servidor SMTP lento deixa a requisição de cadastro travada indefinidamente.
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', 15))

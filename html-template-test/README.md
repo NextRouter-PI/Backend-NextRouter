@@ -28,18 +28,19 @@ Execute os comandos deste guia em `backend/`.
 
 Antes de iniciar, confirme um banco descartável com as migrations atuais aplicadas.
 O SQLite habitual do repositório pode estar incompatível; **não o use nem migre
-seguindo automaticamente este tutorial**. O perfil dev não lê `.env`; informe
-os caminhos próprios no terminal do servidor:
+seguindo automaticamente este tutorial**. O perfil dev lê `.env` e seus valores
+preenchidos prevalecem sobre o terminal; use explicitamente um arquivo de ambiente
+alternativo ausente e caminhos próprios para não acessar serviços habituais:
 
 ```sh
 # Diretório absoluto descartável previamente preparado/autorizado.
 : "${HTML_TEST_ROOT:?Informe o diretório descartável autorizado}"
-export DEV_DATABASE_PATH="$HTML_TEST_ROOT/db.sqlite3"
-export DEV_MEDIA_ROOT="$HTML_TEST_ROOT/media"
-export DEV_PRIVATE_DOCUMENT_ROOT="$HTML_TEST_ROOT/private-documents"
-export DEV_FRONTEND_ORIGIN=http://127.0.0.1:8000
-export DEV_GEOCODING_URL=
-export DEV_OSRM_URL=
+export NEXTROUTER_ENV_FILE="$HTML_TEST_ROOT/empty.env"
+export DATABASE_URL="sqlite:///$HTML_TEST_ROOT/db.sqlite3"
+export MEDIA_ROOT="$HTML_TEST_ROOT/media"
+export PRIVATE_DOCUMENT_ROOT="$HTML_TEST_ROOT/private-documents"
+export FRONTEND_URL=http://127.0.0.1:8000
+export REDIS_URL= GEOCODING_URL= OSRM_URL= EMAIL_HOST= CLOUDINARY_URL=
 pdm run dev
 ```
 
@@ -56,12 +57,12 @@ reaproveite um banco legado:
 
 ```sh
 HTML_TEST_ROOT=$(mktemp -d /tmp/opencode/nextrouter-html-XXXXXX)
-export DEV_DATABASE_PATH="$HTML_TEST_ROOT/db.sqlite3"
-export DEV_MEDIA_ROOT="$HTML_TEST_ROOT/media"
-export DEV_PRIVATE_DOCUMENT_ROOT="$HTML_TEST_ROOT/private-documents"
-export DEV_FRONTEND_ORIGIN=http://127.0.0.1:8000
-export DEV_GEOCODING_URL=
-export DEV_OSRM_URL=
+export NEXTROUTER_ENV_FILE="$HTML_TEST_ROOT/empty.env"
+export DATABASE_URL="sqlite:///$HTML_TEST_ROOT/db.sqlite3"
+export MEDIA_ROOT="$HTML_TEST_ROOT/media"
+export PRIVATE_DOCUMENT_ROOT="$HTML_TEST_ROOT/private-documents"
+export FRONTEND_URL=http://127.0.0.1:8000
+export REDIS_URL= GEOCODING_URL= OSRM_URL= EMAIL_HOST= CLOUDINARY_URL=
 pdm run migrate
 # Digite uma senha fictícia em tempo de uso, sem gravá-la no histórico/arquivos.
 read -r -s -p 'Senha fictícia da demonstração: ' DEMO_PASSWORD

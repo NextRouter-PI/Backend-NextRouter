@@ -15,8 +15,10 @@ pdm run dev
 Acesse <http://127.0.0.1:8000/api/doc/> ou `/admin/`. O servidor não instala
 dependências, aplica migrations, cria dados nem inicia o frontend.
 
-O ambiente dev usa SQLite persistente em `dev.sqlite3`, cache e canais em
-memória, sem PostgreSQL ou Redis. Não lê `.env` automaticamente. Para preparar
+Por padrão, dev usa SQLite persistente em `dev.sqlite3`, cache e canais em
+memória. Se existir, `backend/.env` é carregado: valores preenchidos prevalecem
+sobre o terminal e podem ativar serviços externos. Confira o destino antes de iniciar.
+Para preparar
 um **banco novo com dados fictícios**, confirme o destino e execute separadamente:
 
 ```sh
