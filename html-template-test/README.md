@@ -28,19 +28,19 @@ Execute os comandos deste guia em `backend/`.
 
 Antes de iniciar, confirme um banco descartável com as migrations atuais aplicadas.
 O SQLite habitual do repositório pode estar incompatível; **não o use nem migre
-seguindo automaticamente este tutorial**. Os exports precisam estar no terminal
-do servidor para prevalecer sobre `.env`:
+seguindo automaticamente este tutorial**. O perfil dev não lê `.env`; informe
+os caminhos próprios no terminal do servidor:
 
 ```sh
-# Defina HTML_TEST_DATABASE_URL com o banco descartável previamente preparado/autorizado.
-: "${HTML_TEST_DATABASE_URL:?Informe o banco descartável autorizado}"
-export DATABASE_URL="$HTML_TEST_DATABASE_URL"
-export REDIS_URL=
-export GEOCODING_URL=
-export OSRM_URL=
-export EMAIL_HOST=
-export CLOUDINARY_URL=
-pdm run asgi
+# Diretório absoluto descartável previamente preparado/autorizado.
+: "${HTML_TEST_ROOT:?Informe o diretório descartável autorizado}"
+export DEV_DATABASE_PATH="$HTML_TEST_ROOT/db.sqlite3"
+export DEV_MEDIA_ROOT="$HTML_TEST_ROOT/media"
+export DEV_PRIVATE_DOCUMENT_ROOT="$HTML_TEST_ROOT/private-documents"
+export DEV_FRONTEND_ORIGIN=http://127.0.0.1:8000
+export DEV_GEOCODING_URL=
+export DEV_OSRM_URL=
+pdm run dev
 ```
 
 Prefira `127.0.0.1` em todos os links, sem alternar para `localhost` durante a sessão.
@@ -56,20 +56,19 @@ reaproveite um banco legado:
 
 ```sh
 HTML_TEST_ROOT=$(mktemp -d /tmp/opencode/nextrouter-html-XXXXXX)
-export DATABASE_URL="sqlite:///$HTML_TEST_ROOT/db.sqlite3"
-export PRIVATE_DOCUMENT_ROOT="$HTML_TEST_ROOT/private-documents"
-export REDIS_URL=
-export GEOCODING_URL=
-export OSRM_URL=
-export EMAIL_HOST=
-export CLOUDINARY_URL=
+export DEV_DATABASE_PATH="$HTML_TEST_ROOT/db.sqlite3"
+export DEV_MEDIA_ROOT="$HTML_TEST_ROOT/media"
+export DEV_PRIVATE_DOCUMENT_ROOT="$HTML_TEST_ROOT/private-documents"
+export DEV_FRONTEND_ORIGIN=http://127.0.0.1:8000
+export DEV_GEOCODING_URL=
+export DEV_OSRM_URL=
 pdm run migrate
 # Digite uma senha fictícia em tempo de uso, sem gravá-la no histórico/arquivos.
 read -r -s -p 'Senha fictícia da demonstração: ' DEMO_PASSWORD
 export DEMO_PASSWORD
-pdm run python manage.py seed_demo_data --confirm-fictitious
+pdm run python manage.py seed_demo_data --settings=app.settings.dev --confirm-fictitious
 unset DEMO_PASSWORD
-pdm run asgi
+pdm run dev
 ```
 
 A fixture existente usa `company@fixture.example.invalid`,
@@ -173,5 +172,9 @@ publicados. Há `private, no-store`, CSP sem estilos/scripts inline e links sem
 referer para outras origens. `Referrer-Policy: same-origin` preserva o Origin dos
 POSTs locais necessário ao CSRF. Nenhuma pasta inteira do repositório vira raiz pública.
 
-`html-template-test/` continua fora de STATICFILES_DIRS, collectstatic, Docker e do
+`html-template-test/` continua fora de STATICFILES_DIRS, collectstatic e do
 artefato Vue. Em produção, as URLs retornam 404 mesmo se os arquivos existirem.
+
+**Ajuste de ambiente de 2026-11-18:** exemplos atualizados para o novo perfil dev;
+nenhum desses comandos, testes ou migrations foi executado neste recorte. O
+cliente HTML não comprova a integração do Vue.
