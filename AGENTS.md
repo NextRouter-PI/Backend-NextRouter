@@ -23,3 +23,4 @@ antes de alterar regras do produto ou o contrato de integração.
 - O código comprova o comportamento atual; builds fictícios ou testes do cliente
   HTML não comprovam integração Vue. Em mudanças documentais, confira links e
   `git diff --check`. Registre evidências e limites nos documentos centrais.
+- Não alterar migrações a menos se for explícitamente pedido.
