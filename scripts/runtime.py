@@ -1,4 +1,4 @@
-"""Entradas de produção comuns ao Docker/Procfile/PDM, sem migrate/seed implícitos."""
+"""Entradas explícitas de produção por Procfile/PDM, sem migrate/seed implícitos."""
 
 import argparse
 import os
