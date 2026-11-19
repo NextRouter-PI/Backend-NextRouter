@@ -60,14 +60,19 @@ class RetirementGuardTests(SimpleTestCase):
                 env = {
                     **os.environ,
                     'DJANGO_SETTINGS_MODULE': 'app.settings.dev',
-                    'DATABASE_URL': f'sqlite:///{tmp}/test.sqlite3',
+                    'DEV_DATABASE_PATH': f'{tmp}/test.sqlite3',
+                    'DEV_MEDIA_ROOT': f'{tmp}/media',
+                    'DEV_PRIVATE_DOCUMENT_ROOT': f'{tmp}/documents',
+                    'DEV_LAN_HOST': '',
+                    'DEV_FRONTEND_ORIGIN': 'http://127.0.0.1:5173',
+                    'DEV_GEOCODING_URL': '',
+                    'DEV_OSRM_URL': '',
                     'REDIS_URL': '',
                     'GEOCODING_URL': '',
                     'OSRM_URL': '',
                     'EMAIL_HOST': '',
                     'CLOUDINARY_URL': '',
-                    'PRIVATE_DOCUMENT_ROOT': f'{tmp}/documents',
-                    'SECRET_KEY': 'chave-ficticia-exclusiva-do-teste-de-retirada',
+                    'DEV_SECRET_KEY': 'chave-ficticia-exclusiva-do-teste-de-retirada',
                 }
 
                 def run(*args, env=env):

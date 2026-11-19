@@ -182,9 +182,13 @@ poetry.toml
 
 # Banco de dados
 db.sqlite3
+/dev.sqlite3
+/dev.sqlite3-*
+/dev-media/
+/dev-private-documents/
 
 # Arquivos estáticos coletados (gerados no build/deploy)
 /staticfiles/
 /frontend_dist/
 /frontend-release.json
-/deploy/tls/
+/.frontend-build-*/

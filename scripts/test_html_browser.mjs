@@ -60,10 +60,11 @@ try {
   const port = await freePort();
   const origin = `http://127.0.0.1:${port}`;
   const env = {
-    ...process.env, DJANGO_SETTINGS_MODULE: 'app.settings.dev', DATABASE_URL: `sqlite:///${root}/db.sqlite3`,
+    ...process.env, DJANGO_SETTINGS_MODULE: 'app.settings.dev', DEV_DATABASE_PATH: `${root}/db.sqlite3`,
     REDIS_URL: '', OSRM_URL: '', GEOCODING_URL: '', EMAIL_HOST: '', CLOUDINARY_URL: '',
-    PRIVATE_DOCUMENT_ROOT: `${root}/private`, FRONTEND_URL: origin, FRONTEND_ADMIN_URL: '',
-    SECRET_KEY: randomBytes(32).toString('hex'), DEMO_PASSWORD: password, PYTHONDONTWRITEBYTECODE: '1',
+    DEV_PRIVATE_DOCUMENT_ROOT: `${root}/private`, DEV_MEDIA_ROOT: `${root}/media`, DEV_FRONTEND_ORIGIN: origin,
+    DEV_LAN_HOST: '', DEV_OSRM_URL: '', DEV_GEOCODING_URL: '',
+    DEV_SECRET_KEY: randomBytes(32).toString('hex'), DEMO_PASSWORD: password, PYTHONDONTWRITEBYTECODE: '1',
   };
   await mkdir(`${root}/private`, { mode: 0o700 });
   // Instalação limpa e dados fictícios. OSRM é fixture APENAS neste preparador.
