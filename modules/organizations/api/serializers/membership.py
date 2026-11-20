@@ -6,6 +6,8 @@ from shared.api import InputSerializer
 
 class MembershipSerializer(serializers.ModelSerializer):
     applicant_name = serializers.SerializerMethodField()
+    applicant_profile_picture_url = serializers.SerializerMethodField()
+    contact_phone = serializers.SerializerMethodField()
     requested_route_group_name = serializers.CharField(
         source='requested_route_group.name', read_only=True, default=None
     )
@@ -15,6 +17,8 @@ class MembershipSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'applicant_name',
+            'applicant_profile_picture_url',
+            'contact_phone',
             'company',
             'passenger',
             'driver',
@@ -30,11 +34,22 @@ class MembershipSerializer(serializers.ModelSerializer):
     def get_applicant_name(self, obj) -> str:
         return (obj.passenger or obj.driver).user.name
 
+    def get_applicant_profile_picture_url(self, obj) -> str | None:
+        user = (obj.passenger or obj.driver).user
+        picture = getattr(user, 'profile_picture', None)
+        return picture.url if picture else None
+
+    def get_contact_phone(self, obj) -> str:
+        if obj.contact_phone:
+            return obj.contact_phone
+        return (obj.passenger or obj.driver).user.phone or ''
+
 
 class MembershipInput(InputSerializer):
     company_id = serializers.IntegerField(min_value=1)
     profile = serializers.ChoiceField(choices=['passenger', 'driver'])
     route_group_id = serializers.IntegerField(min_value=1, required=False, allow_null=True, default=None)
+    contact_phone = serializers.CharField(max_length=20, required=False, allow_blank=True, default='')
 
 
 class MembershipEventSerializer(serializers.ModelSerializer):
