@@ -25,7 +25,9 @@ class EmailTokenPolicyTests(BaseAPITestCase):
         self.assertEqual(self.verify('ana@example.com', code).status_code, 400)
 
     def test_verify_uses_latest_code(self):
-        with patch('modules.accounts.api.views.email_token.generate_verification_code', side_effect=['123456', '654321']):
+        with patch(
+            'modules.accounts.api.views.email_token.generate_verification_code', side_effect=['123456', '654321']
+        ):
             previous = self.request_code('ana@example.com')
             EmailToken.objects.filter(email='ana@example.com').update(created_at=timezone.now() - timedelta(minutes=2))
             latest = self.request_code('ana@example.com')

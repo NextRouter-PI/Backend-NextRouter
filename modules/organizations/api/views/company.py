@@ -96,7 +96,8 @@ class CompanyViewSet(ModelViewSet):
         if state:
             groups = groups.filter(destination__state__iexact=state)
         rows = (
-            groups.values('destination__city', 'destination__state')
+            groups
+            .values('destination__city', 'destination__state')
             .distinct()
             .order_by('destination__state', 'destination__city')
         )

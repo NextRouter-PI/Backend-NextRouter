@@ -86,10 +86,7 @@ class CompanyListAndRetrieveSerializer(ModelSerializer):
         user = getattr(request, 'user', None)
         if user and (instance.user_id == user.pk or (user.is_staff and user.has_perm('organizations.view_company'))):
             return data
-        return {
-            key: data[key]
-            for key in ('id', 'trade_name', 'city', 'state', 'profile_picture_url', 'route_groups')
-        }
+        return {key: data[key] for key in ('id', 'trade_name', 'city', 'state', 'profile_picture_url', 'route_groups')}
 
 
 class CompanyCreateSerializer(BaseProfileCreateSerializer):

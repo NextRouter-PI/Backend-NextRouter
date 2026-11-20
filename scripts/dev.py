@@ -7,8 +7,12 @@ from pathlib import Path
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Django/Daphne local na porta 8000, com configuração opcional no .env.')
-    parser.add_argument('--lan-host', metavar='IP', help='IPv4 da máquina na rede confiável; autoriza também Vite :5173.')
+    parser = argparse.ArgumentParser(
+        description='Django/Daphne local na porta 8000, com configuração opcional no .env.'
+    )
+    parser.add_argument(
+        '--lan-host', metavar='IP', help='IPv4 da máquina na rede confiável; autoriza também Vite :5173.'
+    )
     parser.add_argument('--noreload', action='store_true', help='Desliga o autoreload do backend.')
     args = parser.parse_args()
     # Sobrescrever, não setdefault: uma configuração de produção herdada não muda este comando.

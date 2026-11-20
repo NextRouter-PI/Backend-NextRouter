@@ -268,7 +268,9 @@ def configure_vehicle(*, actor_id, company_id, vehicle_id=None, **values):
 
 
 @transaction.atomic
-def configure_habitual_route(*, actor_id, group_id, route_id=None, name, kind=HabitualRoute.Kind.HABITUAL, passengers=None):
+def configure_habitual_route(
+    *, actor_id, group_id, route_id=None, name, kind=HabitualRoute.Kind.HABITUAL, passengers=None
+):
     """Cria ou atualiza rota habitual (com passageiros e pontos ajustados) ou compartilhada (apenas nome)."""
     group = group_access(group_id, actor_id)
     company = group.company
@@ -318,7 +320,8 @@ def configure_habitual_route(*, actor_id, group_id, route_id=None, name, kind=Ha
 
         for entry in passengers:
             gm = get(
-                PassengerGroupMembership.objects.select_for_update()
+                PassengerGroupMembership.objects
+                .select_for_update()
                 .select_related('membership__passenger__user', 'transport_point')
                 .filter(route_group=group, ended_at__isnull=True, membership__status='active'),
                 pk=entry['group_membership_id'],
@@ -347,8 +350,10 @@ def configure_habitual_route(*, actor_id, group_id, route_id=None, name, kind=Ha
             point.number = (user.number or '').strip() or 'S/N'
             point.complement = (user.complement or '').strip()
             point.neighborhood = (user.neighborhood or '').strip() or 'Bairro não informado'
-            point.city = (user.city or '').strip() or (group.destination.city if group.destination else 'Cidade não informada')
-            point.state = ((user.state or '').strip() or (group.destination.state if group.destination else 'SC')).upper()[:2]
+            fallback_city = group.destination.city if group.destination else 'Cidade não informada'
+            fallback_state = group.destination.state if group.destination else 'SC'
+            point.city = (user.city or '').strip() or fallback_city
+            point.state = ((user.state or '').strip() or fallback_state).upper()[:2]
             point.cep = ''.join(ch for ch in (user.cep or '') if ch.isdigit()) or '00000000'
             point.latitude = lat
             point.longitude = lng
