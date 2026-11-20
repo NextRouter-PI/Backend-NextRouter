@@ -1,6 +1,7 @@
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
-from modules.organizations.models import CompanyRouteGroup, OperationalPoint
+from modules.organizations.models import CompanyRouteGroup, HabitualRoute, OperationalPoint, PassengerGroupMembership
 from modules.transport.access import companies_for
 from modules.transport.api.serializers.configuration import (
     AutomationInput,
@@ -9,6 +10,8 @@ from modules.transport.api.serializers.configuration import (
     GenerateInput,
     GroupInput,
     GroupSerializer,
+    HabitualRouteInput,
+    HabitualRouteSerializer,
     PointInput,
     PointSerializer,
     PolicyInput,
@@ -16,6 +19,7 @@ from modules.transport.api.serializers.configuration import (
     ServiceInput,
     ServiceSerializer,
     StopsInput,
+    UnassignedPassengerSerializer,
     VehicleInput,
     VehicleSerializer,
 )
@@ -25,6 +29,7 @@ from modules.transport.services.automation import configure_automation
 from modules.transport.services.calendar import generate_horizon
 from modules.transport.services.configuration import (
     configure_group,
+    configure_habitual_route,
     configure_point,
     configure_policy,
     configure_service,
@@ -137,6 +142,44 @@ class GroupViewSet(ConfigurationViewSet):
         result = cancel_date(actor_id=request.user.pk, group_id=self.get_object().pk, **self.input(CancelDateInput))
         return self.respond(result, CancelDaySerializer)
 
+    @domain_action(
+        'Passageiros vinculados ao grupo ainda sem rota habitual',
+        methods=['get'],
+        response=UnassignedPassengerSerializer(many=True),
+        url_path='unassigned-passengers',
+    )
+    def unassigned_passengers(self, request, pk=None):
+        group = self.get_object()
+        members = (
+            PassengerGroupMembership.objects.filter(
+                route_group=group,
+                ended_at__isnull=True,
+                membership__status='active',
+                habitual_route__isnull=True,
+            )
+            .select_related('membership__passenger__user', 'transport_point')
+            .order_by('membership__passenger__user__name', 'pk')
+        )
+        rows = []
+        for gm in members:
+            user = gm.membership.passenger.user
+            point = gm.transport_point
+            rows.append({
+                'group_membership_id': gm.pk,
+                'membership_id': gm.membership_id,
+                'passenger_name': user.name,
+                'cep': point.cep if point else user.cep,
+                'street': point.street if point else user.street,
+                'number': point.number if point else user.number,
+                'complement': point.complement if point else user.complement,
+                'neighborhood': point.neighborhood if point else user.neighborhood,
+                'city': point.city if point else user.city,
+                'state': point.state if point else user.state,
+                'latitude': point.latitude if point else user.latitude,
+                'longitude': point.longitude if point else user.longitude,
+            })
+        return self.respond(rows, UnassignedPassengerSerializer, many=True)
+
 
 @domain_resource('Configuração', 'políticas de resposta')
 class PolicyViewSet(ConfigurationViewSet):
@@ -204,5 +247,74 @@ class VehicleViewSet(ConfigurationViewSet):
                 company_id=vehicle.company_id,
                 vehicle_id=vehicle.pk,
                 **self.input(VehicleInput, partial=True),
+            )
+        )
+
+
+@domain_resource('Configuração', 'rotas habituais e compartilhadas')
+class HabitualRouteViewSet(DomainViewSet):
+    queryset = HabitualRoute.objects.none()
+    serializer_class = HabitualRouteSerializer
+    write_serializer_class = HabitualRouteInput
+    filterset_fields = ('route_group', 'kind')
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return self.queryset
+        user = self.request.user
+        if not user.is_authenticated or not user.is_active:
+            return HabitualRoute.objects.none()
+        return (
+            HabitualRoute.objects.select_related('route_group__company', 'route_group__destination')
+            .prefetch_related('route_group__services')
+            .filter(
+                Q(route_group__company__in=companies_for(user))
+                | Q(
+                    kind=HabitualRoute.Kind.HABITUAL,
+                    passenger_memberships__membership__passenger__user=user,
+                    passenger_memberships__ended_at__isnull=True,
+                    passenger_memberships__membership__status='active',
+                    route_group__company__is_approved=True,
+                    route_group__company__is_rejected=False,
+                    route_group__company__user__is_active=True,
+                )
+                | Q(
+                    kind=HabitualRoute.Kind.SHARED,
+                    route_group__passenger_memberships__membership__passenger__user=user,
+                    route_group__passenger_memberships__ended_at__isnull=True,
+                    route_group__passenger_memberships__membership__status='active',
+                    route_group__company__is_approved=True,
+                    route_group__company__is_rejected=False,
+                    route_group__company__user__is_active=True,
+                )
+            )
+            .distinct()
+            .order_by('route_group_id', 'kind', 'name', 'pk')
+        )
+
+    def create(self, request):
+        data = self.input(HabitualRouteInput)
+        group = get_object_or_404(
+            CompanyRouteGroup, pk=data.pop('route_group_id'), company__in=companies_for(request.user)
+        )
+        return self.respond(
+            configure_habitual_route(actor_id=request.user.pk, group_id=group.pk, **data),
+            status=201,
+        )
+
+    def partial_update(self, request, pk=None):
+        route = get_object_or_404(
+            HabitualRoute, pk=pk, route_group__company__in=companies_for(request.user)
+        )
+        data = self.input(HabitualRouteInput, partial=True)
+        data.pop('route_group_id', None)
+        return self.respond(
+            configure_habitual_route(
+                actor_id=request.user.pk,
+                group_id=route.route_group_id,
+                route_id=route.pk,
+                name=data.get('name', route.name),
+                kind=data.get('kind', route.kind),
+                passengers=data.get('passengers'),
             )
         )

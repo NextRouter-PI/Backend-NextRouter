@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from modules.organizations.models import CompanyRouteGroup, OperationalPoint
+from modules.organizations.models import CompanyRouteGroup, HabitualRoute, OperationalPoint
 from modules.transport.models import AutomationSchedule, RecurringService, ResponsePolicy, Vehicle
 from shared.api import InputModelSerializer, InputSerializer
 
@@ -192,3 +192,129 @@ class AutomationSerializer(serializers.ModelSerializer):
             'revision',
             'configured_at',
         )
+
+
+class RoutePassengerPointInput(InputSerializer):
+    group_membership_id = serializers.IntegerField(min_value=1)
+    latitude = serializers.FloatField(min_value=-90, max_value=90)
+    longitude = serializers.FloatField(min_value=-180, max_value=180)
+
+
+class HabitualRouteInput(InputSerializer):
+    route_group_id = serializers.IntegerField(min_value=1)
+    name = serializers.CharField(max_length=100)
+    kind = serializers.ChoiceField(choices=HabitualRoute.Kind.choices, default=HabitualRoute.Kind.HABITUAL)
+    passengers = RoutePassengerPointInput(many=True, required=False)
+
+
+class HabitualRouteSerializer(serializers.ModelSerializer):
+    group_name = serializers.CharField(source='route_group.name', read_only=True)
+    destination_name = serializers.SerializerMethodField()
+    passengers = serializers.SerializerMethodField()
+    my_point = serializers.SerializerMethodField()
+    services = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HabitualRoute
+        fields = (
+            'id',
+            'route_group',
+            'group_name',
+            'destination_name',
+            'name',
+            'kind',
+            'created_at',
+            'passengers',
+            'my_point',
+            'services',
+        )
+
+    def _is_company_owner(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        return bool(user and user.is_authenticated and obj.route_group.company.user_id == user.pk)
+
+    def get_destination_name(self, obj) -> str:
+        dest = obj.route_group.destination
+        return f'{dest.name} ({dest.city}/{dest.state})' if dest else ''
+
+    def get_services(self, obj) -> list[dict]:
+        return [
+            {
+                'id': srv.pk,
+                'name': srv.name,
+                'direction': srv.direction,
+                'target_time': str(srv.target_time)[:5],
+                'weekdays': srv.weekdays,
+            }
+            for srv in obj.route_group.services.all().order_by('direction', 'target_time', 'pk')
+        ]
+
+    def get_passengers(self, obj) -> list[dict]:
+        # Privacidade: somente a empresa dona visualiza a lista e os pontos dos passageiros da rota.
+        if not self._is_company_owner(obj):
+            return []
+        result = []
+        for gm in obj.passenger_memberships.filter(ended_at__isnull=True, membership__status='active').select_related(
+            'membership__passenger__user', 'transport_point'
+        ):
+            user = gm.membership.passenger.user
+            point = gm.transport_point
+            result.append({
+                'group_membership_id': gm.pk,
+                'passenger_name': user.name,
+                'street': point.street if point else user.street,
+                'number': point.number if point else user.number,
+                'complement': point.complement if point else user.complement,
+                'neighborhood': point.neighborhood if point else user.neighborhood,
+                'city': point.city if point else user.city,
+                'state': point.state if point else user.state,
+                'cep': point.cep if point else user.cep,
+                'latitude': point.latitude if point else user.latitude,
+                'longitude': point.longitude if point else user.longitude,
+            })
+        return result
+
+    def get_my_point(self, obj) -> dict | None:
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated or self._is_company_owner(obj):
+            return None
+        gm = (
+            obj.passenger_memberships.filter(
+                ended_at__isnull=True,
+                membership__status='active',
+                membership__passenger__user=user,
+            )
+            .select_related('transport_point')
+            .first()
+        )
+        if not gm or not gm.transport_point:
+            return None
+        p = gm.transport_point
+        return {
+            'name': p.name,
+            'street': p.street,
+            'number': p.number,
+            'complement': p.complement,
+            'neighborhood': p.neighborhood,
+            'city': p.city,
+            'state': p.state,
+            'latitude': p.latitude,
+            'longitude': p.longitude,
+        }
+
+
+class UnassignedPassengerSerializer(serializers.Serializer):
+    group_membership_id = serializers.IntegerField()
+    membership_id = serializers.IntegerField()
+    passenger_name = serializers.CharField()
+    cep = serializers.CharField(allow_blank=True)
+    street = serializers.CharField(allow_blank=True)
+    number = serializers.CharField(allow_blank=True)
+    complement = serializers.CharField(allow_blank=True)
+    neighborhood = serializers.CharField(allow_blank=True)
+    city = serializers.CharField(allow_blank=True)
+    state = serializers.CharField(allow_blank=True)
+    latitude = serializers.FloatField(allow_null=True)
+    longitude = serializers.FloatField(allow_null=True)

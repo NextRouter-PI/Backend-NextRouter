@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .company_membership import CompanyMembership
 from .company_route_group import CompanyRouteGroup
+from .habitual_route import HabitualRoute
 from .operational_point import OperationalPoint
 
 
@@ -31,6 +32,13 @@ class PassengerGroupMembership(models.Model):
     transport_point = models.ForeignKey(
         OperationalPoint,
         on_delete=models.PROTECT,
+        related_name='passenger_memberships',
+        null=True,
+        blank=True,
+    )
+    habitual_route = models.ForeignKey(
+        HabitualRoute,
+        on_delete=models.SET_NULL,
         related_name='passenger_memberships',
         null=True,
         blank=True,
@@ -109,5 +117,11 @@ class PassengerGroupMembership(models.Model):
                     errors['ended_at'] = _('A participação não pode terminar depois do vínculo empresarial.')
         if group_company is not None and point_company is not None and group_company != point_company:
             errors['transport_point'] = _('O ponto deve pertencer à empresa do grupo.')
+        if self.habitual_route_id is not None:
+            route = _related_values(HabitualRoute, self.habitual_route_id, 'route_group_id', 'kind')
+            if route and route['route_group_id'] != self.route_group_id:
+                errors['habitual_route'] = _('A rota habitual deve pertencer ao mesmo grupo da participação.')
+            elif route and route['kind'] != HabitualRoute.Kind.HABITUAL:
+                errors['habitual_route'] = _('Passageiros só podem ser vinculados individualmente a rotas habituais.')
         if errors:
             raise ValidationError(errors)
