@@ -125,6 +125,7 @@ def configure_point(*, actor_id, company_id, point_id=None, **values):
     company = lock_company(company_id)
     company_actor(company, actor_id)
     allowed = {
+        'point_type',
         'name',
         'street',
         'number',
@@ -142,6 +143,20 @@ def configure_point(*, actor_id, company_id, point_id=None, **values):
         if point_id
         else OperationalPoint(company=company, created_by_id=actor_id)
     )
+    if point.pk and 'point_type' in values and values['point_type'] != point.point_type:
+        new_type = values['point_type']
+        if new_type != OperationalPoint.PointType.GARAGE:
+            require(
+                not point.garaged_vehicles.exists(),
+                'invalid_point_type',
+                'Este ponto está vinculado como garagem de veículos.',
+            )
+        if new_type != OperationalPoint.PointType.DESTINATION:
+            require(
+                not point.destination_groups.exists(),
+                'invalid_point_type',
+                'Este ponto está vinculado como destino de grupos de atendimento.',
+            )
     for field, value in values.items():
         setattr(point, field, value)
     point.full_clean()
@@ -158,6 +173,11 @@ def configure_group(*, actor_id, company_id, group_id=None, name, destination_id
     company = lock_company(company_id)
     company_actor(company, actor_id)
     point = get(OperationalPoint.objects.filter(company=company), pk=destination_id)
+    require(
+        point.point_type == OperationalPoint.PointType.DESTINATION,
+        'invalid_point_type',
+        'O destino do grupo deve ser um ponto operacional do tipo destino.',
+    )
     group = (
         get(CompanyRouteGroup.objects.filter(company=company), pk=group_id)
         if group_id
@@ -213,6 +233,13 @@ def configure_vehicle(*, actor_id, company_id, vehicle_id=None, **values):
     if vehicle.pk:
         require(
             not vehicle.travels.filter(status='in_progress').exists(), 'operation_in_progress', 'Veículo em operação.'
+        )
+    if values.get('garage_point_id') is not None:
+        garage_point = get(OperationalPoint.objects.filter(company=company), pk=values['garage_point_id'])
+        require(
+            garage_point.point_type == OperationalPoint.PointType.GARAGE,
+            'invalid_point_type',
+            'O ponto selecionado para o veículo deve ser do tipo garagem.',
         )
     for field, value in values.items():
         setattr(vehicle, field, value)
