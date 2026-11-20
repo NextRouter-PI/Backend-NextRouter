@@ -49,7 +49,9 @@ class PrivacyTests(ServiceTestCase):
         self.company.save(update_fields=['articles_of_association_document'])
         response = APIClient().get(f'/api/companies/{self.company.pk}/')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(set(response.data), {'id', 'trade_name', 'city', 'state'})
+        self.assertEqual(
+            set(response.data), {'id', 'trade_name', 'city', 'state', 'profile_picture_url', 'route_groups'}
+        )
         self.client.force_authenticate(self.company.user)
         own = self.client.get('/api/companies/me/')
         self.assertEqual(own.status_code, 200)
