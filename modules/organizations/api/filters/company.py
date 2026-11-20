@@ -4,17 +4,42 @@ from django_filters import rest_framework as filters
 from modules.organizations.models.company import Company
 
 
-class CompanyFilter(filters.FilterSet):
-    trade_name = filters.CharFilter(field_name='trade_name', lookup_expr='icontains')
-    city = filters.CharFilter(field_name='route_groups__destination__city', lookup_expr='iexact', distinct=True)
-    state = filters.CharFilter(field_name='route_groups__destination__state', lookup_expr='iexact', distinct=True)
-    destination = filters.CharFilter(method='filter_destination')
+def build_route_group_match_q(params):
+    """Retorna (Q, has_filter) para filtrar grupos de rota na descoberta pública."""
+    query = Q()
+    has_filter = False
 
-    def filter_destination(self, queryset, name, value):
-        return queryset.filter(
-            Q(route_groups__name__icontains=value) | Q(route_groups__destination__name__icontains=value)
-        ).distinct()
+    destination = (params.get('destination') or '').strip()
+    if destination:
+        has_filter = True
+        query &= Q(name__icontains=destination) | Q(destination__name__icontains=destination)
+
+    city = (params.get('city') or '').strip()
+    if city:
+        has_filter = True
+        query &= Q(destination__city__iexact=city)
+
+    state = (params.get('state') or '').strip()
+    if state:
+        has_filter = True
+        query &= Q(destination__state__iexact=state)
+
+    return query, has_filter
+
+
+class CompanyFilter(filters.FilterSet):
+    city = filters.CharFilter(method='noop_filter', label='Cidade atendida pelo grupo de rota')
+    state = filters.CharFilter(method='noop_filter', label='UF atendida pelo grupo de rota')
+    destination = filters.CharFilter(method='noop_filter', label='Nome do grupo de rota ou destino')
+    ordering = filters.OrderingFilter(
+        fields=(('trade_name', 'trade_name'),),
+        field_labels={'trade_name': 'Nome da empresa'},
+    )
+
+    def noop_filter(self, queryset, name, value):
+        # Aplicado de forma combinada no mesmo grupo de rota em CompanyViewSet.filter_queryset.
+        return queryset
 
     class Meta:
         model = Company
-        fields = ('trade_name', 'city', 'state', 'destination')
+        fields = ('city', 'state', 'destination')
