@@ -219,12 +219,27 @@ class DatedApiTests(ServiceTestCase):
         self.assertTrue(TravelParticipation.objects.filter(pk=participant.pk).exists())
 
     def test_public_discovery_filters_by_served_destination_without_points(self):
+        unfiltered = self.client.get('/api/companies/')
+        self.assertEqual(unfiltered.status_code, 200)
+        self.assertEqual(unfiltered.data['results'], [])
+
         result = self.client.get(
             '/api/companies/', {'city': self.common.city, 'state': self.common.state, 'destination': self.group.name}
         )
         self.assertEqual(result.status_code, 200)
         self.assertEqual([row['id'] for row in result.data['results']], [self.company.pk])
-        self.assertEqual(set(result.data['results'][0]), {'id', 'trade_name', 'city', 'state'})
+        self.assertEqual(
+            set(result.data['results'][0]),
+            {'id', 'trade_name', 'city', 'state', 'profile_picture_url', 'route_groups'},
+        )
+        self.assertEqual(
+            result.data['results'][0]['route_groups'],
+            [{'id': self.group.pk, 'name': self.group.name, 'city': self.common.city, 'state': self.common.state}],
+        )
+
+        cities = self.client.get('/api/companies/served-cities/', {'state': self.common.state})
+        self.assertEqual(cities.status_code, 200)
+        self.assertEqual(cities.data['cities'], [{'city': self.common.city, 'state': self.common.state}])
         self.assertEqual(self.client.get('/api/operational-points/').status_code, 401)
 
     def test_statistics_use_service_day_date_not_started_at_or_all_scheduled(self):

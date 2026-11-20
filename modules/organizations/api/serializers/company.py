@@ -15,6 +15,8 @@ from modules.uploads.models.document import Document
 
 class CompanyListAndRetrieveSerializer(ModelSerializer):
     user_data = UserListAndRetriveSerializer(source='user', read_only=True)
+    profile_picture_url = serializers.SerializerMethodField()
+    route_groups = serializers.SerializerMethodField()
     articles_of_association_document_data = DocumentSerializer(
         source='articles_of_association_document', read_only=True
     )
@@ -43,6 +45,8 @@ class CompanyListAndRetrieveSerializer(ModelSerializer):
             'neighborhood',
             'city',
             'state',
+            'profile_picture_url',
+            'route_groups',
             'latitude',
             'longitude',
             'geocoded_at',
@@ -55,13 +59,35 @@ class CompanyListAndRetrieveSerializer(ModelSerializer):
             'certificate_of_good_stading_document_data',
         )
 
+    def get_profile_picture_url(self, instance) -> str | None:
+        user = getattr(instance, 'user', None)
+        picture = getattr(user, 'profile_picture', None) if user else None
+        return picture.url if picture else None
+
+    def get_route_groups(self, instance) -> list[dict]:
+        groups = getattr(instance, 'matched_route_groups', None)
+        if groups is None:
+            groups = instance.route_groups.select_related('destination').order_by('name', 'id')
+        return [
+            {
+                'id': group.id,
+                'name': group.name,
+                'city': group.destination.city if group.destination else '',
+                'state': group.destination.state if group.destination else '',
+            }
+            for group in groups
+        ]
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
         user = getattr(request, 'user', None)
         if user and (instance.user_id == user.pk or (user.is_staff and user.has_perm('organizations.view_company'))):
             return data
-        return {key: data[key] for key in ('id', 'trade_name', 'city', 'state')}
+        return {
+            key: data[key]
+            for key in ('id', 'trade_name', 'city', 'state', 'profile_picture_url', 'route_groups')
+        }
 
 
 class CompanyCreateSerializer(BaseProfileCreateSerializer):
