@@ -1,6 +1,11 @@
 from django.db import transaction
 
-from modules.organizations.models import CompanyRouteGroup, OperationalPoint, PassengerGroupMembership
+from modules.organizations.models import (
+    CompanyRouteGroup,
+    HabitualRoute,
+    OperationalPoint,
+    PassengerGroupMembership,
+)
 from modules.transport.models import (
     PassengerServiceAuthorization,
     RecurringService,
@@ -253,3 +258,102 @@ def configure_vehicle(*, actor_id, company_id, vehicle_id=None, **values):
     for travel in vehicle.travels.filter(service_day__isnull=False, status='scheduled').order_by('pk'):
         invalidate(travel)
     return vehicle
+
+
+@transaction.atomic
+def configure_habitual_route(*, actor_id, group_id, route_id=None, name, kind=HabitualRoute.Kind.HABITUAL, passengers=None):
+    """Cria ou atualiza rota habitual (com passageiros e pontos ajustados) ou compartilhada (apenas nome)."""
+    group = group_access(group_id, actor_id)
+    company = group.company
+    clean_name = str(name or '').strip()
+    require(bool(clean_name), 'invalid_name', 'Informe o nome da rota.')
+    require(
+        kind in (HabitualRoute.Kind.HABITUAL, HabitualRoute.Kind.SHARED),
+        'invalid_kind',
+        'Tipo de rota inválido.',
+    )
+
+    route = (
+        get(HabitualRoute.objects.filter(route_group=group), pk=route_id)
+        if route_id
+        else HabitualRoute(route_group=group, created_by_id=actor_id)
+    )
+    if route.pk and route.kind != kind:
+        require(False, 'immutable_kind', 'Não é possível alterar o tipo da rota após criada.')
+
+    route.name = clean_name
+    route.kind = kind
+    route.full_clean()
+    route.save()
+
+    if kind == HabitualRoute.Kind.SHARED:
+        require(
+            not passengers,
+            'shared_route_no_passengers',
+            'Rotas compartilhadas possuem apenas nome e não vinculam passageiros individuais.',
+        )
+        return route
+
+    if passengers is not None:
+        selected_ids = []
+        seen_ids = set()
+        for entry in passengers:
+            gm_id = entry['group_membership_id']
+            require(gm_id not in seen_ids, 'duplicate_passenger', 'Passageiro informado em duplicidade na rota.')
+            seen_ids.add(gm_id)
+            selected_ids.append(gm_id)
+
+        # Libera passageiros removidos da rota em caso de edição.
+        if route_id:
+            PassengerGroupMembership.objects.filter(
+                route_group=group, habitual_route=route, ended_at__isnull=True
+            ).exclude(pk__in=selected_ids).update(habitual_route=None)
+
+        for entry in passengers:
+            gm = get(
+                PassengerGroupMembership.objects.select_for_update()
+                .select_related('membership__passenger__user', 'transport_point')
+                .filter(route_group=group, ended_at__isnull=True, membership__status='active'),
+                pk=entry['group_membership_id'],
+            )
+            require(
+                gm.habitual_route_id in (None, route.pk),
+                'passenger_already_in_route',
+                'Um passageiro só pode estar vinculado a uma rota habitual.',
+            )
+
+            lat = float(entry['latitude'])
+            lng = float(entry['longitude'])
+            user = gm.membership.passenger.user
+            point = (
+                gm.transport_point
+                if gm.transport_point_id and gm.transport_point.point_type == OperationalPoint.PointType.PASSENGER
+                else OperationalPoint(
+                    company=company,
+                    created_by_id=actor_id,
+                    point_type=OperationalPoint.PointType.PASSENGER,
+                )
+            )
+            point.point_type = OperationalPoint.PointType.PASSENGER
+            point.name = f'Ponto de {user.name}'[:100]
+            point.street = (user.street or '').strip() or 'Logradouro não informado'
+            point.number = (user.number or '').strip() or 'S/N'
+            point.complement = (user.complement or '').strip()
+            point.neighborhood = (user.neighborhood or '').strip() or 'Bairro não informado'
+            point.city = (user.city or '').strip() or (group.destination.city if group.destination else 'Cidade não informada')
+            point.state = ((user.state or '').strip() or (group.destination.state if group.destination else 'SC')).upper()[:2]
+            point.cep = ''.join(ch for ch in (user.cep or '') if ch.isdigit()) or '00000000'
+            point.latitude = lat
+            point.longitude = lng
+            point.full_clean()
+            point.save()
+
+            gm.habitual_route = route
+            gm.transport_point = point
+            gm.save(update_fields=['habitual_route', 'transport_point'])
+
+        from .calendar import regenerate_future_days
+
+        regenerate_future_days(group)
+
+    return route

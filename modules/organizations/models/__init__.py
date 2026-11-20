@@ -2,6 +2,7 @@ from .company import Company as Company
 from .company_membership import CompanyMembership as CompanyMembership
 from .company_route_group import CompanyRouteGroup as CompanyRouteGroup
 from .driver import Driver as Driver
+from .habitual_route import HabitualRoute as HabitualRoute
 from .membership_event import MembershipEvent as MembershipEvent
 from .operational_point import OperationalPoint as OperationalPoint
 from .passenger import Passenger as Passenger

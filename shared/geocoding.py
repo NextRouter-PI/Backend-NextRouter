@@ -5,9 +5,63 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+BRASILAPI_CEP_V2_URL = 'https://brasilapi.com.br/api/cep/v2/{cep}'
+
 
 class GeocodingError(ValueError):
     pass
+
+
+def lookup_cep_brasilapi(cep, *, timeout=None):
+    """Consulta endereço e coordenadas aproximadas pela BrasilAPI CEP v2.
+
+    Retorna dict {cep, state, city, neighborhood, street, latitude, longitude}
+    ou None se não encontrado/indisponível. Nunca levanta exceção de rede.
+    """
+    clean_cep = ''.join(ch for ch in str(cep or '') if ch.isdigit())
+    if len(clean_cep) != 8:
+        return None
+
+    req_timeout = timeout or getattr(settings, 'GEOCODING_TIMEOUT_SECONDS', 5)
+    try:
+        response = requests.get(
+            BRASILAPI_CEP_V2_URL.format(cep=clean_cep),
+            headers={'User-Agent': 'NextRouter/1.0 (contato@nextrouter.com)'},
+            timeout=req_timeout,
+        )
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+        payload = response.json()
+    except (requests.RequestException, ValueError) as exc:
+        logger.warning('brasilapi_cep_failed reason=%s', type(exc).__name__)
+        return None
+
+    coords = (payload.get('location') or {}).get('coordinates') or {}
+    lat_raw = coords.get('latitude')
+    lng_raw = coords.get('longitude')
+    latitude = None
+    longitude = None
+    try:
+        if lat_raw not in (None, '') and lng_raw not in (None, ''):
+            lat_val = float(lat_raw)
+            lng_val = float(lng_raw)
+            if -90 <= lat_val <= 90 and -180 <= lng_val <= 180:
+                latitude = lat_val
+                longitude = lng_val
+    except (TypeError, ValueError):
+        latitude = None
+        longitude = None
+
+    return {
+        'cep': clean_cep,
+        'state': str(payload.get('state') or '').strip().upper()[:2],
+        'city': str(payload.get('city') or '').strip(),
+        'neighborhood': str(payload.get('neighborhood') or '').strip(),
+        'street': str(payload.get('street') or '').strip(),
+        'latitude': latitude,
+        'longitude': longitude,
+    }
 
 
 def geocode_address(*, street='', number='', neighborhood='', city='', state='', cep='', strict=False):
