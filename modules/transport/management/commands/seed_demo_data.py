@@ -66,7 +66,12 @@ class Command(BaseCommand):
             )
             members.append(approve_membership(actor_id=company.user_id, membership_id=member.pk))
         points = []
-        for index, name in enumerate(('Garagem fictícia', 'Destino fictício', 'Ponto fictício')):
+        point_specs = (
+            ('Garagem fictícia', 'garage'),
+            ('Destino fictício', 'destination'),
+            ('Ponto fictício', 'passenger'),
+        )
+        for index, (name, point_type) in enumerate(point_specs):
             existing = company.operational_points.filter(name=name).first()
             points.append(
                 configure_point(
@@ -74,6 +79,7 @@ class Command(BaseCommand):
                     company_id=company.pk,
                     point_id=existing.pk if existing else None,
                     name=name,
+                    point_type=point_type,
                     street='Rua Fictícia',
                     number=str(index + 1),
                     neighborhood='Bairro fictício',
