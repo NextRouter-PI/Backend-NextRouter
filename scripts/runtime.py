@@ -12,6 +12,13 @@ def required_integer(name, *, minimum=1, maximum=2147483647):
     return value
 
 
+def optional_boolean(name, default='false'):
+    value = os.environ.get(name, default).strip().lower()
+    if value not in ('true', 'false'):
+        raise ValueError('Parâmetro operacional booleano inválido.')
+    return value == 'true'
+
+
 def main():
     parser = argparse.ArgumentParser(description='Inicia runtime validado; migration é operação manual separada.')
     parser.add_argument('role', choices=('web', 'worker', 'release'))
@@ -41,8 +48,15 @@ def main():
             ]
         else:
             command = [sys.executable, 'manage.py', 'process_route_jobs']
+            all_companies = optional_boolean('WORKER_ALL_COMPANIES', default='false')
+            company_id_raw = os.environ.get('WORKER_COMPANY_ID', '').strip()
+            if all_companies:
+                if company_id_raw:
+                    raise ValueError('Defina WORKER_ALL_COMPANIES=true ou WORKER_COMPANY_ID, não ambos.')
+                command.append('--all-companies')
+            else:
+                command.extend(['--company-id', required_integer('WORKER_COMPANY_ID', minimum=1, maximum=2147483647)])
             for flag, name, minimum, maximum in (
-                ('company-id', 'WORKER_COMPANY_ID', 1, 2147483647),
                 ('lease-seconds', 'WORKER_LEASE_SECONDS', 1, 2147483647),
                 ('max-attempts', 'WORKER_MAX_ATTEMPTS', 1, 2147483647),
                 ('retry-seconds', 'WORKER_RETRY_SECONDS', 0, 2147483647),
