@@ -229,6 +229,11 @@ def generate_horizon(*, actor_id, group_id, start_date, horizon_days, batch_size
         'invalid_horizon',
         'Informe horizonte e lote positivos.',
     )
+    require(
+        start_date > timezone.localdate(),
+        'past_or_today_date',
+        'Não é permitido aplicar atendimentos no dia atual nem em datas passadas. Escolha a partir de amanhã.',
+    )
     excluded = set(excluded_dates or [])
     group = group_access(group_id, actor_id)
     days = []

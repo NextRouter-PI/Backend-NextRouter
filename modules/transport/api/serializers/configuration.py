@@ -250,6 +250,7 @@ class HabitualRouteSerializer(serializers.ModelSerializer):
                 'id': srv.pk,
                 'name': srv.name,
                 'direction': srv.direction,
+                'is_shared': srv.is_shared,
                 'target_time': str(srv.target_time)[:5],
                 'weekdays': srv.weekdays,
             }
