@@ -18,11 +18,12 @@ class RecurringService(models.Model):
     )
     name = models.CharField(max_length=100)
     direction = models.CharField(max_length=8, choices=Direction.choices)
+    is_shared = models.BooleanField(default=False, db_index=True, verbose_name='Serviço compartilhado')
     weekdays = models.PositiveSmallIntegerField(help_text='Máscara: segunda=1, terça=2, ... domingo=64.')
     target_time = models.TimeField(help_text='Chegada desejada na ida; partida no retorno.')
     planned_duration = models.DurationField(null=True, blank=True)
     turnaround_duration = models.DurationField(null=True, blank=True)
-    valid_from = models.DateField()
+    valid_from = models.DateField(null=True, blank=True)
     valid_until = models.DateField(null=True, blank=True)
     driver_membership = models.ForeignKey(
         'organizations.CompanyMembership',
@@ -69,7 +70,11 @@ class RecurringService(models.Model):
                 condition=models.Q(weekdays__gte=1, weekdays__lte=127), name='service_weekdays_valid'
             ),
             models.CheckConstraint(
-                condition=models.Q(valid_until__isnull=True) | models.Q(valid_until__gte=models.F('valid_from')),
+                condition=(
+                    models.Q(valid_from__isnull=True)
+                    | models.Q(valid_until__isnull=True)
+                    | models.Q(valid_until__gte=models.F('valid_from'))
+                ),
                 name='service_validity_order',
             ),
         ]
