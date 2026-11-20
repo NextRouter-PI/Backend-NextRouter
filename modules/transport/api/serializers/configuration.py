@@ -11,6 +11,7 @@ class PointSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'company',
+            'point_type',
             'name',
             'street',
             'number',
@@ -28,6 +29,7 @@ class PointInput(InputModelSerializer):
     class Meta:
         model = OperationalPoint
         fields = (
+            'point_type',
             'name',
             'street',
             'number',

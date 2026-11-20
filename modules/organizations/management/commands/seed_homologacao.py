@@ -79,6 +79,7 @@ class Command(BaseCommand):
             company=supertransporte,
             name='Garagem Central Joinville',
             defaults={
+                'point_type': OperationalPoint.PointType.GARAGE,
                 'street': 'Rua XV de Novembro',
                 'number': '500',
                 'neighborhood': 'Centro',
@@ -95,6 +96,7 @@ class Command(BaseCommand):
             company=supertransporte,
             name='IFC Campus Araquari',
             defaults={
+                'point_type': OperationalPoint.PointType.DESTINATION,
                 'street': 'BR-280, km 27',
                 'number': 'S/N',
                 'neighborhood': 'Colégio Agrícola',

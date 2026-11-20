@@ -74,6 +74,8 @@ class Vehicle(models.Model):
         super().clean()
         from .validation import related_values
 
-        point = related_values(self, 'garage_point', 'company_id')
+        point = related_values(self, 'garage_point', 'company_id', 'point_type')
         if point and self.company_id is not None and point['company_id'] != self.company_id:
             raise ValidationError('A garagem deve pertencer à empresa do veículo.')
+        if point and point['point_type'] != 'garage':
+            raise ValidationError('O ponto selecionado para o veículo deve ser do tipo garagem.')

@@ -11,7 +11,19 @@ from django.utils.translation import gettext_lazy as _
 class OperationalPoint(models.Model):
     """Ponto da empresa, independente do perfil pessoal e sem geocodificação em save."""
 
+    class PointType(models.TextChoices):
+        GARAGE = 'garage', _('Garagem')
+        DESTINATION = 'destination', _('Destino')
+        PASSENGER = 'passenger', _('Ponto de passageiro')
+
     company = models.ForeignKey('organizations.Company', on_delete=models.PROTECT, related_name='operational_points')
+    point_type = models.CharField(
+        max_length=20,
+        choices=PointType.choices,
+        default=PointType.DESTINATION,
+        db_index=True,
+        verbose_name=_('Tipo de ponto'),
+    )
     name = models.CharField(max_length=100, verbose_name=_('Identificação'))
     street = models.CharField(max_length=255, verbose_name=_('Logradouro'))
     number = models.CharField(max_length=20, verbose_name=_('Número'))
@@ -49,6 +61,10 @@ class OperationalPoint(models.Model):
                     & ~models.Q(cep='')
                 ),
                 name='operational_point_required_address',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(point_type__in=('garage', 'destination', 'passenger')),
+                name='operational_point_valid_type',
             ),
         ]
 

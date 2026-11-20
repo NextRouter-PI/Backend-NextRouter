@@ -17,6 +17,7 @@ class Stage1ModelTestCase(TestCase):
         cls.group = create_route_group(cls.company)
         cls.other_group = create_route_group(cls.other_company)
         cls.point = create_operational_point(cls.company)
+        cls.garage = create_operational_point(cls.company, name='Garagem', point_type='garage')
         cls.other_point = create_operational_point(cls.other_company)
         cls.passenger = create_passenger('stage1-passenger@example.com')
         cls.now = timezone.now()
@@ -36,7 +37,7 @@ class Stage1ModelTestCase(TestCase):
             assigned_by=cls.company.user,
             started_at=cls.now,
         )
-        cls.vehicle = Vehicle.objects.create(company=cls.company, plate='ABC1D23', capacity=10, garage_point=cls.point)
+        cls.vehicle = Vehicle.objects.create(company=cls.company, plate='ABC1D23', capacity=10, garage_point=cls.garage)
         cls.service = RecurringService.objects.create(
             route_group=cls.group,
             name='Ida',
