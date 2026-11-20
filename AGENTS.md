@@ -178,7 +178,7 @@ Todos os caminhos de código e comandos abaixo são relativos à raiz do backend
   seguem estritamente `reported → found → returned` (transições feitas apenas pela
   empresa, com `operation_id` e auditoria, sem reabertura ou DELETE). Avisos
   (`Notification`) são restritos ao destinatário (inclusive para staff).
-- **Worker e automação:** `process_route_jobs` exige empresa, lease, tentativas, retry,
+- **Worker e automação:** `process_route_jobs` exige escopo explícito (`--company-id` ou `--all-companies`, e em produção `WORKER_COMPANY_ID` ou `WORKER_ALL_COMPANIES=true`), além de lease, tentativas, retry,
   poll e lotes explícitos. A agenda automática opt-in por grupo (`router.0004_automation_schedule`)
   persiste horizonte, lote, frequência e checkpoint transacional no banco.
 

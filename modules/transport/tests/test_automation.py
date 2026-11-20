@@ -277,3 +277,25 @@ class PersistentWorkerTests(ServiceTestCase):
         ):
             self.run_worker()
         self.assertNotIn('SegredoFicticioNuncaLogar', str(caught.exception) + str(captured.output))
+
+    def test_all_companies_mode_processes_multiple_approved_companies_and_rejects_ambiguous_scope(self):
+        with self.assertRaises(CommandError):
+            self.run_worker(all_companies=True)
+        with self.assertRaises(CommandError):
+            self.run_worker(company_id=None, all_companies=False)
+        self.other.is_approved = True
+        self.other.is_rejected = False
+        self.other.save(update_fields=['is_approved', 'is_rejected'])
+        seen_companies = []
+
+        def track_due(*, actor_id, company_id, batch_size):
+            seen_companies.append(company_id)
+            return {}
+
+        with (
+            patch('modules.transport.management.commands.process_route_jobs.process_schedules', return_value=[]),
+            patch('modules.transport.management.commands.process_route_jobs.process_due', side_effect=track_due),
+            patch('modules.transport.management.commands.process_route_jobs.claim_snapshot_job', return_value=None),
+        ):
+            self.run_worker(company_id=None, all_companies=True)
+        self.assertEqual(seen_companies, sorted([self.company.pk, self.other.pk]))

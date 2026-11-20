@@ -268,3 +268,12 @@ class RuntimeEntryTests(SimpleTestCase):
             with self.assertRaises(SystemExit):
                 main()
             execute.assert_not_called()
+            os.environ['WORKER_ALL_COMPANIES'] = 'true'
+            main()
+            self.assertIn('--all-companies', execute.call_args.args[1])
+            self.assertNotIn('--company-id', execute.call_args.args[1])
+            execute.reset_mock()
+            os.environ['WORKER_COMPANY_ID'] = '1'
+            with self.assertRaises(SystemExit):
+                main()
+            execute.assert_not_called()
