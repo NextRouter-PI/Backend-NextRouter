@@ -25,7 +25,21 @@ class PassengerListAndRetrieveSerializer(ModelSerializer):
         user = getattr(request, 'user', None)
         if user and instance.user_id == user.pk:
             return data
-        fields = {'id', 'name'}
+        fields = {
+            'id',
+            'name',
+            'phone',
+            'profile_picture_data',
+            'cep',
+            'street',
+            'number',
+            'complement',
+            'neighborhood',
+            'city',
+            'state',
+            'latitude',
+            'longitude',
+        }
         data['user_data'] = {key: value for key, value in data['user_data'].items() if key in fields}
         return data
 
