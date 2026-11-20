@@ -11,6 +11,7 @@ from .api.views.auth import (
     UserSessionDeactivateView,
     UserSessionsView,
 )
+from .api.views.cep import CepLookupView
 from .api.views.email_change import EmailChangeViewSet
 from .api.views.email_token import EmailTokenViewSet
 from .api.views.registration import PasswordResetTokenViewSet, RegistrationTokenViewSet
@@ -22,6 +23,7 @@ router.register('users', UserViewSet, basename='users')
 
 urlpatterns = [
     path('csrf/', CsrfView.as_view(), name='csrf'),
+    path('cep/<str:cep>/', CepLookupView.as_view(), name='cep-lookup'),
     path('login/', CustomTokenObtainPairView.as_view(), name='login'),
     path('refresh/', CustomTokenRefreshView.as_view(), name='refresh'),
     path('me/logout/', CustomLogoutView.as_view(), name='logout'),

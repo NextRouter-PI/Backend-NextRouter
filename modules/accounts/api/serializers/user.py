@@ -1,5 +1,6 @@
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from rest_framework.validators import UniqueValidator
@@ -9,6 +10,7 @@ from modules.accounts.models.user import User
 from modules.accounts.validators.cpf import validate_cpf
 from modules.uploads.api.serializers import ImageSerializer
 from modules.uploads.models import Image
+from shared.geocoding import lookup_cep_brasilapi
 
 
 class UserListAndRetriveSerializer(ModelSerializer):
@@ -136,6 +138,14 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
             pic_instance.description = f'Foto de {validated_data.get("name", "")}'
             pic_instance.save(update_fields=['description'])
 
+        cep = validated_data.get('cep')
+        if cep:
+            cep_info = lookup_cep_brasilapi(cep)
+            if cep_info and cep_info['latitude'] is not None and cep_info['longitude'] is not None:
+                validated_data['latitude'] = cep_info['latitude']
+                validated_data['longitude'] = cep_info['longitude']
+                validated_data['geocoded_at'] = timezone.now()
+
         user = User.objects.create_user(**validated_data, profile_picture=pic_instance)
 
         return user
@@ -186,8 +196,16 @@ class UserPatchSerializer(UserCreateSerializer):
 
             instance.profile_picture = new_pic_instance
 
+        old_cep = instance.cep
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+
+        if 'cep' in validated_data and instance.cep and (instance.cep != old_cep or instance.latitude is None):
+            cep_info = lookup_cep_brasilapi(instance.cep)
+            if cep_info and cep_info['latitude'] is not None and cep_info['longitude'] is not None:
+                instance.latitude = cep_info['latitude']
+                instance.longitude = cep_info['longitude']
+                instance.geocoded_at = timezone.now()
 
         instance.save()
         return instance

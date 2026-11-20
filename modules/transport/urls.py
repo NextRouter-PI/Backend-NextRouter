@@ -1,6 +1,13 @@
 from rest_framework.routers import SimpleRouter
 
-from .api.views.configuration import GroupViewSet, PointViewSet, PolicyViewSet, ServiceViewSet, VehicleViewSet
+from .api.views.configuration import (
+    GroupViewSet,
+    HabitualRouteViewSet,
+    PointViewSet,
+    PolicyViewSet,
+    ServiceViewSet,
+    VehicleViewSet,
+)
 from .api.views.daily import ChangeRequestViewSet, DayViewSet, EligibilityViewSet, ResponseViewSet
 from .api.views.history import LostItemViewSet, RatingViewSet
 from .api.views.operation import (
@@ -18,6 +25,7 @@ from .api.views.operation import (
 router = SimpleRouter()
 router.register('operational-points', PointViewSet, basename='operational-points')
 router.register('company-route-groups', GroupViewSet, basename='company-route-groups')
+router.register('habitual-routes', HabitualRouteViewSet, basename='habitual-routes')
 router.register('response-policies', PolicyViewSet, basename='response-policies')
 router.register('recurring-services', ServiceViewSet, basename='recurring-services')
 router.register('service-days', DayViewSet, basename='service-days')
