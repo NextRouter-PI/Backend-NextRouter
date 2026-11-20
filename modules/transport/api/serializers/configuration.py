@@ -106,6 +106,7 @@ class ServiceSerializer(serializers.ModelSerializer):
             'route_group',
             'name',
             'direction',
+            'is_shared',
             'weekdays',
             'target_time',
             'valid_from',
@@ -125,6 +126,9 @@ class ServiceSerializer(serializers.ModelSerializer):
 
 class ServiceInput(InputModelSerializer):
     route_group_id = serializers.IntegerField(min_value=1)
+    is_shared = serializers.BooleanField(required=False, default=False)
+    valid_from = serializers.DateField(required=False, allow_null=True)
+    valid_until = serializers.DateField(required=False, allow_null=True)
     driver_membership_id = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     vehicle_id = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     origin_id = serializers.IntegerField(min_value=1, required=False, allow_null=True)
@@ -136,6 +140,7 @@ class ServiceInput(InputModelSerializer):
             'route_group_id',
             'name',
             'direction',
+            'is_shared',
             'weekdays',
             'target_time',
             'valid_from',

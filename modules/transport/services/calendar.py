@@ -69,7 +69,7 @@ def _generate(group, date, *, explicit=False):
     services = [
         s
         for s in RecurringService.objects.filter(route_group=group).order_by('pk')
-        if s.valid_from <= date
+        if (s.valid_from is None or s.valid_from <= date)
         and (s.valid_until is None or s.valid_until >= date)
         and s.weekdays & (1 << date.weekday())
     ]
