@@ -20,7 +20,8 @@ class PrivacyTests(ServiceTestCase):
         result = self.client.get('/api/passengers/').data['results']
         self.assertEqual([row['id'] for row in result], [self.passenger.pk])
         self.assertNotIn('cpf', result[0]['user_data'])
-        self.assertNotIn('latitude', result[0]['user_data'])
+        self.assertNotIn('email', result[0]['user_data'])
+        self.assertNotIn('birth_date', result[0]['user_data'])
         self.assertEqual(self.client.get(f'/api/passengers/{pending.pk}/').status_code, 404)
         self.client.force_authenticate(self.driver.user)
         self.assertEqual(self.client.get('/api/passengers/').data['results'], [])
@@ -64,7 +65,24 @@ class PrivacyTests(ServiceTestCase):
         self.client.force_authenticate(self.company.user)
         response = self.client.get(f'/api/passengers/{self.passenger.pk}/')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(set(response.data['user_data']), {'id', 'name'})
+        self.assertEqual(
+            set(response.data['user_data']),
+            {
+                'id',
+                'name',
+                'phone',
+                'profile_picture_data',
+                'cep',
+                'street',
+                'number',
+                'complement',
+                'neighborhood',
+                'city',
+                'state',
+                'latitude',
+                'longitude',
+            },
+        )
 
     def test_passenger_cannot_read_driver_identity_or_license(self):
         self.client.force_authenticate(self.passenger.user)
