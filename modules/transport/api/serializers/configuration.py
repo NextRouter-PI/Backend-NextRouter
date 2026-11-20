@@ -263,13 +263,15 @@ class HabitualRouteSerializer(serializers.ModelSerializer):
             return []
         result = []
         for gm in obj.passenger_memberships.filter(ended_at__isnull=True, membership__status='active').select_related(
-            'membership__passenger__user', 'transport_point'
+            'membership__passenger__user', 'membership__passenger__user__profile_picture', 'transport_point'
         ):
             user = gm.membership.passenger.user
             point = gm.transport_point
+            picture = getattr(user, 'profile_picture', None)
             result.append({
                 'group_membership_id': gm.pk,
                 'passenger_name': user.name,
+                'profile_picture_url': picture.url if picture else None,
                 'street': point.street if point else user.street,
                 'number': point.number if point else user.number,
                 'complement': point.complement if point else user.complement,
@@ -316,6 +318,7 @@ class UnassignedPassengerSerializer(serializers.Serializer):
     group_membership_id = serializers.IntegerField()
     membership_id = serializers.IntegerField()
     passenger_name = serializers.CharField()
+    profile_picture_url = serializers.CharField(allow_null=True, required=False)
     cep = serializers.CharField(allow_blank=True)
     street = serializers.CharField(allow_blank=True)
     number = serializers.CharField(allow_blank=True)

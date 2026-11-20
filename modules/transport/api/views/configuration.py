@@ -157,17 +157,21 @@ class GroupViewSet(ConfigurationViewSet):
                 membership__status='active',
                 habitual_route__isnull=True,
             )
-            .select_related('membership__passenger__user', 'transport_point')
+            .select_related(
+                'membership__passenger__user', 'membership__passenger__user__profile_picture', 'transport_point'
+            )
             .order_by('membership__passenger__user__name', 'pk')
         )
         rows = []
         for gm in members:
             user = gm.membership.passenger.user
             point = gm.transport_point
+            picture = getattr(user, 'profile_picture', None)
             rows.append({
                 'group_membership_id': gm.pk,
                 'membership_id': gm.membership_id,
                 'passenger_name': user.name,
+                'profile_picture_url': picture.url if picture else None,
                 'cep': point.cep if point else user.cep,
                 'street': point.street if point else user.street,
                 'number': point.number if point else user.number,

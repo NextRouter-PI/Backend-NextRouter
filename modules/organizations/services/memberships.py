@@ -83,7 +83,9 @@ def _record(membership, *, actor_id, action, recipient_id, occurred_at, reason='
 
 
 @transaction.atomic
-def request_membership(*, actor_id, company_id, passenger_id=None, driver_id=None, route_group_id=None):
+def request_membership(
+    *, actor_id, company_id, passenger_id=None, driver_id=None, route_group_id=None, contact_phone=''
+):
     """Titular solicita; repetição enquanto pendente na mesma empresa é idempotente."""
     company = _get(Company.objects.select_for_update(), pk=company_id)
     profile = _profile(passenger_id=passenger_id, driver_id=driver_id)
@@ -91,6 +93,7 @@ def request_membership(*, actor_id, company_id, passenger_id=None, driver_id=Non
     requested_group = None
     if route_group_id is not None and isinstance(profile, Passenger):
         requested_group = _get(CompanyRouteGroup.objects.filter(company=company), pk=route_group_id)
+    clean_phone = ''.join(ch for ch in str(contact_phone or '') if ch.isdigit())[:20]
     current = (
         CompanyMembership.objects
         .select_for_update()
@@ -101,11 +104,18 @@ def request_membership(*, actor_id, company_id, passenger_id=None, driver_id=Non
     users = _users(actor_id=actor_id, profile=profile, company=company)
     _authorize(actor_id, profile.user_id)
     _approved_company(company, users)
+    resolved_phone = clean_phone or (users[profile.user_id].phone or '')[:20]
     if current:
         if current.status == CompanyMembership.Status.PENDING and current.company_id == company.pk:
+            updated_fields = []
             if requested_group and current.requested_route_group_id != requested_group.pk:
                 current.requested_route_group = requested_group
-                current.save(update_fields=['requested_route_group'])
+                updated_fields.append('requested_route_group')
+            if resolved_phone and current.contact_phone != resolved_phone:
+                current.contact_phone = resolved_phone
+                updated_fields.append('contact_phone')
+            if updated_fields:
+                current.save(update_fields=updated_fields)
             return current
         raise MembershipError('O perfil já possui pedido pendente ou vínculo ativo.', code='membership_open')
     now = timezone.now()
@@ -113,6 +123,7 @@ def request_membership(*, actor_id, company_id, passenger_id=None, driver_id=Non
         company=company,
         **{profile_field: profile.pk},
         requested_route_group=requested_group,
+        contact_phone=resolved_phone,
         requested_by_id=actor_id,
         created_at=now,
     )

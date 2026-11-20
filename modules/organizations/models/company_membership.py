@@ -31,6 +31,12 @@ class CompanyMembership(models.Model):
         blank=True,
         verbose_name=_('Grupo de rota solicitado'),
     )
+    contact_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        verbose_name=_('Telefone para contato'),
+    )
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     requested_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='requested_company_memberships'
