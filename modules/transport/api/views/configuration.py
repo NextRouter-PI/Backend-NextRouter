@@ -54,7 +54,7 @@ class PointViewSet(ConfigurationViewSet):
     queryset = OperationalPoint.objects.none()
     serializer_class = PointSerializer
     write_serializer_class = PointInput
-    filterset_fields = ('company', 'city', 'state')
+    filterset_fields = ('company', 'city', 'state', 'point_type')
 
     def create(self, request):
         return self.respond(

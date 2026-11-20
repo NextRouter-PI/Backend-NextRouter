@@ -26,9 +26,13 @@ class ServiceTestCase(TransactionTestCase):
         self.addCleanup(clock.stop)
         self.company = create_company('operation-company@example.com')
         self.other = create_company('operation-other@example.com')
-        self.garage = create_operational_point(self.company)
-        self.common = create_operational_point(self.company, name='Destino comum', latitude=-26.4)
-        self.home = create_operational_point(self.company, name='Ponto do aluno', latitude=-26.35)
+        self.garage = create_operational_point(self.company, name='Garagem', point_type='garage')
+        self.common = create_operational_point(
+            self.company, name='Destino comum', point_type='destination', latitude=-26.4
+        )
+        self.home = create_operational_point(
+            self.company, name='Ponto do aluno', point_type='passenger', latitude=-26.35
+        )
         self.group = create_route_group(self.company)
         self.group.destination = self.common
         self.group.save(update_fields=['destination'])
