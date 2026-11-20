@@ -149,6 +149,7 @@ SPECTACULAR_SETTINGS = {
         'VehicleStatusEnum': 'modules.transport.models.vehicle.Vehicle.Status',
         'LostItemStatusEnum': 'modules.transport.models.lost_item.LostItem.Status',
         'RouteOptimizationJobStatusEnum': 'modules.transport.models.route_optimization_job.RouteOptimizationJob.Status',
+        'HabitualRouteKindEnum': 'modules.organizations.models.habitual_route.HabitualRoute.Kind',
     },
 }
 

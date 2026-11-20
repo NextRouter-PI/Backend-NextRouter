@@ -56,6 +56,7 @@ class ConfigurationServiceTests(ServiceTestCase):
             actor_id=self.company.user_id,
             company_id=self.company.pk,
             name='Garagem fictícia',
+            point_type='garage',
             street='Rua Fictícia',
             number='25',
             neighborhood='Centro',
