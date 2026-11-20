@@ -35,7 +35,7 @@ class MembershipViewSet(DomainViewSet):
             return self.queryset
         return (
             memberships_for(self.request.user)
-            .select_related('company', 'passenger__user', 'driver__user')
+            .select_related('company', 'passenger__user', 'driver__user', 'requested_route_group')
             .order_by('-pk')
         )
 
@@ -45,7 +45,10 @@ class MembershipViewSet(DomainViewSet):
             CompanyMembership._meta.get_field(data['profile']).remote_field.model, user=request.user
         )
         membership = request_membership(
-            actor_id=request.user.pk, company_id=data['company_id'], **{f'{data["profile"]}_id': profile.pk}
+            actor_id=request.user.pk,
+            company_id=data['company_id'],
+            route_group_id=data.get('route_group_id'),
+            **{f'{data["profile"]}_id': profile.pk},
         )
         return self.respond(membership, status=201)
 

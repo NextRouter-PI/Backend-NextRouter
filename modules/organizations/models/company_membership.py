@@ -23,6 +23,14 @@ class CompanyMembership(models.Model):
     driver = models.ForeignKey(
         'organizations.Driver', on_delete=models.PROTECT, related_name='company_memberships', null=True, blank=True
     )
+    requested_route_group = models.ForeignKey(
+        'organizations.CompanyRouteGroup',
+        on_delete=models.SET_NULL,
+        related_name='requested_memberships',
+        null=True,
+        blank=True,
+        verbose_name=_('Grupo de rota solicitado'),
+    )
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     requested_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='requested_company_memberships'

@@ -6,6 +6,9 @@ from shared.api import InputSerializer
 
 class MembershipSerializer(serializers.ModelSerializer):
     applicant_name = serializers.SerializerMethodField()
+    requested_route_group_name = serializers.CharField(
+        source='requested_route_group.name', read_only=True, default=None
+    )
 
     class Meta:
         model = CompanyMembership
@@ -15,6 +18,8 @@ class MembershipSerializer(serializers.ModelSerializer):
             'company',
             'passenger',
             'driver',
+            'requested_route_group',
+            'requested_route_group_name',
             'status',
             'created_at',
             'reviewed_at',
@@ -29,6 +34,7 @@ class MembershipSerializer(serializers.ModelSerializer):
 class MembershipInput(InputSerializer):
     company_id = serializers.IntegerField(min_value=1)
     profile = serializers.ChoiceField(choices=['passenger', 'driver'])
+    route_group_id = serializers.IntegerField(min_value=1, required=False, allow_null=True, default=None)
 
 
 class MembershipEventSerializer(serializers.ModelSerializer):
