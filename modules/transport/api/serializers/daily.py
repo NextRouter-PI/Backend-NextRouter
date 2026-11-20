@@ -74,7 +74,7 @@ class ResponseSerializer(serializers.ModelSerializer):
 class AuthorizedServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecurringService
-        fields = ('id', 'name', 'direction', 'target_time')
+        fields = ('id', 'name', 'direction', 'is_shared', 'target_time')
 
 
 class EligibilitySerializer(serializers.ModelSerializer):
