@@ -51,6 +51,7 @@ def configure_service(*, actor_id, group_id, service_id=None, **values):
     allowed = {
         'name',
         'direction',
+        'is_shared',
         'weekdays',
         'target_time',
         'valid_from',
@@ -201,6 +202,12 @@ def configure_group(*, actor_id, company_id, group_id=None, name, destination_id
 def configure_stops(*, actor_id, service_id, point_ids):
     initial = get(RecurringService.objects.all(), pk=service_id)
     group = group_access(initial.route_group_id, actor_id)
+    if initial.is_shared:
+        require(
+            not point_ids,
+            'shared_service_no_stops',
+            'Serviços compartilhados não podem ter paradas ou rotas fixas configuradas.',
+        )
     require(
         isinstance(point_ids, list)
         and all(type(pk) is int and pk > 0 for pk in point_ids)
