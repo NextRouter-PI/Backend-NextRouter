@@ -110,8 +110,6 @@ class BaseAPITestCase(APITestCase):
     def request_code(self, email):
         """Solicita o código de cadastro pelo contrato atual e o lê do e-mail em memória."""
         mail.outbox.clear()
-        response = self.client.post(
-            '/api/registration/request/', {'email': email}, format='json'
-        )
+        response = self.client.post('/api/registration/request/', {'email': email}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         return re.search(r'\b(\d{6})\b', mail.outbox[-1].body).group(1)

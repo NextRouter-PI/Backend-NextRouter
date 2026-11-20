@@ -113,11 +113,14 @@ class SignupTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         self.assertTrue(Company.objects.filter(user__email='empresa@example.com').exists())
 
-        duplicated = dict(payload, **{
-            'user_data.email': 'outra@example.com',
-            'user_data.cpf': masked_cpf(),
-            'user_data.code': self.request_code('outra@example.com'),
-        })
+        duplicated = dict(
+            payload,
+            **{
+                'user_data.email': 'outra@example.com',
+                'user_data.cpf': masked_cpf(),
+                'user_data.code': self.request_code('outra@example.com'),
+            },
+        )
         response = self.client.post('/api/companies/', duplicated, format='multipart')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('cnpj', response.data)
@@ -125,9 +128,7 @@ class SignupTests(BaseAPITestCase):
     def test_wrong_code_is_rejected(self):
         code = self.request_code('ana@example.com')
         wrong = '111111' if code == '000000' else '000000'
-        response = self.client.post(
-            '/api/passengers/', self.user_payload('ana@example.com', wrong), format='multipart'
-        )
+        response = self.client.post('/api/passengers/', self.user_payload('ana@example.com', wrong), format='multipart')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(User.objects.filter(email='ana@example.com').exists())
 

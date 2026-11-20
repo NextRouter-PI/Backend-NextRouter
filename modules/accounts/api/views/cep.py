@@ -8,12 +8,15 @@ from shared.geocoding import lookup_cep_brasilapi
 
 
 class CepLookupView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny,)
 
     @extend_schema(
         tags=['Autenticação'],
         summary='Consulte endereço e coordenadas por CEP (BrasilAPI v2)',
-        description='Proxy de mesma origem para consulta de CEP via BrasilAPI v2, retornando endereço e coordenadas quando disponíveis.',
+        description=(
+            'Proxy de mesma origem para consulta de CEP via BrasilAPI v2, '
+            'retornando endereço e coordenadas quando disponíveis.'
+        ),
         responses={
             200: inline_serializer(
                 'CepLookupResponse',

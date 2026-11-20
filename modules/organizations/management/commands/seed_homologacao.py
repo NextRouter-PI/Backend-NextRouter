@@ -158,8 +158,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('Seed de homologação concluído com dados fictícios:'))
         self.stdout.write(
-            f'  - Admin:      {admin_user.email} / {ADMIN_PASSWORD} '
-            f'({"criado" if admin_created else "existente"})'
+            f'  - Admin:      {admin_user.email} / {ADMIN_PASSWORD} ({"criado" if admin_created else "existente"})'
         )
         self.stdout.write(
             f'  - Empresa OK: {company_user.email} / {DEV_PASSWORD} '
@@ -176,6 +175,5 @@ class Command(BaseCommand):
             f'({"criado" if passenger_created else "existente"})'
         )
         self.stdout.write(
-            f'  - Motorista:  {driver_user.email} / {DEV_PASSWORD} '
-            f'({"criado" if driver_created else "existente"})'
+            f'  - Motorista:  {driver_user.email} / {DEV_PASSWORD} ({"criado" if driver_created else "existente"})'
         )

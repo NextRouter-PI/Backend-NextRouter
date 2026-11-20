@@ -49,9 +49,7 @@ class CompanyRouteGroup(models.Model):
                 destination_id = OperationalPoint._meta.pk.to_python(self.destination_id)
             except ValidationError:
                 return  # clean_fields já reporta o ID malformado.
-            point = (
-                OperationalPoint.objects.filter(pk=destination_id).values('company_id', 'point_type').first()
-            )
+            point = OperationalPoint.objects.filter(pk=destination_id).values('company_id', 'point_type').first()
             if point is not None and point['company_id'] != self.company_id:
                 raise ValidationError(_('O destino operacional deve pertencer à empresa do grupo.'))
             if point is not None and point['point_type'] != OperationalPoint.PointType.DESTINATION:
