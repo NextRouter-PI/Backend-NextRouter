@@ -72,6 +72,8 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
         required=True,
         validators=[validate_cpf],
     )
+    latitude = serializers.FloatField(min_value=-90, max_value=90, required=False, allow_null=True)
+    longitude = serializers.FloatField(min_value=-180, max_value=180, required=False, allow_null=True)
 
     class Meta:
         model = User
@@ -87,6 +89,8 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
             'neighborhood',
             'city',
             'state',
+            'latitude',
+            'longitude',
             'phone',
             'profile_picture',
             'cpf',
@@ -138,13 +142,19 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
             pic_instance.description = f'Foto de {validated_data.get("name", "")}'
             pic_instance.save(update_fields=['description'])
 
-        cep = validated_data.get('cep')
-        if cep:
-            cep_info = lookup_cep_brasilapi(cep)
-            if cep_info and cep_info['latitude'] is not None and cep_info['longitude'] is not None:
-                validated_data['latitude'] = cep_info['latitude']
-                validated_data['longitude'] = cep_info['longitude']
-                validated_data['geocoded_at'] = timezone.now()
+        has_coords = validated_data.get('latitude') is not None and validated_data.get('longitude') is not None
+        if has_coords:
+            validated_data['geocoded_at'] = timezone.now()
+        else:
+            validated_data.pop('latitude', None)
+            validated_data.pop('longitude', None)
+            cep = validated_data.get('cep')
+            if cep:
+                cep_info = lookup_cep_brasilapi(cep)
+                if cep_info and cep_info['latitude'] is not None and cep_info['longitude'] is not None:
+                    validated_data['latitude'] = cep_info['latitude']
+                    validated_data['longitude'] = cep_info['longitude']
+                    validated_data['geocoded_at'] = timezone.now()
 
         user = User.objects.create_user(**validated_data, profile_picture=pic_instance)
 

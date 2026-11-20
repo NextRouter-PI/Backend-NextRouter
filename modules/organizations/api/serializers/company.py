@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
@@ -11,6 +12,7 @@ from modules.organizations.models.company import Company
 from modules.organizations.validators.cnpj import validate_cnpj
 from modules.uploads.api.serializers.document import DocumentSerializer
 from modules.uploads.models.document import Document
+from shared.geocoding import lookup_cep_brasilapi
 
 
 class CompanyListAndRetrieveSerializer(ModelSerializer):
@@ -101,6 +103,8 @@ class CompanyCreateSerializer(BaseProfileCreateSerializer):
         slug_field='attachment_key', queryset=Document.objects.all()
     )
     cnpj = serializers.CharField(validators=[validate_cnpj], required=True)
+    latitude = serializers.FloatField(min_value=-90, max_value=90, required=False, allow_null=True)
+    longitude = serializers.FloatField(min_value=-180, max_value=180, required=False, allow_null=True)
 
     def validate_cnpj(self, value):
         cnpj = ''.join(filter(str.isdigit, value))
@@ -123,6 +127,8 @@ class CompanyCreateSerializer(BaseProfileCreateSerializer):
             'neighborhood',
             'city',
             'state',
+            'latitude',
+            'longitude',
             'articles_of_association_document',
             'state_operating_license_document',
             'certificate_of_good_stading_document',
@@ -134,6 +140,20 @@ class CompanyCreateSerializer(BaseProfileCreateSerializer):
     def create(self, validated_data):
         user_data = validated_data.pop('user')
         user = self.create_user_instance(user_data)
+
+        has_coords = validated_data.get('latitude') is not None and validated_data.get('longitude') is not None
+        if has_coords:
+            validated_data['geocoded_at'] = timezone.now()
+        else:
+            validated_data.pop('latitude', None)
+            validated_data.pop('longitude', None)
+            cep = validated_data.get('cep')
+            if cep:
+                cep_info = lookup_cep_brasilapi(cep)
+                if cep_info and cep_info['latitude'] is not None and cep_info['longitude'] is not None:
+                    validated_data['latitude'] = cep_info['latitude']
+                    validated_data['longitude'] = cep_info['longitude']
+                    validated_data['geocoded_at'] = timezone.now()
 
         return Company.objects.create(user=user, **validated_data)
 
