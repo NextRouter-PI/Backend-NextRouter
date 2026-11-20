@@ -110,9 +110,12 @@ def _generate(group, date, *, explicit=False):
     for participation in active_groups:
         passenger_id = participation.membership.passenger_id
         current_passengers.add(passenger_id)
-        authorized = sorted(
-            set(participation.service_authorizations.values_list('service_id', flat=True)) & eligible_services
-        )
+        explicit_ids = set(participation.service_authorizations.values_list('service_id', flat=True))
+        if explicit_ids:
+            shared_ids = {s.pk for s in services if s.is_shared}
+            authorized = sorted((explicit_ids | shared_ids) & eligible_services)
+        else:
+            authorized = sorted(eligible_services)
         eligibility, created = ServiceDayEligibility.objects.get_or_create(
             day=day,
             passenger_id=passenger_id,
@@ -161,11 +164,8 @@ def _generate(group, date, *, explicit=False):
         ):
             configuration['issues'].append(f'eligibility:{eligibility.pk}:membership_changed')
     for data in configuration['services']:
-        if data['duration'] is None or data['turnaround'] is None:
-            configuration['issues'].append(f'service:{data["id"]}:schedule_incomplete')
-            continue
         target = instant(date, datetime.fromisoformat(f'2000-01-01T{data["target_time"]}').time())
-        duration = timedelta(seconds=data['duration'])
+        duration = timedelta(seconds=data['duration']) if data['duration'] is not None else timedelta(minutes=60)
         start, end = (target - duration, target) if data['direction'] == 'outbound' else (target, target + duration)
         travel, _ = Travel.objects.get_or_create(
             service_day=day,
@@ -223,11 +223,18 @@ def revise_day(*, actor_id, day_id, expected_revision):
 
 
 @transaction.atomic
-def generate_horizon(*, actor_id, group_id, start_date, horizon_days, batch_size):
+def generate_horizon(*, actor_id, group_id, start_date, horizon_days, batch_size, excluded_dates=None):
     require(
         type(horizon_days) is int and horizon_days > 0 and type(batch_size) is int and batch_size > 0,
         'invalid_horizon',
         'Informe horizonte e lote positivos.',
     )
+    excluded = set(excluded_dates or [])
     group = group_access(group_id, actor_id)
-    return [_generate(group, start_date + timedelta(days=offset)) for offset in range(min(horizon_days, batch_size))]
+    days = []
+    for offset in range(min(horizon_days, batch_size)):
+        target_date = start_date + timedelta(days=offset)
+        if target_date in excluded:
+            continue
+        days.append(_generate(group, target_date))
+    return days
