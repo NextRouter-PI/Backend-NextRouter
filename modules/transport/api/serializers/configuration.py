@@ -162,6 +162,7 @@ class GenerateInput(InputSerializer):
     start_date = serializers.DateField()
     horizon_days = serializers.IntegerField(min_value=1, max_value=31)
     batch_size = serializers.IntegerField(min_value=1, max_value=31)
+    excluded_dates = serializers.ListField(child=serializers.DateField(), required=False, default=list)
 
 
 class CancelDateInput(InputSerializer):
