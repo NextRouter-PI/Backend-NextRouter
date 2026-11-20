@@ -9,7 +9,15 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
-from modules.organizations.models import Company, CompanyMembership, Driver, MembershipEvent, Passenger
+from modules.organizations.models import (
+    Company,
+    CompanyMembership,
+    CompanyRouteGroup,
+    Driver,
+    MembershipEvent,
+    Passenger,
+    PassengerGroupMembership,
+)
 from modules.transport.models import Notification
 
 from .errors import MembershipError
@@ -75,11 +83,14 @@ def _record(membership, *, actor_id, action, recipient_id, occurred_at, reason='
 
 
 @transaction.atomic
-def request_membership(*, actor_id, company_id, passenger_id=None, driver_id=None):
+def request_membership(*, actor_id, company_id, passenger_id=None, driver_id=None, route_group_id=None):
     """Titular solicita; repetição enquanto pendente na mesma empresa é idempotente."""
     company = _get(Company.objects.select_for_update(), pk=company_id)
     profile = _profile(passenger_id=passenger_id, driver_id=driver_id)
     profile_field = 'passenger_id' if isinstance(profile, Passenger) else 'driver_id'
+    requested_group = None
+    if route_group_id is not None and isinstance(profile, Passenger):
+        requested_group = _get(CompanyRouteGroup.objects.filter(company=company), pk=route_group_id)
     current = (
         CompanyMembership.objects
         .select_for_update()
@@ -92,11 +103,18 @@ def request_membership(*, actor_id, company_id, passenger_id=None, driver_id=Non
     _approved_company(company, users)
     if current:
         if current.status == CompanyMembership.Status.PENDING and current.company_id == company.pk:
+            if requested_group and current.requested_route_group_id != requested_group.pk:
+                current.requested_route_group = requested_group
+                current.save(update_fields=['requested_route_group'])
             return current
         raise MembershipError('O perfil já possui pedido pendente ou vínculo ativo.', code='membership_open')
     now = timezone.now()
     membership = CompanyMembership.objects.create(
-        company=company, **{profile_field: profile.pk}, requested_by_id=actor_id, created_at=now
+        company=company,
+        **{profile_field: profile.pk},
+        requested_route_group=requested_group,
+        requested_by_id=actor_id,
+        created_at=now,
     )
     _record(
         membership,
@@ -190,14 +208,35 @@ def end_membership(*, actor_id, membership_id, reason=''):
 
 @transaction.atomic
 def approve_membership(*, actor_id, membership_id, reason=''):
-    """Empresa titular aprova sem exigir grupo e sem publicar/alocar viagens."""
-    return _decide(
+    """Empresa titular aprova; se passageiro solicitou um grupo de rota, adiciona automaticamente ao grupo."""
+    membership = _decide(
         actor_id=actor_id,
         membership_id=membership_id,
         status=CompanyMembership.Status.ACTIVE,
         action=MembershipEvent.Action.APPROVED,
         reason=reason,
     )
+    if (
+        membership.passenger_id is not None
+        and membership.requested_route_group_id is not None
+        and not membership.passenger_group_memberships.filter(ended_at__isnull=True).exists()
+    ):
+        group = CompanyRouteGroup.objects.filter(
+            pk=membership.requested_route_group_id,
+            company_id=membership.company_id,
+        ).first()
+        if group is not None:
+            PassengerGroupMembership.objects.create(
+                membership=membership,
+                route_group=group,
+                transport_point=None,
+                assigned_by_id=actor_id,
+                started_at=membership.reviewed_at or timezone.now(),
+            )
+            from modules.transport.services.calendar import regenerate_future_days
+
+            regenerate_future_days(group)
+    return membership
 
 
 @transaction.atomic
