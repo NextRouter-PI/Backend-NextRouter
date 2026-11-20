@@ -151,7 +151,8 @@ class GroupViewSet(ConfigurationViewSet):
     def unassigned_passengers(self, request, pk=None):
         group = self.get_object()
         members = (
-            PassengerGroupMembership.objects.filter(
+            PassengerGroupMembership.objects
+            .filter(
                 route_group=group,
                 ended_at__isnull=True,
                 membership__status='active',
@@ -269,7 +270,8 @@ class HabitualRouteViewSet(DomainViewSet):
         if not user.is_authenticated or not user.is_active:
             return HabitualRoute.objects.none()
         return (
-            HabitualRoute.objects.select_related('route_group__company', 'route_group__destination')
+            HabitualRoute.objects
+            .select_related('route_group__company', 'route_group__destination')
             .prefetch_related('route_group__services')
             .filter(
                 Q(route_group__company__in=companies_for(user))
@@ -307,9 +309,7 @@ class HabitualRouteViewSet(DomainViewSet):
         )
 
     def partial_update(self, request, pk=None):
-        route = get_object_or_404(
-            HabitualRoute, pk=pk, route_group__company__in=companies_for(request.user)
-        )
+        route = get_object_or_404(HabitualRoute, pk=pk, route_group__company__in=companies_for(request.user))
         data = self.input(HabitualRouteInput, partial=True)
         data.pop('route_group_id', None)
         return self.respond(

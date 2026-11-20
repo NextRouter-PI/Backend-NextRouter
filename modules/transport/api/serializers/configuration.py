@@ -290,7 +290,8 @@ class HabitualRouteSerializer(serializers.ModelSerializer):
         if not user or not user.is_authenticated or self._is_company_owner(obj):
             return None
         gm = (
-            obj.passenger_memberships.filter(
+            obj.passenger_memberships
+            .filter(
                 ended_at__isnull=True,
                 membership__status='active',
                 membership__passenger__user=user,

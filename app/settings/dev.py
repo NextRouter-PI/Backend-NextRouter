@@ -16,8 +16,8 @@ for _name, _value in dotenv_values(_env_file).items():
     if _name not in {'DJANGO_SETTINGS_MODULE', 'NEXTROUTER_ENV_FILE', 'NEXTROUTER_LAN_HOST'} and _value:
         os.environ[_name] = _value
 
-from . import base as common
-from .base import *  # ruff: ignore[undefined-local-with-import-star]
+from . import base as common  # ruff: ignore[module-import-not-at-top-of-file]
+from .base import *  # ruff: ignore[module-import-not-at-top-of-file, undefined-local-with-import-star]
 
 DEBUG = True
 SECRET_KEY = os.getenv('SECRET_KEY') or 'chave-apenas-para-desenvolvimento-local'
@@ -60,10 +60,13 @@ WS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 # Sem URL explícita, banco dedicado em arquivo e canais/cache locais.
 _database_url = os.getenv('DATABASE_URL', '').strip()
-DATABASES = {'default': (
-    dj_database_url.parse(_database_url, conn_max_age=0)
-    if _database_url else {'ENGINE': 'django.db.backends.sqlite3', 'NAME': common.BASE_DIR / 'dev.sqlite3'}
-)}
+DATABASES = {
+    'default': (
+        dj_database_url.parse(_database_url, conn_max_age=0)
+        if _database_url
+        else {'ENGINE': 'django.db.backends.sqlite3', 'NAME': common.BASE_DIR / 'dev.sqlite3'}
+    )
+}
 REDIS_URL = os.getenv('REDIS_URL', '').strip()
 if REDIS_URL:
     CACHES = {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache', 'LOCATION': REDIS_URL}}
@@ -86,7 +89,9 @@ STORAGES = {
     'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 }
 EMAIL_BACKEND = (
-    'django.core.mail.backends.smtp.EmailBackend' if common.EMAIL_HOST else 'django.core.mail.backends.console.EmailBackend'
+    'django.core.mail.backends.smtp.EmailBackend'
+    if common.EMAIL_HOST
+    else 'django.core.mail.backends.console.EmailBackend'
 )
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL') or common.EMAIL_HOST_USER or 'noreply@example.invalid'
 SESSION_COOKIE_SECURE = False
