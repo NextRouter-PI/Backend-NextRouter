@@ -1,29 +1,39 @@
+"""Atribuição e troca de grupo de rota para vínculos ativos de passageiros."""
+
 from django.db import transaction
 from django.utils import timezone
 
+from modules.organizations.hooks import (
+    clone_group_service_authorizations,
+    emit_membership_notification,
+    notify_route_group_changed,
+)
 from modules.organizations.models import CompanyRouteGroup, OperationalPoint, PassengerGroupMembership
-from modules.transport.models import Notification, PassengerServiceAuthorization
 
 from .errors import MembershipError
-from .memberships import _approved_company, _authorize, _get, _locked_membership, _users
+from .locking import get_or_membership_error, lock_membership_context, require_actor, require_approved_company
 from .participation import ensure_profile_can_change
 
 
 @transaction.atomic
 def assign_passenger_group(*, actor_id, membership_id, route_group_id, transport_point_id=None):
     """Empresa atribui/troca grupo; guarda cada intervalo e não transfere alocações."""
-    membership, profile, company = _locked_membership(membership_id)
-    users = _users(actor_id=actor_id, profile=profile, company=company)
-    _authorize(actor_id, company.user_id)
-    _approved_company(company, users)
+    ctx = lock_membership_context(membership_id, actor_id=actor_id)
+    membership, profile, company, users = ctx.membership, ctx.profile, ctx.company, ctx.users
+    require_actor(actor_id, company.user_id)
+    require_approved_company(company, users)
     if membership.status != 'active' or membership.passenger_id is None:
         raise MembershipError('Selecione vínculo ativo de passageiro.', code='invalid_passenger_membership')
     if not users[profile.user_id].is_active:
         raise MembershipError('O titular precisa estar ativo.', code='profile_unavailable')
-    group = _get(CompanyRouteGroup.objects.select_for_update().filter(company=company), pk=route_group_id)
+    group = get_or_membership_error(
+        CompanyRouteGroup.objects.select_for_update().filter(company=company), pk=route_group_id
+    )
     point = None
     if transport_point_id is not None:
-        point = _get(OperationalPoint.objects.select_for_update().filter(company=company), pk=transport_point_id)
+        point = get_or_membership_error(
+            OperationalPoint.objects.select_for_update().filter(company=company), pk=transport_point_id
+        )
     current = membership.passenger_group_memberships.select_for_update().filter(ended_at=None).order_by('pk').first()
     if current and current.route_group_id == group.pk and current.transport_point_id == transport_point_id:
         return current
@@ -45,37 +55,17 @@ def assign_passenger_group(*, actor_id, membership_id, route_group_id, transport
     # Mudança somente do ponto preserva as escolhas humanas de serviço no mesmo grupo.
     # Troca de grupo exige novas autorizações explícitas, sem inferi-las por horário.
     if current and current.route_group_id == group.pk:
-        authorizations = list(current.service_authorizations.select_related('service').order_by('pk'))
-        if any(
-            authorization.service.route_group_id != group.pk
-            or authorization.direction != authorization.service.direction
-            or (authorization.is_habitual and authorization.direction != 'outbound')
-            for authorization in authorizations
-        ):
-            raise MembershipError('As autorizações habituais são inconsistentes.', code='invalid_authorization')
-        PassengerServiceAuthorization.objects.bulk_create([
-            PassengerServiceAuthorization(
-                participation=result,
-                service_id=authorization.service_id,
-                direction=authorization.direction,
-                is_habitual=authorization.is_habitual,
-            )
-            for authorization in authorizations
-        ])
-    Notification.objects.create(
+        clone_group_service_authorizations(source_participation=current, target_participation=result, group=group)
+    emit_membership_notification(
         recipient_id=profile.user_id,
-        kind='membership',
-        resource_type='membership',
-        resource_id=str(membership.pk),
+        membership_id=membership.pk,
         deduplication_key=f'membership:{membership.pk}:group:{result.pk}',
-        payload={'status': 'active'},
-        created_at=now,
+        status='active',
+        occurred_at=now,
     )
-    from modules.transport.services.calendar import regenerate_future_days
-
     affected = {group.pk: group}
     if current:
         affected[current.route_group_id] = current.route_group
     for affected_group in sorted(affected.values(), key=lambda item: item.pk):
-        regenerate_future_days(affected_group)
+        notify_route_group_changed(affected_group)
     return result

@@ -94,7 +94,8 @@ class HistoryApiTests(ServiceTestCase):
         )
         with (
             patch(
-                'modules.transport.services.history.LostItemEvent.objects.create', side_effect=RuntimeError('fixture')
+                'modules.transport.services.lost_items.LostItemEvent.objects.create',
+                side_effect=RuntimeError('fixture'),
             ),
             self.assertRaises(RuntimeError),
         ):

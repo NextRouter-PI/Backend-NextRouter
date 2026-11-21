@@ -25,7 +25,9 @@ class EmailTokenPolicyTests(BaseAPITestCase):
         self.assertEqual(self.verify('ana@example.com', code).status_code, 400)
 
     def test_verify_uses_latest_code(self):
-        with patch('modules.accounts.services.generate_verification_code', side_effect=['123456', '654321']):
+        with patch(
+            'modules.accounts.services.email_tokens.generate_verification_code', side_effect=['123456', '654321']
+        ):
             previous = self.request_code('ana@example.com')
             EmailToken.objects.filter(email='ana@example.com').update(created_at=timezone.now() - timedelta(minutes=2))
             latest = self.request_code('ana@example.com')
@@ -55,7 +57,7 @@ class EmailTokenPolicyTests(BaseAPITestCase):
 
     def test_mail_failure_does_not_reveal_whether_reset_user_exists(self):
         create_user('registered@example.com')
-        with patch('modules.accounts.services.send_email_token', return_value=False):
+        with patch('modules.accounts.services.email_tokens.send_email_token', return_value=False):
             existing = self.client.post('/api/password-reset/request/', {'email': 'registered@example.com'})
         unknown = self.client.post('/api/password-reset/request/', {'email': 'unknown@example.com'})
         self.assertEqual(existing.status_code, unknown.status_code)

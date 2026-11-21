@@ -4,8 +4,9 @@ from typing import ClassVar
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import CharField, Exists, F, OuterRef, Q, Value
 from django.db.models.fields.json import KT
+from django.db.models.functions import Cast, NullIf
 from django.utils import timezone
 
 from .validation import related_values
@@ -79,21 +80,24 @@ class ServiceDayQuerySet(models.QuerySet):
     def future(self, *, today=None):
         return self.filter(date__gt=today or timezone.localdate())
 
-    def due_for_closing(self, *, company_id=None, now=None):
+    def due_for_closing(self, *, company=None, company_id=None, now=None):
         moment = now or timezone.now()
-        qs = (
-            self
-            .active()
-            .filter(normal_deadline__lte=moment)
-            .annotate(
-                closed_revision=KT('configuration_snapshot__closed_revision'),
-                operational_issue=KT('configuration_snapshot__operational_issue'),
-            )
-            .filter(closed_revision__isnull=True, operational_issue__isnull=True)
-        )
-        if company_id is not None:
+        qs = self.active().filter(normal_deadline__lte=moment)
+        if company is not None:
+            qs = qs.filter(route_group__company=company)
+        elif company_id is not None:
             qs = qs.filter(route_group__company_id=company_id)
-        return qs.order_by('normal_deadline', 'pk')
+        return (
+            qs
+            .annotate(
+                closed_revision_text=Cast(KT('configuration_snapshot__closed_revision'), CharField()),
+                attempted_at=NullIf(
+                    Cast(KT('configuration_snapshot__maintenance_attempted_at'), CharField()), Value('null')
+                ),
+            )
+            .filter(Q(closed_revision_text__isnull=True) | ~Q(closed_revision_text=Cast('revision', CharField())))
+            .order_by(F('attempted_at').asc(nulls_first=True), 'pk')
+        )
 
     def visible_to(self, user):
         if not user or not user.is_authenticated or not user.is_active:
@@ -187,7 +191,10 @@ class ServiceDay(models.Model):
         return self.travels.filter(published_revision__isnull=False).exists()
 
     def service_config(self, service_id: int) -> dict | None:
-        return (self.configuration_snapshot or {}).get('services', {}).get(str(service_id))
+        services = (self.configuration_snapshot or {}).get('services', [])
+        if isinstance(services, dict):
+            return services.get(str(service_id))
+        return next((item for item in services if item.get('id') == service_id), None)
 
 
 class ServiceDayEligibilityQuerySet(models.QuerySet):

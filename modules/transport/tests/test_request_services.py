@@ -169,7 +169,7 @@ class RequestServiceTests(ServiceTestCase):
         request = self.prepare_transfer()
         count = RouteOptimizationJob.objects.count()
         with (
-            patch('modules.transport.services.requests.notify', side_effect=RuntimeError('Falha fictícia')),
+            patch('modules.transport.services.requests.lifecycle.notify', side_effect=RuntimeError('Falha fictícia')),
             self.assertRaises(RuntimeError),
         ):
             self.approve(request)

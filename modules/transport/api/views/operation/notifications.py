@@ -1,6 +1,6 @@
 from modules.transport.api.serializers.operation import NotificationSerializer
 from modules.transport.models import Notification
-from modules.transport.services.maintenance import read_notification
+from modules.transport.services.notifications import read_notification
 from shared.api import EmptyInput
 from shared.domain_api import DomainViewSet, domain_action, domain_resource
 
