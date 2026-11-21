@@ -72,3 +72,22 @@ class TrackingServiceTests(ServiceTestCase):
         except RuntimeError:
             pass
         self.assertEqual(len(delivered), 1)
+
+    def test_approaching_geofence_notifies_waiting_passenger_once(self):
+        from modules.transport.models import Notification
+
+        travel = self.running()
+        point = self.eligibility.point_snapshot
+        self.save(travel, latitude=float(point['latitude']), longitude=float(point['longitude']))
+        self.now += timedelta(seconds=10)
+        self.save(travel, latitude=float(point['latitude']) + 0.0002, longitude=float(point['longitude']))
+        notifications = Notification.objects.filter(
+            recipient_id=self.passenger.user_id, kind='operation', payload__status='approaching'
+        )
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(
+            Notification.objects.filter(
+                recipient_id=self.other.user_id, kind='operation', payload__status='approaching'
+            ).count(),
+            0,
+        )
