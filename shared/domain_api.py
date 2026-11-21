@@ -16,13 +16,23 @@ ERRORS = {
 }
 
 
-def domain_action(summary, *, request=EmptyInput, response, detail=True, url_path=None, status=200, methods=('post',)):
+def domain_action(
+    summary,
+    *,
+    request=EmptyInput,
+    response,
+    detail=True,
+    url_path=None,
+    status=200,
+    methods=('post',),
+    description=None,
+):
     def decorate(method):
         method = action(detail=detail, methods=methods, url_path=url_path)(method)
         return extend_schema(
             summary=summary,
-            description=f'{summary}. Somente recursos autorizados; mutações exigem cookie e CSRF.',
-            request=request if 'post' in methods else None,
+            description=description or f'{summary}. Somente recursos autorizados; mutações exigem cookie e CSRF.',
+            request=request if any(method in methods for method in ('post', 'patch', 'put')) else None,
             responses={status: response, **ERRORS},
         )(method)
 

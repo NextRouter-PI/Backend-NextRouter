@@ -1,30 +1,16 @@
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Prefetch
 from django_filters import rest_framework as filters
 
 from modules.organizations.models.company import Company
+from modules.organizations.models.company_route_group import CompanyRouteGroup
 
 
-def build_route_group_match_q(params):
-    """Retorna (Q, has_filter) para filtrar grupos de rota na descoberta pública."""
-    query = Q()
-    has_filter = False
-
-    destination = (params.get('destination') or '').strip()
-    if destination:
-        has_filter = True
-        query &= Q(name__icontains=destination) | Q(destination__name__icontains=destination)
-
-    city = (params.get('city') or '').strip()
-    if city:
-        has_filter = True
-        query &= Q(destination__city__iexact=city)
-
-    state = (params.get('state') or '').strip()
-    if state:
-        has_filter = True
-        query &= Q(destination__state__iexact=state)
-
-    return query, has_filter
+def _extract_discovery_params(params) -> dict[str, str]:
+    return {
+        'city': (params.get('city') or '').strip(),
+        'state': (params.get('state') or '').strip(),
+        'destination': (params.get('destination') or '').strip(),
+    }
 
 
 class CompanyFilter(filters.FilterSet):
@@ -37,8 +23,23 @@ class CompanyFilter(filters.FilterSet):
     )
 
     def noop_filter(self, queryset, name, value):
-        # Aplicado de forma combinada no mesmo grupo de rota em CompanyViewSet.filter_queryset.
         return queryset
+
+    def filter_queryset(self, queryset):
+        # Na listagem pública, exige ao menos um filtro de grupo de rota combinado no mesmo grupo.
+        criteria = _extract_discovery_params(self.data)
+        if not any(criteria.values()):
+            return queryset.none()
+        matching_groups = (
+            CompanyRouteGroup.objects
+            .select_related('destination')
+            .matching_discovery(**criteria)
+            .order_by('name', 'id')
+        )
+        queryset = queryset.filter(
+            Exists(CompanyRouteGroup.objects.filter(company_id=OuterRef('pk')).matching_discovery(**criteria))
+        ).prefetch_related(Prefetch('route_groups', queryset=matching_groups, to_attr='matched_route_groups'))
+        return super().filter_queryset(queryset)
 
     class Meta:
         model = Company

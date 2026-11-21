@@ -1,28 +1,18 @@
-from django.db import transaction
 from rest_framework.serializers import ModelSerializer
 
-from modules.accounts.api.serializers.user import UserListAndRetriveSerializer
+from modules.accounts.api.serializers.user import UserReadSerializer
+from modules.accounts.models import User
 from modules.organizations.api.serializers.base import BaseProfileCreateSerializer, BaseProfilePatchSerializer
 from modules.organizations.models.passenger import Passenger
+from modules.uploads.api.serializers import ImageSerializer
 
 
-class PassengerListAndRetrieveSerializer(ModelSerializer):
-    user_data = UserListAndRetriveSerializer(source='user', read_only=True)
+class PassengerPublicUserSerializer(ModelSerializer):
+    profile_picture_data = ImageSerializer(source='profile_picture', read_only=True)
 
     class Meta:
-        model = Passenger
+        model = User
         fields = (
-            'id',
-            'user_data',
-        )
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        request = self.context.get('request')
-        user = getattr(request, 'user', None)
-        if user and instance.user_id == user.pk:
-            return data
-        fields = {
             'id',
             'name',
             'phone',
@@ -36,9 +26,33 @@ class PassengerListAndRetrieveSerializer(ModelSerializer):
             'state',
             'latitude',
             'longitude',
-        }
-        data['user_data'] = {key: value for key, value in data['user_data'].items() if key in fields}
-        return data
+        )
+
+
+class PassengerPublicSerializer(ModelSerializer):
+    user_data = PassengerPublicUserSerializer(source='user', read_only=True)
+
+    class Meta:
+        model = Passenger
+        fields = ('id', 'user_data')
+
+
+class PassengerListAndRetrieveSerializer(ModelSerializer):
+    user_data = UserReadSerializer(source='user', read_only=True)
+
+    class Meta:
+        model = Passenger
+        fields = (
+            'id',
+            'user_data',
+        )
+
+    def to_representation(self, instance):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if user and instance.user_id == user.pk:
+            return super().to_representation(instance)
+        return PassengerPublicSerializer(instance, context=self.context).data
 
 
 class PassengerCreateSerializer(BaseProfileCreateSerializer):
@@ -46,11 +60,8 @@ class PassengerCreateSerializer(BaseProfileCreateSerializer):
         model = Passenger
         fields = ('user_data',)
 
-    @transaction.atomic
     def create(self, validated_data):
-        user_data = validated_data.pop('user')
-        user = self.create_user_instance(user_data)
-        return Passenger.objects.create(user=user, **validated_data)
+        return self.create_profile_for_user(Passenger, validated_data)
 
 
 class PassengerPatchSerializer(BaseProfilePatchSerializer):

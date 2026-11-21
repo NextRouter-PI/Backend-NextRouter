@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from drf_spectacular.utils import OpenApiExample, PolymorphicProxySerializer, extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
@@ -17,6 +19,12 @@ class RegistrationConfirmView(APIView):
     permission_classes = (AllowAny,)
     throttle_classes = (ScopedRateThrottle,)
     throttle_scope = 'email_tokens'
+    SERIALIZERS_BY_TYPE: ClassVar[dict[str, type[serializers.Serializer]]] = {
+        'user': UserCreateSerializer,
+        'passenger': PassengerCreateSerializer,
+        'driver': DriverCreateSerializer,
+        'company': CompanyCreateSerializer,
+    }
 
     @extend_schema(
         tags=['Autenticação'],
@@ -28,12 +36,7 @@ class RegistrationConfirmView(APIView):
         request=PolymorphicProxySerializer(
             component_name='RegistrationConfirm',
             resource_type_field_name='type',
-            serializers={
-                'user': UserCreateSerializer,
-                'passenger': PassengerCreateSerializer,
-                'driver': DriverCreateSerializer,
-                'company': CompanyCreateSerializer,
-            },
+            serializers=SERIALIZERS_BY_TYPE,
         ),
         responses={
             201: inline_serializer(
@@ -70,16 +73,11 @@ class RegistrationConfirmView(APIView):
         ],
     )
     def post(self, request):
-        serializers_by_type = {
-            'passenger': PassengerCreateSerializer,
-            'driver': DriverCreateSerializer,
-            'company': CompanyCreateSerializer,
-            'user': UserCreateSerializer,
-        }
         user_type = request.data.get('type', 'user')
-        if user_type not in serializers_by_type:
+        serializer_class = self.SERIALIZERS_BY_TYPE.get(user_type)
+        if serializer_class is None:
             return Response({'type': 'Tipo de cadastro inválido.'}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = serializers_by_type[user_type](data=request.data, context={'request': request})
+        serializer = serializer_class(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         instance = serializer.save()
         user = instance if user_type == 'user' else instance.user

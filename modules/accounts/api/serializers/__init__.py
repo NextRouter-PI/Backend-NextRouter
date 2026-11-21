@@ -7,3 +7,6 @@ from modules.accounts.api.serializers.user import (
 from modules.accounts.api.serializers.user import (
     UserPatchSerializer as UserPatchSerializer,
 )
+from modules.accounts.api.serializers.user import (
+    UserReadSerializer as UserReadSerializer,
+)
