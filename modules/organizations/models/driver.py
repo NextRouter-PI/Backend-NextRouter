@@ -29,4 +29,7 @@ class Driver(models.Model):
         ordering = ('user__name',)
 
     def __str__(self):
-        return self.user.name.title() if self.user else _('Motorista sem usuário')
+        user = self._state.fields_cache.get('user')
+        if user is not None:
+            return user.name.title()
+        return f'Motorista #{self.pk}' if self.pk else _('Motorista sem usuário')

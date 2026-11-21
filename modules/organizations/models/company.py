@@ -10,6 +10,25 @@ from modules.uploads.models.document import Document
 from shared.address import GeocodableAddressMixin
 
 
+class CompanyQuerySet(models.QuerySet):
+    def operational(self):
+        return self.filter(is_approved=True, is_rejected=False, user__is_active=True)
+
+    def operational_for(self, user):
+        if not user or not user.is_authenticated or not user.is_active:
+            return self.none()
+        return self.operational().filter(user=user)
+
+    def with_documents(self):
+        return self.select_related(
+            'user',
+            'user__profile_picture',
+            'articles_of_association_document',
+            'state_operating_license_document',
+            'certificate_of_good_stading_document',
+        )
+
+
 class Company(GeocodableAddressMixin, models.Model):
     user = models.OneToOneField(
         User,
@@ -151,6 +170,8 @@ class Company(GeocodableAddressMixin, models.Model):
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
 
+    objects = CompanyQuerySet.as_manager()
+
     class Meta:
         verbose_name = _('Empresa')
         verbose_name_plural = _('Empresas')
@@ -169,3 +190,7 @@ class Company(GeocodableAddressMixin, models.Model):
     @property
     def review_status(self) -> str:
         return 'approved' if self.is_approved else 'rejected' if self.is_rejected else 'pending'
+
+    @property
+    def is_operational(self) -> bool:
+        return bool(self.is_approved and not self.is_rejected and self.user.is_active)

@@ -102,17 +102,17 @@ def respond_invitation(*, actor_id, invitation_id, accept):
         'O convite não está mais pendente dentro do prazo.',
     )
     require(
-        company.is_approved and company.user.is_active and invitation.driver_membership.status == 'active',
+        company.is_operational and invitation.driver_membership.status == 'active',
         'membership_unavailable',
         'O vínculo/empresa não está apto.',
     )
-    invitation.status, invitation.responded_by_id = status, actor_id
-    invitation.responded_at = invitation.closed_at = now
-    invitation.save(update_fields=['status', 'responded_by', 'responded_at', 'closed_at'])
     if accept:
+        invitation.accept(actor_id=actor_id, now=now)
         travel.driver_id = invitation.driver_membership.driver_id
         travel.save(update_fields=['driver'])
         invalidate(travel)
+    else:
+        invitation.decline(actor_id=actor_id, now=now)
     notify(
         recipients=[company.user_id],
         kind='invitation',

@@ -6,12 +6,19 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from shared.exceptions import require
 from shared.geo import valid_coordinate_pair
 
 from .validation import related_values
 
 
 class RouteSnapshot(models.Model):
+    class State(models.TextChoices):
+        PENDING = 'pending', 'Pendente'
+        READY = 'ready', 'Pronto'
+        FAILED = 'failed', 'Falhou'
+        SUPERSEDED = 'superseded', 'Obsoleto'
+
     travel = models.ForeignKey('router.Travel', on_delete=models.PROTECT, related_name='route_snapshots')
     revision = models.PositiveIntegerField()
     base_revision = models.PositiveIntegerField()
@@ -20,8 +27,8 @@ class RouteSnapshot(models.Model):
     )
     state = models.CharField(
         max_length=10,
-        choices=[('pending', 'Pendente'), ('ready', 'Pronto'), ('failed', 'Falhou'), ('superseded', 'Obsoleto')],
-        default='pending',
+        choices=State.choices,
+        default=State.PENDING,
     )
     input_data = models.JSONField(default=dict, blank=True)
     origin = models.JSONField(default=dict, blank=True)
@@ -80,6 +87,18 @@ class RouteSnapshot(models.Model):
     def __str__(self):
         return f'Percurso #{self.pk} — revisão {self.revision}'
 
+    @property
+    def is_ready(self) -> bool:
+        return self.state == self.State.READY
+
+    def mark_failed(self) -> None:
+        self.state = self.State.FAILED
+        self.save(update_fields=['state'])
+
+    def mark_superseded(self) -> None:
+        self.state = self.State.SUPERSEDED
+        self.save(update_fields=['state'])
+
     def clean(self):
         super().clean()
         errors = {}
@@ -115,13 +134,18 @@ class RouteSnapshot(models.Model):
 
 
 class RouteStop(models.Model):
+    class State(models.TextChoices):
+        WAITING = 'waiting', 'Pendente'
+        COMPLETED = 'completed', 'Atendida'
+        SKIPPED = 'skipped', 'Ignorada'
+
     snapshot = models.ForeignKey(RouteSnapshot, on_delete=models.PROTECT, related_name='stops')
     position = models.PositiveIntegerField()
     point_snapshot = models.JSONField()
     state = models.CharField(
         max_length=10,
-        choices=[('waiting', 'Pendente'), ('completed', 'Atendida'), ('skipped', 'Ignorada')],
-        default='waiting',
+        choices=State.choices,
+        default=State.WAITING,
     )
     arrived_at = models.DateTimeField(null=True, blank=True)
     handled_at = models.DateTimeField(null=True, blank=True)
@@ -152,6 +176,44 @@ class RouteStop(models.Model):
     def __str__(self):
         return f'Parada #{self.pk}'
 
+    def ensure_can_handle(self, *, skipped: bool = False) -> bool:
+        """Valida ordem sequencial e presenças pendentes; retorna False se já estiver no estado alvo."""
+        from modules.transport.models.participation import TravelParticipation
+
+        target = self.State.SKIPPED if skipped else self.State.COMPLETED
+        if self.state != self.State.WAITING:
+            require(self.state == target, 'invalid_transition', 'A parada já foi tratada.')
+            return False
+        require(
+            not self.snapshot.stops.filter(position__lt=self.position, state=self.State.WAITING).exists(),
+            'stop_out_of_order',
+            'Trate a parada anterior primeiro.',
+        )
+        p_status = TravelParticipation.Status
+        for item in self.participants.select_related('participation'):
+            status = item.participation.status
+            permitted = (
+                (p_status.WITHDRAWN, p_status.NO_SHOW, p_status.DROPPED_OFF)
+                if skipped
+                else (
+                    (p_status.ON_BOARD, p_status.DROPPED_OFF, p_status.NO_SHOW, p_status.WITHDRAWN)
+                    if item.operation == RouteStopParticipant.Operation.BOARD
+                    else (p_status.DROPPED_OFF, p_status.WITHDRAWN, p_status.NO_SHOW)
+                )
+            )
+            require(
+                status in permitted,
+                'pending_participants',
+                'Registre os eventos individuais antes de tratar a parada.',
+            )
+        return True
+
+    def mark_handled(self, *, actor_id, now, skipped: bool = False) -> None:
+        self.state = self.State.SKIPPED if skipped else self.State.COMPLETED
+        self.handled_by_id = actor_id
+        self.handled_at = now
+        self.save(update_fields=['state', 'handled_by', 'handled_at'])
+
     def clean(self):
         super().clean()
         point = self.point_snapshot
@@ -160,11 +222,15 @@ class RouteStop(models.Model):
 
 
 class RouteStopParticipant(models.Model):
+    class Operation(models.TextChoices):
+        BOARD = 'board', 'Embarque'
+        DROP = 'drop', 'Desembarque'
+
     stop = models.ForeignKey(RouteStop, on_delete=models.PROTECT, related_name='participants')
     participation = models.ForeignKey(
         'router.TravelParticipation', on_delete=models.PROTECT, related_name='route_stops'
     )
-    operation = models.CharField(max_length=5, choices=[('board', 'Embarque'), ('drop', 'Desembarque')])
+    operation = models.CharField(max_length=5, choices=Operation.choices)
 
     class Meta:
         verbose_name = 'Atendimento na parada'

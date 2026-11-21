@@ -3,6 +3,14 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
+class VehicleQuerySet(models.QuerySet):
+    def for_company(self, company):
+        return self.filter(company=company)
+
+    def active(self):
+        return self.filter(status=Vehicle.Status.ACTIVE)
+
+
 class Vehicle(models.Model):
     class Status(models.TextChoices):
         ACTIVE = 'active', _('Ativo')
@@ -59,6 +67,8 @@ class Vehicle(models.Model):
         verbose_name=_('Características'),
         help_text=_('Lista de comodidades, ex.: ["Ar-condicionado", "Wi-Fi", "Cinto de segurança"]'),
     )
+
+    objects = VehicleQuerySet.as_manager()
 
     class Meta:
         verbose_name = _('Veículo')

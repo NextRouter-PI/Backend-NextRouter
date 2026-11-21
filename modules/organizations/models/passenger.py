@@ -22,4 +22,7 @@ class Passenger(models.Model):
         ordering = ('user__name',)
 
     def __str__(self):
-        return self.user.name.title() if self.user else _('Passageiro sem usuário')
+        user = self._state.fields_cache.get('user')
+        if user is not None:
+            return user.name.title()
+        return f'Passageiro #{self.pk}' if self.pk else _('Passageiro sem usuário')

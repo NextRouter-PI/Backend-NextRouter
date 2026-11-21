@@ -71,7 +71,6 @@ def deactivate_account(*, actor_id, user_id):
     actor = get_or_not_found(user_model.objects.filter(is_active=True), pk=actor_id)
     require(actor_id == user_id or actor.is_staff, 'permission_denied', 'Desativação não autorizada.')
     user = guard_account_deactivation(user_id=user_id)
-    user.is_active = False
-    user.save(update_fields=['is_active'])
+    user.deactivate()
     revoke_sessions(user)
     return user

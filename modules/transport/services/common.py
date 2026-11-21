@@ -60,42 +60,27 @@ def membership_for(company, *, passenger_id=None, driver_id=None):
 
 
 def editable(travel):
-    require(travel.status == 'scheduled', 'travel_not_scheduled', 'A viagem não pode mais ser alterada.')
-    require(not travel.service_day.canceled_at, 'day_canceled', 'O atendimento está cancelado.')
+    travel.ensure_editable()
 
 
 def notify(*, recipients, kind, resource_type, resource_id, key, status, revision=None):
-    payload = {'status': status}
-    if revision is not None:
-        payload['revision'] = revision
-    for recipient_id in sorted(set(recipients), key=str):
-        Notification.objects.get_or_create(
-            recipient_id=recipient_id,
-            deduplication_key=key,
-            defaults={
-                'kind': kind,
-                'resource_type': resource_type,
-                'resource_id': str(resource_id),
-                'payload': payload,
-                'created_at': timezone.now(),
-            },
-        )
+    return Notification.objects.emit_bulk(
+        recipients=recipients,
+        kind=kind,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        key=key,
+        status=status,
+        revision=revision,
+    )
 
 
 def travel_recipients(travel):
-    recipients = [travel.company.user_id]
-    if travel.driver_id:
-        recipients.append(travel.driver.user_id)
-    recipients.extend(travel.participations.values_list('eligibility__passenger__user_id', flat=True))
-    return recipients
+    return travel.recipient_user_ids()
 
 
 def invalidate(travel):
-    editable(travel)
-    travel.revision = max([travel.revision, *travel.route_snapshots.values_list('revision', flat=True)]) + 1
-    travel.current_snapshot = None
-    travel.planning_status = 'draft'
-    travel.save(update_fields=['revision', 'current_snapshot', 'planning_status'])
+    travel.invalidate()
 
 
 def current_time():

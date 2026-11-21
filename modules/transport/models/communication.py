@@ -4,12 +4,46 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
 from .validation import related_values
 
 
+class DriverInvitationQuerySet(models.QuerySet):
+    def current(self):
+        return self.filter(is_current=True)
+
+    def expired_pending(self, *, now=None):
+        moment = now or timezone.now()
+        return self.filter(status=DriverInvitation.Status.PENDING, expires_at__lte=moment)
+
+    def visible_to(self, user):
+        if not user or not user.is_authenticated or not user.is_active:
+            return self.none()
+        from modules.organizations.models import Company, CompanyMembership
+
+        owned_company = Company.objects.operational_for(user).filter(pk=OuterRef('travel__company_id'))
+        return self.filter(
+            Exists(owned_company)
+            | Q(
+                driver_membership__driver__user=user,
+                driver_membership__status=CompanyMembership.Status.ACTIVE,
+                travel__company__is_approved=True,
+                travel__company__is_rejected=False,
+                travel__company__user__is_active=True,
+            )
+        )
+
+
 class DriverInvitation(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pendente'
+        ACCEPTED = 'accepted', 'Aceito'
+        DECLINED = 'declined', 'Recusado'
+        EXPIRED = 'expired', 'Expirado'
+        REVOKED = 'revoked', 'Revogado'
+
     travel = models.ForeignKey('router.Travel', on_delete=models.PROTECT, related_name='driver_invitations')
     driver_membership = models.ForeignKey(
         'organizations.CompanyMembership', on_delete=models.PROTECT, related_name='travel_invitations'
@@ -20,20 +54,16 @@ class DriverInvitation(models.Model):
     is_current = models.BooleanField(default=True)
     status = models.CharField(
         max_length=8,
-        choices=[
-            ('pending', 'Pendente'),
-            ('accepted', 'Aceito'),
-            ('declined', 'Recusado'),
-            ('expired', 'Expirado'),
-            ('revoked', 'Revogado'),
-        ],
-        default='pending',
+        choices=Status.choices,
+        default=Status.PENDING,
     )
     responded_at = models.DateTimeField(null=True, blank=True)
     responded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name='invitation_responses'
     )
     closed_at = models.DateTimeField(null=True, blank=True)
+
+    objects = DriverInvitationQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Convite de motorista'
@@ -79,6 +109,32 @@ class DriverInvitation(models.Model):
     def __str__(self):
         return f'Convite #{self.pk}'
 
+    def accept(self, *, actor_id, now) -> None:
+        self.status = self.Status.ACCEPTED
+        self.responded_by_id = actor_id
+        self.responded_at = now
+        self.closed_at = now
+        self.save(update_fields=['status', 'responded_by', 'responded_at', 'closed_at'])
+
+    def decline(self, *, actor_id, now) -> None:
+        self.status = self.Status.DECLINED
+        self.responded_by_id = actor_id
+        self.responded_at = now
+        self.closed_at = now
+        self.save(update_fields=['status', 'responded_by', 'responded_at', 'closed_at'])
+
+    def expire(self, *, now) -> None:
+        self.status = self.Status.EXPIRED
+        self.closed_at = now
+        self.is_current = False
+        self.save(update_fields=['status', 'closed_at', 'is_current'])
+
+    def revoke(self, *, now) -> None:
+        self.status = self.Status.REVOKED
+        self.closed_at = now
+        self.is_current = False
+        self.save(update_fields=['status', 'closed_at', 'is_current'])
+
     def clean(self):
         super().clean()
         travel = related_values(self, 'travel', 'company_id', 'service_day_id')
@@ -96,7 +152,76 @@ class DriverInvitation(models.Model):
             raise ValidationError(errors)
 
 
+class NotificationManager(models.Manager):
+    def emit_bulk(
+        self, *, recipients, kind: str, resource_type: str, resource_id, key: str, status: str, revision=None
+    ):
+        recipient_ids = sorted(set(recipients), key=str)
+        if not recipient_ids:
+            return []
+        if status not in self.model.ALLOWED_PAYLOAD_STATUSES:
+            raise ValidationError({'payload': 'Status de aviso inválido.'})
+        if revision is not None and (type(revision) is not int or revision < 1):
+            raise ValidationError({'payload': 'A revisão deve ser um inteiro positivo.'})
+        payload = {'status': status}
+        if revision is not None:
+            payload['revision'] = revision
+        now = timezone.now()
+        notices = [
+            self.model(
+                recipient_id=recipient_id,
+                kind=kind,
+                resource_type=resource_type,
+                resource_id=str(resource_id),
+                deduplication_key=key,
+                payload=payload,
+                created_at=now,
+            )
+            for recipient_id in recipient_ids
+        ]
+        return self.bulk_create(notices, ignore_conflicts=True)
+
+
 class Notification(models.Model):
+    class Kind(models.TextChoices):
+        MEMBERSHIP = 'membership', 'Vínculo'
+        REQUEST = 'request', 'Pedido'
+        INVITATION = 'invitation', 'Convite'
+        CANCELLATION = 'cancellation', 'Cancelamento'
+        PUBLICATION = 'publication', 'Publicação'
+        REVISION = 'revision', 'Revisão'
+        OPERATION = 'operation', 'Operação'
+
+    class ResourceType(models.TextChoices):
+        MEMBERSHIP = 'membership', 'Vínculo'
+        SERVICE_DAY = 'service_day', 'Dia de atendimento'
+        REQUEST = 'request', 'Pedido'
+        TRAVEL = 'travel', 'Viagem'
+        INVITATION = 'invitation', 'Convite'
+
+    ALLOWED_PAYLOAD_STATUSES: ClassVar[frozenset[str]] = frozenset({
+        'pending',
+        'active',
+        'ended',
+        'approved',
+        'rejected',
+        'withdrawn',
+        'expired',
+        'superseded',
+        'preparing',
+        'applied',
+        'failed',
+        'published',
+        'canceled',
+        'scheduled',
+        'in_progress',
+        'finished',
+        'accepted',
+        'declined',
+        'revoked',
+        'approaching',
+    })
+
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='operational_notices'
     )
@@ -107,6 +232,8 @@ class Notification(models.Model):
     payload = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     read_at = models.DateTimeField(null=True, blank=True)
+
+    objects = NotificationManager()
 
     class Meta:
         verbose_name = 'Aviso operacional'
@@ -143,33 +270,12 @@ class Notification(models.Model):
 
     def clean(self):
         super().clean()
-        allowed_statuses = {
-            'pending',
-            'active',
-            'ended',
-            'approved',
-            'rejected',
-            'withdrawn',
-            'expired',
-            'superseded',
-            'preparing',
-            'applied',
-            'failed',
-            'published',
-            'canceled',
-            'scheduled',
-            'in_progress',
-            'finished',
-            'accepted',
-            'declined',
-            'revoked',
-        }
         payload = self.payload
         if not isinstance(payload, dict) or set(payload) - {'revision', 'status'}:
             raise ValidationError({'payload': 'O aviso aceita somente status e revisão, sem dados pessoais.'})
         if 'revision' in payload and (type(payload['revision']) is not int or payload['revision'] < 1):
             raise ValidationError({'payload': 'A revisão deve ser um inteiro positivo.'})
         if 'status' in payload and (
-            not isinstance(payload['status'], str) or payload['status'] not in allowed_statuses
+            not isinstance(payload['status'], str) or payload['status'] not in self.ALLOWED_PAYLOAD_STATUSES
         ):
             raise ValidationError({'payload': 'Status de aviso inválido.'})

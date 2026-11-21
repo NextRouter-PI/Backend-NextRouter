@@ -201,17 +201,7 @@ class CustomTokenRefreshView(APIView):
             raise AuthenticationFailed('Refresh token ausente.')
         try:
             token = RefreshToken(raw)
-            session = (
-                UserSession.objects
-                .select_for_update()
-                .filter(
-                    refresh_jti=token['jti'],
-                    is_active=True,
-                    user__is_active=True,
-                    expires_at__gt=timezone.now(),
-                )
-                .first()
-            )
+            session = UserSession.objects.select_for_update().for_refresh_jti(token['jti']).first()
             if not session:
                 raise AuthenticationFailed('Sessão revogada ou inativa.')
             serializer = TokenRefreshSerializer(data={'refresh': raw})
@@ -270,7 +260,7 @@ class UserSessionsView(APIView):
         responses={200: SESSION_RESPONSE},
     )
     def get(self, request):
-        sessions = request.user.sessions.filter(is_active=True)
+        sessions = request.user.sessions.active()
         return Response([
             {
                 'id': session.pk,

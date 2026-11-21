@@ -1,10 +1,18 @@
+from datetime import datetime, timedelta
 from typing import ClassVar
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Exists, OuterRef, Q
+from django.db.models.fields.json import KT
+from django.utils import timezone
 
 from .validation import related_values
+
+
+def _combine_local(date, clock, days_before=0):
+    return timezone.make_aware(datetime.combine(date - timedelta(days=days_before), clock))
 
 
 class ResponsePolicy(models.Model):
@@ -50,6 +58,54 @@ class ResponsePolicy(models.Model):
     def __str__(self):
         return f'Política #{self.pk}'
 
+    def window_for(self, date) -> tuple[datetime, datetime, datetime | None]:
+        opens_at = _combine_local(date, self.opens_time, self.opens_days_before)
+        normal_deadline = _combine_local(date, self.normal_time, self.normal_days_before)
+        extension_deadline = (
+            _combine_local(date, self.extension_time, self.extension_days_before)
+            if self.extension_time is not None
+            else None
+        )
+        return opens_at, normal_deadline, extension_deadline
+
+
+class ServiceDayQuerySet(models.QuerySet):
+    def for_company(self, company):
+        return self.filter(route_group__company=company)
+
+    def active(self):
+        return self.filter(canceled_at__isnull=True)
+
+    def future(self, *, today=None):
+        return self.filter(date__gt=today or timezone.localdate())
+
+    def due_for_closing(self, *, company_id=None, now=None):
+        moment = now or timezone.now()
+        qs = (
+            self
+            .active()
+            .filter(normal_deadline__lte=moment)
+            .annotate(
+                closed_revision=KT('configuration_snapshot__closed_revision'),
+                operational_issue=KT('configuration_snapshot__operational_issue'),
+            )
+            .filter(closed_revision__isnull=True, operational_issue__isnull=True)
+        )
+        if company_id is not None:
+            qs = qs.filter(route_group__company_id=company_id)
+        return qs.order_by('normal_deadline', 'pk')
+
+    def visible_to(self, user):
+        if not user or not user.is_authenticated or not user.is_active:
+            return self.none()
+        from modules.organizations.models import Company
+        from modules.transport.models.travel import Travel
+
+        owned_company = Company.objects.operational_for(user).filter(pk=OuterRef('route_group__company_id'))
+        own_eligibility = ServiceDayEligibility.objects.visible_to(user).filter(day_id=OuterRef('pk'))
+        visible_travel = Travel.objects.visible_to(user).filter(service_day_id=OuterRef('pk'))
+        return self.filter(Exists(owned_company) | Exists(own_eligibility) | Exists(visible_travel))
+
 
 class ServiceDay(models.Model):
     route_group = models.ForeignKey('organizations.CompanyRouteGroup', on_delete=models.PROTECT, related_name='days')
@@ -64,6 +120,8 @@ class ServiceDay(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name='canceled_service_days'
     )
     cancellation_reason = models.CharField(max_length=500, blank=True)
+
+    objects = ServiceDayQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Dia de atendimento'
@@ -94,6 +152,62 @@ class ServiceDay(models.Model):
     def __str__(self):
         return f'Atendimento #{self.pk}'
 
+    @property
+    def is_canceled(self) -> bool:
+        return self.canceled_at is not None
+
+    def is_normal_window_open(self, *, now=None) -> bool:
+        moment = now or timezone.now()
+        return not self.is_canceled and self.opens_at <= moment < self.normal_deadline
+
+    def is_extension_window_open(self, *, now=None) -> bool:
+        moment = now or timezone.now()
+        return (
+            not self.is_canceled
+            and self.extension_deadline is not None
+            and self.normal_deadline <= moment < self.extension_deadline
+        )
+
+    def window_state(self, *, now=None) -> str:
+        moment = now or timezone.now()
+        if self.is_canceled:
+            return 'canceled'
+        if moment < self.opens_at:
+            return 'upcoming'
+        if moment < self.normal_deadline:
+            return 'normal'
+        if self.extension_deadline and moment < self.extension_deadline:
+            return 'extension'
+        return 'closed'
+
+    def has_started_execution(self) -> bool:
+        return self.travels.filter(status__in=['in_progress', 'finished']).exists()
+
+    def has_published_travels(self) -> bool:
+        return self.travels.filter(published_revision__isnull=False).exists()
+
+    def service_config(self, service_id: int) -> dict | None:
+        return (self.configuration_snapshot or {}).get('services', {}).get(str(service_id))
+
+
+class ServiceDayEligibilityQuerySet(models.QuerySet):
+    def visible_to(self, user):
+        if not user or not user.is_authenticated or not user.is_active:
+            return self.none()
+        from modules.organizations.models import Company, CompanyMembership
+
+        owned_company = Company.objects.operational_for(user).filter(pk=OuterRef('day__route_group__company_id'))
+        return self.filter(
+            Exists(owned_company)
+            | Q(
+                passenger__user=user,
+                group_membership__membership__status=CompanyMembership.Status.ACTIVE,
+                day__route_group__company__is_approved=True,
+                day__route_group__company__is_rejected=False,
+                day__route_group__company__user__is_active=True,
+            )
+        )
+
 
 class ServiceDayEligibility(models.Model):
     day = models.ForeignKey(ServiceDay, on_delete=models.PROTECT, related_name='eligibilities')
@@ -104,6 +218,8 @@ class ServiceDayEligibility(models.Model):
     authorized_service_ids = models.JSONField(default=list, blank=True)
     point_snapshot = models.JSONField(default=dict, blank=True)
 
+    objects = ServiceDayEligibilityQuerySet.as_manager()
+
     class Meta:
         verbose_name = 'Elegibilidade diária'
         verbose_name_plural = 'Elegibilidades diárias'
@@ -113,6 +229,9 @@ class ServiceDayEligibility(models.Model):
 
     def __str__(self):
         return f'Elegibilidade #{self.pk}'
+
+    def authorizes(self, service_id: int) -> bool:
+        return service_id in (self.authorized_service_ids or [])
 
     def clean(self):
         super().clean()
