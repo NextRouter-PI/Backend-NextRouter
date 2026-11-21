@@ -182,6 +182,16 @@ class Travel(models.Model):
         verbose_name_plural = _('Viagens')
         db_table = 'router_travel'
         ordering = ('-started_at',)
+        indexes = (
+            models.Index(
+                fields=['driver', 'status', 'planned_start', 'planned_end'],
+                name='travel_driver_agenda_idx',
+            ),
+            models.Index(
+                fields=['vehicle', 'status', 'planned_start', 'planned_end'],
+                name='travel_vehicle_agenda_idx',
+            ),
+        )
         constraints = (
             models.CheckConstraint(
                 condition=models.Q(published_snapshot__isnull=True, published_revision__isnull=True)

@@ -92,6 +92,9 @@ class CompanyMembership(models.Model):
         verbose_name = _('Vínculo empresarial')
         verbose_name_plural = _('Vínculos empresariais')
         ordering = ('-created_at', '-pk')
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=['company', 'status', 'created_at'], name='membership_company_status_idx'),
+        ]
         constraints: ClassVar[list] = [
             models.CheckConstraint(
                 condition=(
