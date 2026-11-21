@@ -92,7 +92,9 @@ def _complete(job_id, token, result):
     )
     service = snapshot.input_data['service']
     target = timezone.make_aware(datetime.combine(travel.service_day.date, time.fromisoformat(service['target_time'])))
-    budget, side = timedelta(seconds=service['duration']), timedelta(seconds=result['side_duration'])
+    main_seconds = max(1, round(result['duration_seconds'] - result['side_duration']))
+    budget = timedelta(seconds=service['duration'] if service['duration'] is not None else main_seconds)
+    side = timedelta(seconds=result['side_duration'])
     snapshot.planned_start, snapshot.planned_end = (
         (target - budget, target + side) if service['direction'] == 'outbound' else (target - side, target + budget)
     )

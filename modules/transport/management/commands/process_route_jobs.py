@@ -84,6 +84,9 @@ class Command(BaseCommand):
             for signum in (signal.SIGTERM, signal.SIGINT):
                 previous[signum] = signal.signal(signum, lambda *_: stop.set())
         try:
+            scope_label = 'todas as empresas aprovadas' if all_companies else f'empresa #{company_id}'
+            if not options['once']:
+                self.stdout.write(f'Worker ativo ({scope_label}, poll={options["poll_seconds"]}s).')
             while not stop.is_set():
                 close_old_connections()
                 started = monotonic()
@@ -111,13 +114,19 @@ class Command(BaseCommand):
                     if company is None:
                         raise CommandError('Empresa aprovada/ativa não encontrada.')
                     total_schedules, total_outcomes, total_jobs = self._process_company(company, options, stop)
+                duration_ms = int((monotonic() - started) * 1000)
                 logger.info(
                     'worker_cycle schedules=%d days=%d jobs=%d duration_ms=%d',
                     total_schedules,
                     total_outcomes,
                     total_jobs,
-                    (monotonic() - started) * 1000,
+                    duration_ms,
                 )
+                if total_schedules or total_outcomes or total_jobs:
+                    self.stdout.write(
+                        f'Ciclo processado: schedules={total_schedules} days={total_outcomes} '
+                        f'jobs={total_jobs} ({duration_ms}ms)'
+                    )
                 close_old_connections()
                 if options['once']:
                     return

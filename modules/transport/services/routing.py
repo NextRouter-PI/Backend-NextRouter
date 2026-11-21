@@ -55,11 +55,12 @@ def calculate_frozen(frozen):
             'type': 'LineString',
             'coordinates': first['geometry']['coordinates'] + second['geometry']['coordinates'][1:],
         }
-    require(
-        service['duration'] is not None and main['duration_seconds'] <= service['duration'],
-        'duration_exceeded',
-        'O percurso excede a duração planejada; revise a agenda.',
-    )
+    if service['duration'] is not None:
+        require(
+            main['duration_seconds'] <= service['duration'],
+            'duration_exceeded',
+            'O percurso excede a duração planejada; revise a agenda.',
+        )
     return {
         'geometry': geometry,
         'distance_meters': main['distance_meters'] + (side['distance_meters'] if side else 0),

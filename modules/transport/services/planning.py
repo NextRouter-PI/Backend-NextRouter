@@ -97,7 +97,7 @@ def validate_agenda(travel, *, overrides=None):
         'Motorista/veículo pendentes.',
     )
     data = frozen_service(travel)
-    require(data.get('turnaround') is not None, 'schedule_incomplete', 'Informe a margem de agenda.')
+    margin = timedelta(seconds=data.get('turnaround') or 0)
     other_travels = (
         Travel.objects
         .filter(company_id=travel.company_id, service_day__isnull=False)
@@ -107,7 +107,6 @@ def validate_agenda(travel, *, overrides=None):
     other_travels = other_travels.filter(Q(driver_id=travel.driver_id) | Q(vehicle_id=travel.vehicle_id))
     for other in other_travels:
         other_margin = timedelta(seconds=frozen_service(other).get('turnaround') or 0)
-        margin = timedelta(seconds=data['turnaround'])
         other_start, other_end = (overrides or {}).get(other.pk, (other.planned_start, other.planned_end))
         require(
             travel.planned_end + margin <= other_start or other_end + other_margin <= travel.planned_start,
