@@ -9,7 +9,7 @@ import argparse
 import os
 import sys
 
-import requests
+import httpx
 
 
 def parse_args(argv=None):
@@ -33,9 +33,9 @@ def parse_args(argv=None):
 
 def _check_server_live(base_url: str) -> bool:
     try:
-        resp = requests.get(f'{base_url.rstrip("/")}/health/live/', timeout=3)
-        return resp.ok
-    except requests.RequestException:
+        resp = httpx.get(f'{base_url.rstrip("/")}/health/live/', timeout=3)
+        return resp.is_success
+    except httpx.HTTPError:
         return False
 
 

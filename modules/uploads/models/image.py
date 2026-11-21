@@ -1,16 +1,13 @@
-import mimetypes
 import uuid
 
 from django.db import models
 
-from modules.uploads.helpers.files import get_content_type
+from modules.uploads.helpers.files import extension_for_content_type, get_content_type
 
 
 def image_file_path(image, _) -> str:
-    extension: str = mimetypes.guess_extension(get_content_type(image.file))
-    if extension == '.jpe':
-        extension = '.jpg'
-    return f'images/{image.public_id}{extension or ""}'
+    extension = extension_for_content_type(get_content_type(image.file))
+    return f'images/{image.public_id}{extension}'
 
 
 class Image(models.Model):

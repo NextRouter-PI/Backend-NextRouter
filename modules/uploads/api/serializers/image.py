@@ -3,7 +3,7 @@ from typing import ClassVar
 from django.conf import settings
 from rest_framework import serializers
 
-from modules.uploads.helpers.files import CONTENT_TYPE_JPG, CONTENT_TYPE_PNG, get_content_type
+from modules.uploads.helpers.files import CONTENT_TYPE_JPG, CONTENT_TYPE_PNG, get_content_type, is_valid_image_file
 from modules.uploads.models import Image
 
 
@@ -30,7 +30,7 @@ class ImageUploadSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('A imagem deve ter no máximo 5 MB.')
 
         # Verifica o conteúdo real do arquivo, não o Content-Type informado pelo cliente.
-        if get_content_type(value) not in {CONTENT_TYPE_JPG, CONTENT_TYPE_PNG}:
+        if get_content_type(value) not in {CONTENT_TYPE_JPG, CONTENT_TYPE_PNG} or not is_valid_image_file(value):
             raise serializers.ValidationError('Imagem inválida ou corrompida. Envie um arquivo JPG ou PNG.')
         return value
 
@@ -45,7 +45,6 @@ class ImageSerializer(serializers.ModelSerializer):
         )
         read_only_fields = (
             'url',
-            'attachment_key',
             'uploaded_on',
         )
 

@@ -17,6 +17,7 @@ django_asgi_app = get_asgi_application()
 
 from channels.routing import ProtocolTypeRouter, URLRouter  # ruff: ignore[module-import-not-at-top-of-file]
 from channels.security.websocket import OriginValidator  # ruff: ignore[module-import-not-at-top-of-file]
+from channels.sessions import CookieMiddleware  # ruff: ignore[module-import-not-at-top-of-file]
 from django.conf import settings  # ruff: ignore[module-import-not-at-top-of-file]
 
 from modules.accounts.ws_auth import JWTAuthMiddleware  # ruff: ignore[module-import-not-at-top-of-file]
@@ -24,5 +25,8 @@ from modules.transport.routing import websocket_urlpatterns  # ruff: ignore[modu
 
 application = ProtocolTypeRouter({
     'http': django_asgi_app,
-    'websocket': OriginValidator(JWTAuthMiddleware(URLRouter(websocket_urlpatterns)), settings.WS_ALLOWED_ORIGINS),
+    'websocket': OriginValidator(
+        CookieMiddleware(JWTAuthMiddleware(URLRouter(websocket_urlpatterns))),
+        settings.WS_ALLOWED_ORIGINS,
+    ),
 })

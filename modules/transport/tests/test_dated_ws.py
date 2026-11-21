@@ -4,6 +4,7 @@ from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
 from channels.routing import URLRouter
 from channels.security.websocket import OriginValidator
+from channels.sessions import CookieMiddleware
 from channels.testing import WebsocketCommunicator
 from django.test import override_settings
 from rest_framework.test import APIClient
@@ -25,7 +26,10 @@ class DatedWebSocketTests(ServiceTestCase):
         self.trip = self.ready_travel()
         self.publish(self.trip)
         start_travel(actor_id=self.driver.user_id, travel_id=self.trip.pk, expected_revision=self.trip.revision)
-        self.app = OriginValidator(JWTAuthMiddleware(URLRouter(websocket_urlpatterns)), ['http://testserver'])
+        self.app = OriginValidator(
+            CookieMiddleware(JWTAuthMiddleware(URLRouter(websocket_urlpatterns))),
+            ['http://testserver'],
+        )
 
     def headers(self, user, *, origin=b'http://testserver'):
         client = APIClient(enforce_csrf_checks=True)
