@@ -48,6 +48,7 @@ dev = [
 dev = "python -m scripts.dev"
 dev-lan = "python -m scripts.dev --lan-host"
 worker = "python manage.py process_route_jobs --settings=app.settings.dev"
+simulate-trip = "python -m scripts.trip_simulator"
 
 # Administração local: operações manuais, nunca chamadas pelo startup.
 createsuperuser = "python manage.py createsuperuser --settings=app.settings.dev"
