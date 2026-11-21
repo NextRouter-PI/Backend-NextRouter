@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from modules.organizations.access import companies_for
 from modules.organizations.api.serializers.driver import (
     DriverCreateSerializer,
     DriverListAndRetrieveSerializer,
@@ -18,7 +19,6 @@ from modules.organizations.api.serializers.passenger import (
     PassengerPatchSerializer,
 )
 from modules.organizations.models import CompanyMembership, Driver, Passenger
-from modules.transport.access import companies_for
 from shared.openapi import document_viewset
 
 

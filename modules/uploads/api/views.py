@@ -1,4 +1,3 @@
-from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, extend_schema_view
@@ -6,7 +5,7 @@ from rest_framework import mixins, parsers, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
-from modules.organizations.models import Company, Driver
+from modules.uploads.access import can_access_document
 from modules.uploads.api.serializers import DocumentUploadSerializer, ImageUploadSerializer
 from modules.uploads.models import Document, Image
 from shared.openapi import RESP_400_VALIDATION, RESP_401_UNAUTHORIZED, RESP_404_NOT_FOUND
@@ -46,21 +45,7 @@ class DocumentUploadViewSet(CreateViewSet):
     @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated], url_path='download')
     def download(self, request, pk=None):
         document = get_object_or_404(Document, attachment_key=pk)
-        user = request.user
-        allowed = user.is_staff or user.is_superuser
-        if not allowed:
-            allowed = (
-                Company.objects
-                .filter(user=user)
-                .filter(
-                    Q(articles_of_association_document=document)
-                    | Q(state_operating_license_document=document)
-                    | Q(certificate_of_good_stading_document=document)
-                )
-                .exists()
-                or Driver.objects.filter(user=user, cnh=document).exists()
-            )
-        if not allowed:
+        if not can_access_document(request.user, document):
             raise Http404
         return FileResponse(document.file.open('rb'), content_type='application/pdf')
 

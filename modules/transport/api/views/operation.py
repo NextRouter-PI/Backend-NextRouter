@@ -55,12 +55,8 @@ class TravelViewSet(DomainViewSet):
     serializer_class = TravelSerializer
     filterset_fields = ('company', 'service_day', 'service', 'service_day__date', 'status', 'driver', 'vehicle')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        return (
-            travels_for(self.request.user).select_related('service_day', 'service').order_by('-service_day__date', 'pk')
-        )
+    def get_scoped_queryset(self, user):
+        return travels_for(user).select_related('service_day', 'service').order_by('-service_day__date', 'pk')
 
     @domain_action(
         'Enfileire o cálculo da revisão atual', request=RevisionInput, response=SnapshotSerializer, status=202
@@ -160,14 +156,8 @@ class ParticipantViewSet(DomainViewSet):
     serializer_class = ParticipantSerializer
     filterset_fields = ('travel', 'eligibility', 'leg', 'status')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        return (
-            participations_for(self.request.user)
-            .select_related('eligibility__passenger__user__profile_picture')
-            .order_by('pk')
-        )
+    def get_scoped_queryset(self, user):
+        return participations_for(user).select_related('eligibility__passenger__user__profile_picture').order_by('pk')
 
     @domain_action('Registre embarque ausência ou desembarque', request=PresenceInput, response=EventSerializer)
     def record(self, request, pk=None):
@@ -194,10 +184,8 @@ class EventViewSet(DomainViewSet):
     serializer_class = EventSerializer
     filterset_fields = ('participation', 'kind')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        return ParticipationEvent.objects.filter(participation__in=participations_for(self.request.user)).order_by('pk')
+    def get_scoped_queryset(self, user):
+        return ParticipationEvent.objects.filter(participation__in=participations_for(user)).order_by('pk')
 
 
 @domain_resource('Percursos', 'snapshots de percursos')
@@ -206,10 +194,8 @@ class SnapshotViewSet(DomainViewSet):
     serializer_class = SnapshotSerializer
     filterset_fields = ('travel', 'state', 'change_request')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        return RouteSnapshot.objects.filter(travel__in=operational_travels_for(self.request.user)).order_by('-pk')
+    def get_scoped_queryset(self, user):
+        return RouteSnapshot.objects.filter(travel__in=operational_travels_for(user)).order_by('-pk')
 
 
 @domain_resource('Percursos', 'publicações de viagens')
@@ -218,10 +204,8 @@ class PublicationViewSet(DomainViewSet):
     serializer_class = PublicationSerializer
     filterset_fields = ('travel', 'revision')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        return TravelPublication.objects.filter(travel__in=travels_for(self.request.user)).order_by('-pk')
+    def get_scoped_queryset(self, user):
+        return TravelPublication.objects.filter(travel__in=travels_for(user)).order_by('-pk')
 
 
 @domain_resource('Execução', 'paradas do percurso')
@@ -230,12 +214,10 @@ class StopViewSet(DomainViewSet):
     serializer_class = StopSerializer
     filterset_fields = ('snapshot', 'state')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
+    def get_scoped_queryset(self, user):
         return (
             RouteStop.objects
-            .filter(snapshot__travel__in=operational_travels_for(self.request.user))
+            .filter(snapshot__travel__in=operational_travels_for(user))
             .prefetch_related('participants__participation__eligibility__passenger__user__profile_picture')
             .order_by('snapshot', 'position')
         )
@@ -253,10 +235,7 @@ class InvitationViewSet(DomainViewSet):
     serializer_class = InvitationSerializer
     filterset_fields = ('travel', 'status', 'is_current')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        user = self.request.user
+    def get_scoped_queryset(self, user):
         return (
             DriverInvitation.objects
             .filter(
@@ -265,6 +244,7 @@ class InvitationViewSet(DomainViewSet):
                     driver_membership__driver__user=user,
                     driver_membership__status='active',
                     travel__company__is_approved=True,
+                    travel__company__is_rejected=False,
                     travel__company__user__is_active=True,
                 )
             )
@@ -292,10 +272,8 @@ class NotificationViewSet(DomainViewSet):
     serializer_class = NotificationSerializer
     filterset_fields = ('kind', 'resource_type')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        return Notification.objects.filter(recipient=self.request.user).order_by('-created_at', '-pk')
+    def get_scoped_queryset(self, user):
+        return Notification.objects.filter(recipient=user).order_by('-created_at', '-pk')
 
     @domain_action('Marque seu aviso como lido', response=NotificationSerializer)
     def read(self, request, pk=None):
@@ -309,9 +287,7 @@ class JobViewSet(DomainViewSet):
     serializer_class = JobSerializer
     filterset_fields = ('snapshot', 'status')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
+    def get_scoped_queryset(self, user):
         return RouteOptimizationJob.objects.filter(
-            snapshot__travel__company__in=companies_for(self.request.user), snapshot__isnull=False
+            snapshot__travel__company__in=companies_for(user), snapshot__isnull=False
         ).order_by('-pk')

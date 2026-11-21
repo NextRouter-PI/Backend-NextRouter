@@ -1,14 +1,9 @@
 from django.contrib import admin, messages
 
-from modules.transport.admin_commands import (
-    GROUP_COMMANDS,
-    GROUP_MEMBERSHIP_COMMANDS,
-    MEMBERSHIP_COMMANDS,
-    POINT_COMMANDS,
-)
-from modules.transport.services.common import DomainError
-from modules.transport.services.governance import review_company
+from modules.organizations.admin_commands import MEMBERSHIP_COMMANDS
+from modules.organizations.services.moderation import review_company
 from shared.admin import DomainCommandAdmin, ReadOnlyAdmin
+from shared.exceptions import DomainError
 
 from .models import (
     Company,
@@ -53,9 +48,6 @@ class CompanyAdmin(admin.ModelAdmin):
                 self.message_user(request, 'Operação recusada pelo serviço de domínio.', level=messages.ERROR)
 
 
-OrganizationStructureReadOnlyAdmin = ReadOnlyAdmin
-
-
 @admin.register(CompanyMembership)
 class CompanyMembershipAdmin(DomainCommandAdmin):
     commands = MEMBERSHIP_COMMANDS
@@ -65,20 +57,17 @@ class CompanyMembershipAdmin(DomainCommandAdmin):
 
 @admin.register(CompanyRouteGroup)
 class CompanyRouteGroupAdmin(DomainCommandAdmin):
-    commands = GROUP_COMMANDS
     list_display = ('id', 'name', 'company')
     search_fields = ('name',)
 
 
 @admin.register(PassengerGroupMembership)
 class PassengerGroupMembershipAdmin(DomainCommandAdmin):
-    commands = GROUP_MEMBERSHIP_COMMANDS
     list_display = ('id', 'membership', 'route_group', 'started_at', 'ended_at')
 
 
 @admin.register(OperationalPoint)
 class OperationalPointAdmin(DomainCommandAdmin):
-    commands = POINT_COMMANDS
     list_display = ('id', 'company', 'created_at')
 
 

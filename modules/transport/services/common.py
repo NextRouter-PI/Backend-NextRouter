@@ -6,27 +6,27 @@ um lock de job antes de Company. Operações entre viagens usam PK crescente.
 """
 
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from modules.organizations.models import Company, CompanyMembership
 from modules.transport.models import Notification, Travel
+from shared.exceptions import DomainError, get, require
 
-
-class DomainError(ValidationError):
-    """Erro com código estável, sem dependência de HTTP."""
-
-
-def require(condition, code, message):
-    if not condition:
-        raise DomainError(message, code=code)
-
-
-def get(queryset, **lookup):
-    try:
-        return queryset.get(**lookup)
-    except queryset.model.DoesNotExist as exc:
-        raise DomainError('Recurso não encontrado.', code='not_found') from exc
+__all__ = [
+    'DomainError',
+    'active_actor',
+    'company_actor',
+    'current_time',
+    'editable',
+    'get',
+    'invalidate',
+    'lock_company',
+    'lock_travel',
+    'membership_for',
+    'notify',
+    'require',
+    'travel_recipients',
+]
 
 
 def lock_company(company_id):
