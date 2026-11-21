@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from modules.accounts.models.user import User
 from modules.transport.models.travel import Travel
+from shared.exceptions import require
 
 
 class LostItem(models.Model):
@@ -15,6 +16,11 @@ class LostItem(models.Model):
         REPORTED = 'reported', _('Relatado')
         FOUND = 'found', _('Encontrado')
         RETURNED = 'returned', _('Devolvido')
+
+    ALLOWED_TRANSITIONS: ClassVar[dict[str, str]] = {
+        Status.REPORTED: Status.FOUND,
+        Status.FOUND: Status.RETURNED,
+    }
 
     travel = models.ForeignKey(
         Travel,
@@ -54,7 +60,15 @@ class LostItem(models.Model):
         ordering = ('-created_at',)
 
     def __str__(self):
-        return f'{self.item_description[:30]} - {self.user.name}'
+        user = self._state.fields_cache.get('user')
+        owner = user.name if user is not None else f'usuário #{self.user_id}'
+        return f'{self.item_description[:30]} - {owner}'
+
+    def transition_to(self, target_status: str) -> None:
+        expected = self.ALLOWED_TRANSITIONS.get(self.status)
+        require(expected == target_status, 'invalid_transition', 'Transição de custódia inválida.')
+        self.status = target_status
+        self.save(update_fields=['status'])
 
 
 class LostItemEvent(models.Model):

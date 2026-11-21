@@ -1,6 +1,4 @@
-from django.db.models import Q
-
-from modules.transport.access import companies_for, eligibilities_for, travels_for
+from modules.transport.access import eligibilities_for
 from modules.transport.api.serializers.daily import (
     AnswerInput,
     CancelDaySerializer,
@@ -29,17 +27,7 @@ class DayViewSet(DomainViewSet):
     filterset_fields = ('route_group', 'date')
 
     def get_scoped_queryset(self, user):
-        return (
-            ServiceDay.objects
-            .filter(
-                Q(route_group__company__in=companies_for(user))
-                | Q(eligibilities__in=eligibilities_for(user))
-                | Q(travels__in=travels_for(user))
-            )
-            .select_related('route_group__company')
-            .distinct()
-            .order_by('date', 'pk')
-        )
+        return ServiceDay.objects.visible_to(user).select_related('route_group__company').order_by('date', 'pk')
 
     @domain_action('Prepare as alocações após o prazo normal', response=DaySerializer)
     def close(self, request, pk=None):

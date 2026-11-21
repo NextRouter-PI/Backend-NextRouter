@@ -2,12 +2,10 @@ from channels.db import database_sync_to_async
 from channels.sessions import CookieMiddleware
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.utils import timezone
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
-from modules.accounts.authenticate import CustomAuthentication
-from modules.accounts.models.user_session import UserSession
+from modules.accounts.authenticate import CustomAuthentication, authenticate_session_from_token
 
 
 @database_sync_to_async
@@ -15,13 +13,9 @@ def get_user_from_token(token):
     try:
         auth = CustomAuthentication()
         validated_token = auth.get_validated_token(token)
-        user = auth.get_user(validated_token)
-        if UserSession.objects.filter(
-            user=user, access_jti=validated_token['jti'], is_active=True, expires_at__gt=timezone.now()
-        ).exists():
-            return user, validated_token['jti'], validated_token['exp']
-        return AnonymousUser(), None, None
-    except (InvalidToken, TokenError, AuthenticationFailed):
+        user, jti = authenticate_session_from_token(validated_token)
+        return user, jti, validated_token['exp']
+    except (InvalidToken, TokenError, AuthenticationFailed, KeyError):
         # Token inválido/expirado ou usuário inexistente/inativo.
         return AnonymousUser(), None, None
 

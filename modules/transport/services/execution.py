@@ -1,7 +1,6 @@
 from uuid import uuid5
 
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 
 from modules.transport.models import (
@@ -35,7 +34,7 @@ def driver_actor(travel, actor_id):
         'Somente o motorista designado pode executar esta ação.',
     )
     require(
-        travel.company.is_approved and travel.company.user.is_active,
+        travel.company.is_operational,
         'company_unavailable',
         'A empresa não está apta a operar.',
     )
@@ -50,24 +49,23 @@ def start_travel(*, actor_id, travel_id, expected_revision):
     if travel.status == 'in_progress':
         return travel
     require(
-        travel.published_revision == travel.revision and travel.published_snapshot_id == travel.current_snapshot_id,
+        travel.is_published_current,
         'publication_outdated',
         'A revisão atual precisa estar publicada.',
     )
-    require(travel.planning_status == 'ready', 'planning_not_ready', 'O planejamento não está pronto.')
+    require(
+        travel.planning_status == Travel.PlanningStatus.READY, 'planning_not_ready', 'O planejamento não está pronto.'
+    )
     ready_requirements(travel)
     require(
         not Travel.objects
-        .filter(status='in_progress')
-        .exclude(pk=travel.pk)
-        .filter(Q(driver_id=travel.driver_id) | Q(vehicle_id=travel.vehicle_id))
+        .active()
+        .conflicting_resources(driver_id=travel.driver_id, vehicle_id=travel.vehicle_id, exclude_pk=travel.pk)
         .exists(),
         'active_resource',
         'Motorista/veículo já está em viagem.',
     )
-    travel.status, travel.started_at = 'in_progress', timezone.now()
-    travel.full_clean()
-    travel.save(update_fields=['status', 'started_at'])
+    travel.mark_started(now=timezone.now())
     notify(
         recipients=travel_recipients(travel),
         kind='operation',
@@ -96,9 +94,7 @@ def finish_travel(*, actor_id, travel_id):
         'pending_participants',
         'Registre a presença/ausência dos participantes antes de finalizar.',
     )
-    travel.status, travel.finished_at = 'finished', timezone.now()
-    travel.current_latitude = travel.current_longitude = travel.location_updated_at = None
-    travel.save(update_fields=['status', 'finished_at', 'current_latitude', 'current_longitude', 'location_updated_at'])
+    travel.mark_finished(now=timezone.now())
     from modules.transport.broadcast import close_travel_after_commit
 
     close_travel_after_commit(travel.pk)
@@ -139,8 +135,7 @@ def _cancel(travel, actor_id):
     travel.driver_invitations.filter(status='pending').update(
         status='revoked', closed_at=timezone.now(), is_current=False
     )
-    travel.status = 'canceled'
-    travel.save(update_fields=['status'])
+    travel.mark_canceled()
     notify(
         recipients=travel_recipients(travel),
         kind='cancellation',
@@ -201,7 +196,6 @@ def cancel_date(*, actor_id, group_id, date, reason):
     """Tombstone mesmo antes de gerar viagens ou elegibilidades daquela data."""
     from modules.transport.models import ResponsePolicy
 
-    from .calendar import instant
     from .configuration import group_access
 
     group = group_access(group_id, actor_id)
@@ -209,14 +203,13 @@ def cancel_date(*, actor_id, group_id, date, reason):
     day = ServiceDay.objects.filter(route_group=group, date=date).first()
     if day is None:
         policy = get(ResponsePolicy.objects.all(), route_group=group)
+        opens_at, normal_deadline, extension_deadline = policy.window_for(date)
         day = ServiceDay.objects.create(
             route_group=group,
             date=date,
-            opens_at=instant(date, policy.opens_time, policy.opens_days_before),
-            normal_deadline=instant(date, policy.normal_time, policy.normal_days_before),
-            extension_deadline=instant(date, policy.extension_time, policy.extension_days_before)
-            if policy.extension_time is not None
-            else None,
+            opens_at=opens_at,
+            normal_deadline=normal_deadline,
+            extension_deadline=extension_deadline,
         )
     result = cancel_day(actor_id=actor_id, day_id=day.pk, reason=reason)
     recipients = group.passenger_memberships.filter(ended_at=None, membership__status='active').values_list(
@@ -232,22 +225,6 @@ def cancel_date(*, actor_id, group_id, date, reason):
         status='canceled',
     )
     return result
-
-
-def _set_participant(participant, status, now):
-    participant.status = status
-    participant.withdrawn_at = participant.no_show_at = participant.boarded_at = participant.dropped_off_at = None
-    if status == 'on_board':
-        participant.boarded_at = now
-    elif status == 'dropped_off':
-        participant.boarded_at = participant.events.filter(kind='boarded').order_by('-occurred_at').first().occurred_at
-        participant.dropped_off_at = now
-    elif status == 'no_show':
-        participant.no_show_at = now
-    elif status == 'withdrawn':
-        participant.withdrawn_at = now
-    participant.full_clean()
-    participant.save()
 
 
 @transaction.atomic
@@ -283,7 +260,7 @@ def record_participation(*, actor_id, participation_id, kind, operation_id):
             'O passageiro já está embarcado em outra viagem.',
         )
     now = timezone.now()
-    _set_participant(participant, target, now)
+    participant.transition_to(target, now=now)
     event = ParticipationEvent.objects.create(
         participation=participant, kind=kind, actor_id=actor_id, occurred_at=now, operation_id=operation_id
     )
@@ -368,7 +345,7 @@ def correct_participation(*, actor_id, participation_id, corrects_event_id, targ
         occurred_at=now,
         operation_id=operation_id,
     )
-    _set_participant(participant, target_status, now)
+    participant.transition_to(target_status, now=now)
     ParticipationEvent.objects.create(
         participation=participant,
         kind=allowed[target_status],
@@ -399,28 +376,6 @@ def handle_stop(*, actor_id, stop_id, skipped=False):
         'A parada não pertence ao percurso em execução.',
     )
     stop = get(RouteStop.objects.select_for_update(), pk=stop_id)
-    if stop.state != 'waiting':
-        require(stop.state == ('skipped' if skipped else 'completed'), 'invalid_transition', 'A parada já foi tratada.')
-        return stop
-    require(
-        not stop.snapshot.stops.filter(position__lt=stop.position, state='waiting').exists(),
-        'stop_out_of_order',
-        'Trate a parada anterior primeiro.',
-    )
-    for item in stop.participants.select_related('participation'):
-        status = item.participation.status
-        permitted = (
-            ('withdrawn', 'no_show', 'dropped_off')
-            if skipped
-            else (
-                ('on_board', 'dropped_off', 'no_show', 'withdrawn')
-                if item.operation == 'board'
-                else ('dropped_off', 'withdrawn', 'no_show')
-            )
-        )
-        require(
-            status in permitted, 'pending_participants', 'Registre os eventos individuais antes de tratar a parada.'
-        )
-    stop.state, stop.handled_by_id, stop.handled_at = 'skipped' if skipped else 'completed', actor_id, timezone.now()
-    stop.save(update_fields=['state', 'handled_by', 'handled_at'])
+    if stop.ensure_can_handle(skipped=skipped):
+        stop.mark_handled(actor_id=actor_id, now=timezone.now(), skipped=skipped)
     return stop

@@ -1,9 +1,8 @@
-from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from modules.transport.access import companies_for, eligibilities_for, operational_travels_for, travels_for
+from modules.transport.access import companies_for, operational_travels_for, travels_for
 from modules.transport.api.serializers.operation import (
     CorrectionInput,
     EventSerializer,
@@ -139,15 +138,7 @@ class TravelViewSet(DomainViewSet):
 
 
 def participations_for(user):
-    return (
-        TravelParticipation.objects
-        .filter(
-            Q(travel__in=operational_travels_for(user))
-            | Q(eligibility__in=eligibilities_for(user).filter(passenger__user=user))
-        )
-        .filter(travel__in=travels_for(user))
-        .distinct()
-    )
+    return TravelParticipation.objects.visible_to(user)
 
 
 @domain_resource('Execução', 'participações em viagens')
@@ -236,22 +227,7 @@ class InvitationViewSet(DomainViewSet):
     filterset_fields = ('travel', 'status', 'is_current')
 
     def get_scoped_queryset(self, user):
-        return (
-            DriverInvitation.objects
-            .filter(
-                Q(travel__company__in=companies_for(user))
-                | Q(
-                    driver_membership__driver__user=user,
-                    driver_membership__status='active',
-                    travel__company__is_approved=True,
-                    travel__company__is_rejected=False,
-                    travel__company__user__is_active=True,
-                )
-            )
-            .select_related('travel')
-            .distinct()
-            .order_by('-pk')
-        )
+        return DriverInvitation.objects.visible_to(user).select_related('travel').order_by('-pk')
 
     @domain_action(
         'Aceite ou recuse seu convite vigente',

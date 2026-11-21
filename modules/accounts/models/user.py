@@ -14,7 +14,18 @@ from modules.uploads.models import Image
 from shared.address import GeocodableAddressMixin
 
 
-class UserManager(BaseUserManager):
+class UserQuerySet(models.QuerySet):
+    def active(self):
+        return self.filter(is_active=True)
+
+    def active_staff(self):
+        return self.filter(is_staff=True, is_active=True)
+
+    def by_email(self, email: str):
+        return self.filter(email__iexact=email.strip())
+
+
+class BaseAppUserManager(BaseUserManager):
     use_in_migrations = True
 
     def _create_user(self, email, password, **extra_fields):
@@ -42,6 +53,10 @@ class UserManager(BaseUserManager):
             raise ValueError(_('Superuser must have is_superuser=True.'))
 
         return self._create_user(email, password, **extra_fields)
+
+
+class UserManager(BaseAppUserManager.from_queryset(UserQuerySet)):
+    use_in_migrations = True
 
 
 class User(GeocodableAddressMixin, AbstractBaseUser, PermissionsMixin):

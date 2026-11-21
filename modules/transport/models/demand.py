@@ -41,6 +41,45 @@ class DailyResponse(models.Model):
     def __str__(self):
         return f'Resposta #{self.pk}'
 
+    def _require_leg(self, leg: str) -> str:
+        if leg not in ('outbound', 'return'):
+            raise ValueError(f'Trecho inválido: {leg!r}')
+        return leg
+
+    def service_id_for(self, leg: str) -> int | None:
+        return self.outbound_service_id if self._require_leg(leg) == 'outbound' else self.return_service_id
+
+    def withdrawn_at_for(self, leg: str):
+        return self.outbound_withdrawn_at if self._require_leg(leg) == 'outbound' else self.return_withdrawn_at
+
+    def has_active_choice(self, leg: str) -> bool:
+        return self.service_id_for(leg) is not None and self.withdrawn_at_for(leg) is None
+
+    def leg_snapshot(self, leg: str) -> dict:
+        withdrawn_at = self.withdrawn_at_for(leg)
+        return {
+            'service_id': self.service_id_for(leg),
+            'withdrawn_at': withdrawn_at.isoformat() if withdrawn_at else None,
+        }
+
+    def apply_leg_choice(self, leg: str, service_id: int | None, *, now, bump_revision: bool = True) -> None:
+        if self._require_leg(leg) == 'outbound':
+            self.outbound_service_id = service_id
+            self.outbound_withdrawn_at = None
+        else:
+            self.return_service_id = service_id
+            self.return_withdrawn_at = None
+        self.answered_at = now
+        if bump_revision:
+            self.revision += 1
+
+    def withdraw_leg(self, leg: str, *, now) -> None:
+        if self._require_leg(leg) == 'outbound':
+            self.outbound_withdrawn_at = now
+        else:
+            self.return_withdrawn_at = now
+        self.revision += 1
+
     def clean(self):
         super().clean()
         eligibility = related_values(self, 'eligibility', 'day__route_group_id', 'authorized_service_ids')
@@ -58,7 +97,22 @@ class DailyResponse(models.Model):
             raise ValidationError(errors)
 
 
+class DailyChangeRequestQuerySet(models.QuerySet):
+    def open_requests(self):
+        return self.filter(status__in=[DailyChangeRequest.Status.PENDING, DailyChangeRequest.Status.APPROVED]).exclude(
+            application=DailyChangeRequest.Application.APPLIED
+        )
+
+    def expired_pending(self, *, now=None):
+        moment = now or timezone.now()
+        return self.filter(status=DailyChangeRequest.Status.PENDING, expires_at__lte=moment)
+
+
 class DailyChangeRequest(models.Model):
+    class Leg(models.TextChoices):
+        OUTBOUND = 'outbound', 'Ida'
+        RETURN = 'return', 'Retorno'
+
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pendente'
         APPROVED = 'approved', 'Aprovado'
@@ -74,7 +128,7 @@ class DailyChangeRequest(models.Model):
         APPLIED = 'applied', 'Aplicada'
 
     response = models.ForeignKey(DailyResponse, on_delete=models.PROTECT, related_name='change_requests')
-    leg = models.CharField(max_length=8, choices=[('outbound', 'Ida'), ('return', 'Retorno')])
+    leg = models.CharField(max_length=8, choices=Leg.choices)
     proposed_service = models.ForeignKey(
         'router.RecurringService', on_delete=models.PROTECT, related_name='change_requests'
     )
@@ -96,6 +150,8 @@ class DailyChangeRequest(models.Model):
     application = models.CharField(max_length=12, choices=Application.choices, default=Application.NOT_STARTED)
     applied_at = models.DateTimeField(null=True, blank=True)
     reason = models.CharField(max_length=500, blank=True)
+
+    objects = DailyChangeRequestQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Pedido de alteração diária'
@@ -165,6 +221,22 @@ class DailyChangeRequest(models.Model):
 
     def __str__(self):
         return f'Pedido diário #{self.pk}'
+
+    def is_leg_unchanged(self) -> bool:
+        previous = self.previous_choice_snapshot or {}
+        current = self.response.leg_snapshot(self.leg)
+        return current['service_id'] == previous.get('service_id') and current['withdrawn_at'] == previous.get(
+            'withdrawn_at'
+        )
+
+    def mark_failed(self) -> None:
+        self.application = self.Application.FAILED
+        self.save(update_fields=['application'])
+
+    def mark_applied(self, *, now) -> None:
+        self.application = self.Application.APPLIED
+        self.applied_at = now
+        self.save(update_fields=['application', 'applied_at'])
 
     def clean(self):
         super().clean()

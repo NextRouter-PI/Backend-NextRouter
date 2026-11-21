@@ -22,6 +22,37 @@ def _related_values(model, pk, *fields):
     return model.objects.filter(pk=pk).values(*fields).first() if pk is not None else None
 
 
+class PassengerGroupMembershipQuerySet(models.QuerySet):
+    def current(self):
+        return self.filter(ended_at__isnull=True)
+
+    def active_members(self):
+        return self.current().filter(membership__status=CompanyMembership.Status.ACTIVE)
+
+    def active_for_user(self, user):
+        if not user or not user.is_authenticated or not user.is_active:
+            return self.none()
+        return self.active_members().filter(
+            membership__passenger__user=user,
+            route_group__company__is_approved=True,
+            route_group__company__is_rejected=False,
+            route_group__company__user__is_active=True,
+        )
+
+    def unassigned_in_group(self, route_group):
+        return (
+            self
+            .active_members()
+            .filter(route_group=route_group, habitual_route__isnull=True)
+            .select_related(
+                'membership__passenger__user',
+                'membership__passenger__user__profile_picture',
+                'transport_point',
+            )
+            .order_by('membership__passenger__user__name', 'pk')
+        )
+
+
 class PassengerGroupMembership(models.Model):
     """Histórico do grupo; acesso exige também vínculo e participação operacional."""
 
@@ -55,6 +86,8 @@ class PassengerGroupMembership(models.Model):
         null=True,
         blank=True,
     )
+
+    objects = PassengerGroupMembershipQuerySet.as_manager()
 
     class Meta:
         verbose_name = _('Participação do aluno no grupo')

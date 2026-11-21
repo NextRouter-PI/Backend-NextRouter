@@ -6,17 +6,11 @@ from modules.organizations.models import Company, CompanyMembership, Driver
 
 
 def companies_for(user):
-    if not user.is_authenticated or not user.is_active:
-        return Company.objects.none()
-    return Company.objects.filter(user=user, is_approved=True, is_rejected=False, user__is_active=True)
+    return Company.objects.operational_for(user)
 
 
 def memberships_for(user):
-    if not user.is_authenticated or not user.is_active:
-        return CompanyMembership.objects.none()
-    return CompanyMembership.objects.filter(
-        Q(company__in=companies_for(user)) | Q(passenger__user=user) | Q(driver__user=user)
-    ).distinct()
+    return CompanyMembership.objects.visible_to(user)
 
 
 def lock_user_companies(user_id) -> None:
