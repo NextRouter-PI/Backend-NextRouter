@@ -1,23 +1,12 @@
-"""Querysets autorizados antes de filtros/paginação. Staff não é bypass operacional."""
+"""Querysets de transporte autorizados antes de filtros/paginação. Staff não é bypass operacional."""
 
 from django.db.models import Q
 
-from modules.organizations.models import Company, CompanyMembership
+from modules.organizations.access import companies_for, memberships_for
+from modules.organizations.models import CompanyMembership
 from modules.transport.models import ServiceDayEligibility, Travel
 
-
-def companies_for(user):
-    if not user.is_authenticated or not user.is_active:
-        return Company.objects.none()
-    return Company.objects.filter(user=user, is_approved=True, is_rejected=False, user__is_active=True)
-
-
-def memberships_for(user):
-    if not user.is_authenticated or not user.is_active:
-        return CompanyMembership.objects.none()
-    return CompanyMembership.objects.filter(
-        Q(company__in=companies_for(user)) | Q(passenger__user=user) | Q(driver__user=user)
-    ).distinct()
+__all__ = ['companies_for', 'eligibilities_for', 'memberships_for', 'operational_travels_for', 'travels_for']
 
 
 def eligibilities_for(user):

@@ -21,10 +21,7 @@ class RatingViewSet(DomainViewSet):
     write_serializer_class = RatingInput
     filterset_fields = ('travel', 'driver')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        user = self.request.user
+    def get_scoped_queryset(self, user):
         return (
             DriverRating.objects
             .filter(travel__in=travels_for(user))
@@ -45,10 +42,7 @@ class LostItemViewSet(DomainViewSet):
     write_serializer_class = LostItemInput
     filterset_fields = ('travel', 'status')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        user = self.request.user
+    def get_scoped_queryset(self, user):
         return (
             LostItem.objects
             .filter(travel__in=travels_for(user))

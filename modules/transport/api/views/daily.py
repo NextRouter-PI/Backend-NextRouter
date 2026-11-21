@@ -28,10 +28,7 @@ class DayViewSet(DomainViewSet):
     serializer_class = DaySerializer
     filterset_fields = ('route_group', 'date')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        user = self.request.user
+    def get_scoped_queryset(self, user):
         return (
             ServiceDay.objects
             .filter(
@@ -71,10 +68,8 @@ class EligibilityViewSet(DomainViewSet):
     serializer_class = EligibilitySerializer
     filterset_fields = ('day', 'passenger')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        return eligibilities_for(self.request.user).select_related('day', 'response', 'passenger').order_by('pk')
+    def get_scoped_queryset(self, user):
+        return eligibilities_for(user).select_related('day', 'response', 'passenger').order_by('pk')
 
     @domain_action('Responda ida e retorno na janela normal', request=AnswerInput, response=ResponseSerializer)
     def answer(self, request, pk=None):
@@ -113,10 +108,8 @@ class ResponseViewSet(DomainViewSet):
     serializer_class = ResponseSerializer
     filterset_fields = ('eligibility',)
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        return DailyResponse.objects.filter(eligibility__in=eligibilities_for(self.request.user)).order_by('pk')
+    def get_scoped_queryset(self, user):
+        return DailyResponse.objects.filter(eligibility__in=eligibilities_for(user)).order_by('pk')
 
 
 @domain_resource('Pedidos', 'pedidos de alteração diária')
@@ -125,12 +118,8 @@ class ChangeRequestViewSet(DomainViewSet):
     serializer_class = ChangeRequestSerializer
     filterset_fields = ('response', 'status', 'application', 'leg')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        return DailyChangeRequest.objects.filter(
-            response__eligibility__in=eligibilities_for(self.request.user)
-        ).order_by('-pk')
+    def get_scoped_queryset(self, user):
+        return DailyChangeRequest.objects.filter(response__eligibility__in=eligibilities_for(user)).order_by('-pk')
 
     @domain_action(
         'Aprove o pedido sem transferir antes do cálculo', request=ReasonInput, response=ChangeRequestSerializer

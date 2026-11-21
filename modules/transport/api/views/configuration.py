@@ -43,12 +43,8 @@ from shared.domain_api import DomainViewSet, domain_action, domain_resource
 class ConfigurationViewSet(DomainViewSet):
     company_lookup = 'company'
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        return self.queryset.model.objects.filter(**{
-            f'{self.company_lookup}__in': companies_for(self.request.user)
-        }).order_by('pk')
+    def get_scoped_queryset(self, user):
+        return self.queryset.model.objects.filter(**{f'{self.company_lookup}__in': companies_for(user)}).order_by('pk')
 
     def own_company(self):
         return get_object_or_404(companies_for(self.request.user))
@@ -202,8 +198,8 @@ class ServiceViewSet(ConfigurationViewSet):
     write_serializer_class = ServiceInput
     filterset_fields = ('route_group', 'direction')
 
-    def get_queryset(self):
-        return super().get_queryset().prefetch_related('configured_stops')
+    def get_scoped_queryset(self, user):
+        return super().get_scoped_queryset(user).prefetch_related('configured_stops')
 
     def create(self, request):
         data = self.input(ServiceInput)
@@ -263,10 +259,7 @@ class HabitualRouteViewSet(DomainViewSet):
     write_serializer_class = HabitualRouteInput
     filterset_fields = ('route_group', 'kind')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        user = self.request.user
+    def get_scoped_queryset(self, user):
         if not user.is_authenticated or not user.is_active:
             return HabitualRoute.objects.none()
         return (

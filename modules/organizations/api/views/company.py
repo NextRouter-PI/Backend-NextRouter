@@ -8,6 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from modules.organizations.access import companies_for
 from modules.organizations.api.filters.company import CompanyFilter, build_route_group_match_q
 from modules.organizations.api.serializers.company import (
     CompanyCreateSerializer,
@@ -17,7 +18,6 @@ from modules.organizations.api.serializers.company import (
 from modules.organizations.models.company import Company
 from modules.organizations.models.company_route_group import CompanyRouteGroup
 from modules.organizations.permissions import IsCompany, IsUserOwner
-from modules.transport.access import companies_for
 from modules.transport.models.travel import Travel
 from shared.openapi import document_viewset
 

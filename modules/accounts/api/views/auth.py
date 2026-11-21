@@ -19,9 +19,8 @@ from user_agents import parse
 
 from modules.accounts.authenticate import CustomAuthentication, enforce_csrf
 from modules.accounts.models import User, UserSession
-from modules.accounts.services import revoke_session, revoke_sessions
-from modules.transport.services.common import DomainError
-from modules.transport.services.governance import deactivate_account
+from modules.accounts.services import deactivate_account, revoke_session, revoke_sessions
+from shared.exceptions import DomainError
 from shared.openapi import RESP_400_VALIDATION, RESP_401_UNAUTHORIZED, RESP_403_FORBIDDEN, RESP_429_THROTTLED
 
 

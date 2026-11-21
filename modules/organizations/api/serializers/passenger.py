@@ -1,11 +1,8 @@
 from django.db import transaction
 from rest_framework.serializers import ModelSerializer
 
-from modules.accounts.api.serializers.user import (
-    BaseProfileCreateSerializer,
-    BaseProfilePatchSerializer,
-    UserListAndRetriveSerializer,
-)
+from modules.accounts.api.serializers.user import UserListAndRetriveSerializer
+from modules.organizations.api.serializers.base import BaseProfileCreateSerializer, BaseProfilePatchSerializer
 from modules.organizations.models.passenger import Passenger
 
 

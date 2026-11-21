@@ -3,11 +3,8 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
-from modules.accounts.api.serializers.user import (
-    BaseProfileCreateSerializer,
-    BaseProfilePatchSerializer,
-    UserListAndRetriveSerializer,
-)
+from modules.accounts.api.serializers.user import UserListAndRetriveSerializer
+from modules.organizations.api.serializers.base import BaseProfileCreateSerializer, BaseProfilePatchSerializer
 from modules.organizations.models.company import Company
 from modules.organizations.validators.cnpj import validate_cnpj
 from modules.uploads.api.serializers.document import DocumentSerializer

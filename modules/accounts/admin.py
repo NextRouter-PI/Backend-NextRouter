@@ -5,10 +5,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
-from modules.transport.services.governance import deactivate_account, guard_account_deactivation
-
 from .models import EmailToken, User, UserSession
-from .services import revoke_session
+from .services import deactivate_account, guard_account_deactivation, revoke_session
 
 
 class UserAdminCreationForm(UserCreationForm):
