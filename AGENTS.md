@@ -48,13 +48,14 @@ Todos os caminhos de código e comandos abaixo são relativos à raiz do backend
 - **Módulos de domínio (`modules/`) — atenção aos `label`s de app do Django:**
   - `modules/accounts/` (label **`authenticator`**, `AUTH_USER_MODEL = 'authenticator.User'`):
     identidade (`User` UUID), sessões ativas (`UserSession`), códigos por e-mail (`EmailToken`),
-    autenticação por cookie + CSRF (`authenticate.py`), autenticação WebSocket (`ws_auth.py`)
-    e serviços de conta (`services.py`).
+    autenticação por cookie + CSRF (`authenticate.py`), autenticação WebSocket (`ws_auth.py`),
+    utilitários HTTP/cookies (`http.py`), hooks de desativação (`hooks.py`) e serviços de conta (`services/`).
   - `modules/organizations/` (label **`organizations`**): empresas (`Company`), perfis
     de identidade (`Passenger`, `Driver`), ciclo de vínculo (`CompanyMembership`,
     `MembershipEvent`), grupos de atendimento (`CompanyRouteGroup`), vínculo ao grupo
-    (`PassengerGroupMembership`), pontos operacionais (`OperationalPoint`), permissões
-    (`permissions.py`) e serviços transacionais (`services/memberships.py`, `groups.py`, `participation.py`).
+    (`PassengerGroupMembership`), pontos operacionais (`OperationalPoint`), rotas habituais
+    (`HabitualRoute`), permissões (`permissions.py`), hooks (`hooks.py`) e serviços transacionais
+    (`services/`: `locking.py`, `memberships.py`, `groups.py`, `profiles.py`, `moderation.py`).
   - `modules/transport/` (label **`router`**): frota (`Vehicle`), configuração habitual
     (`RecurringService`, `ResponsePolicy`), calendário datado (`ServiceDay`,
     `ServiceDayEligibility`, `DailyResponse`, `ChangeRequest`), execução (`Travel`,
@@ -85,8 +86,7 @@ Todos os caminhos de código e comandos abaixo são relativos à raiz do backend
   serviços de `modules/organizations/services/` e `modules/transport/services/`,
   compartilhados por API, ações explícitas do admin (`admin_commands.py`) e worker.
   O admin não aceita PATCH genérico de estados. Callers legados e espelhamentos por
-  signals foram retirados (`organizations.0002_retire_legacy`, `router.0003_retire_legacy`);
-  não os reative.
+  signals foram retirados; não os reative.
 - **Models e garantias de banco:** models concentram regras locais e constraints
   (`UniqueConstraint`, `CheckConstraint`). Não trate `save()` ou signals como garantia
   de integridade (operações em lote podem ignorá-los e `save()` não invoca `full_clean()`
@@ -179,7 +179,7 @@ Todos os caminhos de código e comandos abaixo são relativos à raiz do backend
   empresa, com `operation_id` e auditoria, sem reabertura ou DELETE). Avisos
   (`Notification`) são restritos ao destinatário (inclusive para staff).
 - **Worker e automação:** `process_route_jobs` exige escopo explícito (`--company-id` ou `--all-companies`, e em produção `WORKER_COMPANY_ID` ou `WORKER_ALL_COMPANIES=true`), além de lease, tentativas, retry,
-  poll e lotes explícitos. A agenda automática opt-in por grupo (`router.0004_automation_schedule`)
+  poll e lotes explícitos. A agenda automática opt-in por grupo (`AutomationSchedule`)
   persiste horizonte, lote, frequência e checkpoint transacional no banco.
 
 ### Privacidade, documentos e entrega estática (`modules/uploads/`, `app/frontend.py`)
@@ -237,7 +237,7 @@ pdm run schema
   - `pdm run test` e `pdm run test <modulo.classe.metodo>`: usam `tests.settings`
     (sem ler `.env`, com SQLite em memória e diretórios temporários em `/tmp`),
     excluindo a tag `migration`. O runner do Django cria e migra o banco de teste em memória.
-  - `pdm run test-migrations`: executa a regressão de guardas de retirada do schema legado (`--tag=migration`).
+  - `pdm run test-migrations`: valida a criação limpa do banco a partir das `0001_initial` sem tabelas legadas ou pendências (`--tag=migration`).
   - `pdm run test-html`: executa os testes Node (`tests/html_client.test.mjs`) do cliente HTML local.
   - **Limites de evidência:** SQLite e canais em memória não comprovam locks/concorrência
     de PostgreSQL nem comunicação Redis entre processos.

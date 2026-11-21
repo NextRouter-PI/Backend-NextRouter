@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import ClassVar
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password
@@ -88,6 +89,10 @@ class EmailToken(models.Model):
         verbose_name_plural = _('Códigos de e-mail')
         db_table = 'authenticator_email_token'
         ordering = ('-created_at',)
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=['email', 'token_type', 'created_at'], name='email_token_lookup_idx'),
+            models.Index(fields=['user', 'token_type', 'created_at'], name='email_token_user_lookup_idx'),
+        ]
 
     def __str__(self):
         return f'{self.email} - {self.token_type}'
