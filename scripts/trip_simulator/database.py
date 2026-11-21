@@ -57,6 +57,8 @@ def reset_local_sqlite(*, confirm_fictitious: bool) -> Path:
         if candidate.exists():
             candidate.unlink()
     call_command('migrate', interactive=False, verbosity=0)
+    with connections['default'].cursor() as cursor:
+        cursor.execute('PRAGMA journal_mode=WAL;')
     return db_path
 
 
