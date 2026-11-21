@@ -166,9 +166,11 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
     'EXCEPTION_HANDLER': 'shared.exceptions.custom_exception_handler',
     'DEFAULT_THROTTLE_RATES': {
-        # Limita o envio/validação de códigos por e-mail e o login (evita spam e força bruta).
+        # Limita o envio/validação de códigos por e-mail, login, consulta de CEP e uploads públicos.
         'email_tokens': '60/hour',
         'login': '30/minute',
+        'cep_lookup': '60/minute',
+        'uploads': '120/hour',
     },
 }
 

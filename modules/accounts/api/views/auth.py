@@ -1,77 +1,32 @@
-from django.conf import settings
 from django.db import transaction
 from django.middleware.csrf import get_token, rotate_token
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from drf_spectacular.utils import OpenApiExample, extend_schema, inline_serializer
-from ipware import get_client_ip
 from rest_framework import serializers
-from rest_framework.exceptions import AuthenticationFailed, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from rest_framework_simplejwt.serializers import TokenRefreshSerializer
-from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
-from user_agents import parse
 
-from modules.accounts.authenticate import CustomAuthentication, enforce_csrf
-from modules.accounts.models import User, UserSession
-from modules.accounts.services import deactivate_account, revoke_session, revoke_sessions
+from modules.accounts.api.serializers.session import CustomTokenObtainPairSerializer, UserSessionSerializer
+from modules.accounts.authenticate import enforce_csrf
+from modules.accounts.http import clear_auth_cookies, get_request_ip, set_auth_cookies
+from modules.accounts.models import UserSession
+from modules.accounts.services import (
+    create_user_session,
+    deactivate_account,
+    logout_user_session,
+    refresh_user_session,
+    revoke_session,
+    revoke_sessions,
+)
 from shared.exceptions import DomainError
 from shared.openapi import RESP_400_VALIDATION, RESP_401_UNAUTHORIZED, RESP_403_FORBIDDEN, RESP_429_THROTTLED
 
-
-def get_request_ip(request):
-    ip, _ = get_client_ip(
-        request,
-        proxy_count=getattr(settings, 'IPWARE_PROXY_COUNT', 0),
-        proxy_trusted_ips=getattr(settings, 'IPWARE_TRUSTED_PROXIES', []),
-        request_header_order=getattr(settings, 'IPWARE_HEADER_ORDER', ['X_FORWARDED_FOR', 'REMOTE_ADDR']),
-    )
-    return ip
-
-
 DETAIL_RESPONSE = inline_serializer('AuthDetailResponse', fields={'detail': serializers.CharField()})
-SESSION_RESPONSE = inline_serializer(
-    'UserSessionResponse',
-    fields={
-        'id': serializers.UUIDField(),
-        'device': serializers.CharField(),
-        'ip': serializers.IPAddressField(allow_null=True),
-        'created_at': serializers.DateTimeField(),
-        'current': serializers.BooleanField(),
-    },
-    many=True,
-)
-
-
-def cookie_options():
-    return {'httponly': True, 'secure': settings.SESSION_COOKIE_SECURE, 'samesite': 'Lax', 'path': '/'}
-
-
-def set_auth_cookies(response, data):
-    for name, lifetime in [('access', 'ACCESS_TOKEN_LIFETIME'), ('refresh', 'REFRESH_TOKEN_LIFETIME')]:
-        response.set_cookie(
-            f'{name}_token',
-            data[name],
-            max_age=int(settings.SIMPLE_JWT[lifetime].total_seconds()),
-            **cookie_options(),
-        )
-
-
-def clear_auth_cookies(response):
-    for name in ('access_token', 'refresh_token'):
-        response.set_cookie(
-            name,
-            '',
-            max_age=0,
-            expires='Thu, 01 Jan 1970 00:00:00 GMT',
-            **cookie_options(),
-        )
-    return response
 
 
 class CsrfView(APIView):
@@ -89,6 +44,7 @@ class CsrfView(APIView):
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
     throttle_classes = (ScopedRateThrottle,)
     throttle_scope = 'login'
     authentication_classes = ()
@@ -100,6 +56,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             'Público, com CSRF. Verifica e-mail/senha e cria sessão em cookies HttpOnly; nunca retorna JWT. '
             'Login limitado por taxa.'
         ),
+        request=TokenObtainPairSerializer,
         responses={
             200: inline_serializer(
                 'AuthSessionResponse',
@@ -133,41 +90,18 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         enforce_csrf(request)
-        # 1. Faz uma cópia independente dos dados da requisição
-        data = request.data.copy()
-
-        # 2. Verifica se há e-mail
-        if isinstance(data.get('email'), str):
-            # 3. Renova a variável formatando o e-mail para letras maiúsculas e removendo espaços em branco
-            data['email'] = data['email'].strip().lower()
-
-            # 4. Verifica se o e-mail formatado existe no banco de dados
-            stored_email = User.objects.filter(email__iexact=data['email']).values_list('email', flat=True).first()
-            if stored_email:
-                data['email'] = stored_email
-
-        # 5. Serializa os dados enviados na requisição
-        serializer = self.get_serializer(data=data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         tokens = serializer.validated_data
-
-        # 6. Cria o registro do login na tabela de sessão
-        ua = parse(request.META.get('HTTP_USER_AGENT', ''))
-
-        UserSession.objects.create(
-            user=serializer.user,
-            access_jti=AccessToken(tokens['access'])['jti'],
-            refresh_jti=RefreshToken(tokens['refresh'])['jti'],
-            device_name=f'{ua.browser.family} em {ua.os.family}'[:255],
-            device_type='mobile' if ua.is_mobile else 'tablet' if ua.is_tablet else 'desktop',
-            user_agent=request.META.get('HTTP_USER_AGENT', '')[:1000],
+        create_user_session(
+            serializer.user,
+            tokens,
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
             ip_address=get_request_ip(request),
-            expires_at=timezone.now() + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'],
         )
         rotate_token(request)
         response = Response({'detail': 'Sessão iniciada.', 'csrfToken': get_token(request)})
-        set_auth_cookies(response, tokens)
-        return response
+        return set_auth_cookies(response, tokens)
 
 
 class CustomTokenRefreshView(APIView):
@@ -191,31 +125,12 @@ class CustomTokenRefreshView(APIView):
             403: RESP_403_FORBIDDEN,
         },
     )
-    @transaction.atomic
     def post(self, request):
         enforce_csrf(request)
         if request.data:
             raise ValidationError('A renovação usa somente cookie, sem corpo de requisição.')
-        raw = request.COOKIES.get('refresh_token')
-        if not raw:
-            raise AuthenticationFailed('Refresh token ausente.')
-        try:
-            token = RefreshToken(raw)
-            session = UserSession.objects.select_for_update().for_refresh_jti(token['jti']).first()
-            if not session:
-                raise AuthenticationFailed('Sessão revogada ou inativa.')
-            serializer = TokenRefreshSerializer(data={'refresh': raw})
-            serializer.is_valid(raise_exception=True)
-            tokens = serializer.validated_data
-            session.access_jti = AccessToken(tokens['access'])['jti']
-            session.refresh_jti = RefreshToken(tokens['refresh'])['jti']
-            session.expires_at = timezone.now() + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']
-            session.save(update_fields=['access_jti', 'refresh_jti', 'expires_at', 'last_activity'])
-        except TokenError as exc:
-            raise InvalidToken('Token inválido ou expirado.') from exc
-        response = Response({'detail': 'Sessão renovada.'})
-        set_auth_cookies(response, tokens)
-        return response
+        tokens = refresh_user_session(request.COOKIES.get('refresh_token'))
+        return set_auth_cookies(Response({'detail': 'Sessão renovada.'}), tokens)
 
 
 class CustomLogoutView(APIView):
@@ -231,24 +146,10 @@ class CustomLogoutView(APIView):
     )
     def post(self, request):
         enforce_csrf(request)
-        auth = CustomAuthentication()
-        raw_access = request.COOKIES.get('access_token')
-        if raw_access:
-            try:
-                token = auth.get_validated_token(raw_access)
-                session = UserSession.objects.filter(access_jti=token['jti']).first()
-                if session:
-                    revoke_session(session)
-            except (InvalidToken, TokenError):
-                pass
-        raw = request.COOKIES.get('refresh_token')
-        if raw:
-            try:
-                token = RefreshToken(raw)
-                UserSession.objects.filter(refresh_jti=token['jti']).update(is_active=False)
-                token.blacklist()
-            except TokenError:
-                pass
+        logout_user_session(
+            raw_access_token=request.COOKIES.get('access_token'),
+            raw_refresh_token=request.COOKIES.get('refresh_token'),
+        )
         return clear_auth_cookies(Response({'detail': 'Logout efetuado com sucesso.'}))
 
 
@@ -257,20 +158,12 @@ class UserSessionsView(APIView):
         tags=['Autenticação'],
         summary='Liste suas sessões',
         description='Apenas usuário autenticado; retorna dispositivos e indica a sessão atual.',
-        responses={200: SESSION_RESPONSE},
+        responses={200: UserSessionSerializer(many=True)},
     )
     def get(self, request):
         sessions = request.user.sessions.active()
-        return Response([
-            {
-                'id': session.pk,
-                'device': session.device_name,
-                'ip': session.ip_address,
-                'created_at': session.created_at,
-                'current': session.access_jti == request.auth['jti'],
-            }
-            for session in sessions
-        ])
+        serializer = UserSessionSerializer(sessions, many=True, context={'current_jti': request.auth['jti']})
+        return Response(serializer.data)
 
 
 class UserSessionDeactivateView(APIView):
@@ -313,10 +206,7 @@ class DeactivateSelfView(APIView):
         request=None,
         responses={200: DETAIL_RESPONSE},
     )
-    @transaction.atomic
     def post(self, request):
-        if request.user.is_staff and User.objects.filter(is_staff=True, is_active=True).count() <= 1:
-            raise ValidationError('Não é possível desativar o último administrador ativo.')
         try:
             deactivate_account(actor_id=request.user.pk, user_id=request.user.pk)
         except DomainError as exc:

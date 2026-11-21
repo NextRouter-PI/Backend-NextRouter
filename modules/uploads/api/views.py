@@ -4,6 +4,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import mixins, parsers, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.throttling import ScopedRateThrottle
 
 from modules.uploads.access import can_access_document
 from modules.uploads.api.serializers import DocumentUploadSerializer, ImageUploadSerializer
@@ -20,6 +21,8 @@ class CreateViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
     permission_classes = (AllowAny,)
     parser_classes = (parsers.FormParser, parsers.MultiPartParser)
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = 'uploads'
 
 
 @extend_schema_view(

@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Avg, Count, Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins
@@ -39,19 +39,23 @@ class ProfileViewSet(
             return self.patch_serializer_class
         return self.serializer_class
 
+    def get_base_queryset(self):
+        return self.queryset.model.objects.select_related('user', 'user__profile_picture')
+
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return self.queryset
         user = self.request.user
         if not user.is_authenticated:
             return self.queryset
-        queryset = self.queryset.model.objects.select_related('user')
+        queryset = self.get_base_queryset()
         if self.action in ('partial_update', 'update'):
             return queryset.filter(user=user)
-        linked = CompanyMembership.objects.filter(
-            company__in=companies_for(user), status='active', **{f'{self.profile_field}__isnull': False}
-        ).values(f'{self.profile_field}_id')
-        return queryset.filter(Q(user=user) | Q(pk__in=linked)).distinct().order_by('pk')
+        linked = CompanyMembership.objects.active().filter(
+            company__in=companies_for(user),
+            **{f'{self.profile_field}_id': OuterRef('pk')},
+        )
+        return queryset.filter(Q(user=user) | Exists(linked)).order_by('pk')
 
     @extend_schema(
         summary='Consulte seu perfil',
@@ -65,7 +69,7 @@ class ProfileViewSet(
     )
     @action(detail=False, methods=['get', 'patch'])
     def me(self, request):
-        instance = get_object_or_404(self.queryset.model, user=request.user)
+        instance = get_object_or_404(self.get_base_queryset(), user=request.user)
         if request.method == 'PATCH':
             serializer = self.patch_serializer_class(
                 instance, data=request.data, partial=True, context=self.get_serializer_context()
@@ -113,3 +117,11 @@ class DriverViewSet(ProfileViewSet):
     create_serializer_class = DriverCreateSerializer
     patch_serializer_class = DriverPatchSerializer
     profile_field = 'driver'
+
+    def get_base_queryset(self):
+        return (
+            super()
+            .get_base_queryset()
+            .select_related('cnh')
+            .annotate(_average_rating=Avg('ratings__score'), _ratings_count=Count('ratings'))
+        )

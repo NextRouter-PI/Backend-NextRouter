@@ -1,4 +1,3 @@
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -32,19 +31,12 @@ class DaySerializer(serializers.ModelSerializer):
         )
 
     def get_window(self, obj) -> str:
-        now = timezone.now()
-        if obj.canceled_at:
-            return 'canceled'
-        if now < obj.opens_at:
-            return 'not_open'
-        if now < obj.normal_deadline:
-            return 'normal'
-        if obj.extension_deadline and now < obj.extension_deadline:
-            return 'extension'
-        return 'closed'
+        return obj.window_state()
 
     def get_issues(self, obj) -> list[str]:
-        if obj.route_group.company.user_id != self.context['request'].user.pk:
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or obj.route_group.company.user_id != user.pk:
             return []
         data = obj.configuration_snapshot
         return [*data.get('issues', []), *([data['operational_issue']] if data.get('operational_issue') else [])]
@@ -95,10 +87,17 @@ class EligibilitySerializer(serializers.ModelSerializer):
 
     @extend_schema_field(AuthorizedServiceSerializer(many=True))
     def get_authorized_services(self, obj):
-        services = RecurringService.objects.filter(
-            pk__in=obj.authorized_service_ids, route_group_id=obj.day.route_group_id
-        )
-        return AuthorizedServiceSerializer(services.order_by('pk'), many=True).data
+        authorized = set(obj.authorized_service_ids or ())
+        if not authorized:
+            return []
+        prefetched = getattr(obj.day.route_group, 'ordered_services', None)
+        if prefetched is not None:
+            services = [srv for srv in prefetched if srv.pk in authorized]
+        else:
+            services = RecurringService.objects.filter(
+                pk__in=authorized, route_group_id=obj.day.route_group_id
+            ).order_by('pk')
+        return AuthorizedServiceSerializer(services, many=True).data
 
 
 class AnswerInput(InputSerializer):

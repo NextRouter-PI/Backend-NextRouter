@@ -1,11 +1,29 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from modules.organizations.models.company import Company
 
 
 class CompanyRouteGroupQuerySet(models.QuerySet):
+    def matching_discovery(self, *, city: str = '', state: str = '', destination: str = ''):
+        """Filtra grupos de rota combinando critérios públicos de descoberta."""
+        query = Q()
+        clean_destination = (destination or '').strip()
+        if clean_destination:
+            query &= Q(name__icontains=clean_destination) | Q(destination__name__icontains=clean_destination)
+
+        clean_city = (city or '').strip()
+        if clean_city:
+            query &= Q(destination__city__iexact=clean_city)
+
+        clean_state = (state or '').strip()
+        if clean_state:
+            query &= Q(destination__state__iexact=clean_state)
+
+        return self.filter(query)
+
     def served_cities(self, *, state: str | None = None) -> list[dict[str, str]]:
         qs = (
             self

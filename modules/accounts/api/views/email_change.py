@@ -1,23 +1,14 @@
-from django.db import transaction
 from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from modules.accounts.api.serializers.email_change import EmailChangeCodeSerializer, EmailChangeConfirmSerializer
 from modules.accounts.api.views.email_token import EmailTokenViewSet
-from modules.accounts.mixins.tokens import check_email_token, consume_email_token
-from modules.accounts.models import EmailToken, User
-from modules.accounts.services import revoke_sessions
+from modules.accounts.http import clear_auth_cookies
+from modules.accounts.models import EmailToken
+from modules.accounts.services import confirm_email_change, verify_email_change_code
 from shared.openapi import RESP_400_VALIDATION, RESP_401_UNAUTHORIZED
-
-
-class EmailChangeCodeSerializer(serializers.Serializer):
-    code = serializers.RegexField(r'^\d{6}$')
-
-
-class EmailChangeConfirmSerializer(EmailChangeCodeSerializer):
-    password = serializers.CharField(write_only=True)
 
 
 @extend_schema_view(
@@ -36,26 +27,10 @@ class EmailChangeConfirmSerializer(EmailChangeCodeSerializer):
 )
 class EmailChangeViewSet(EmailTokenViewSet):
     permission_classes = (IsAuthenticated,)
+    token_type = EmailToken.TokenType.NEW_EMAIL
 
-    def get_serializer(self, *args, **kwargs):
-        if self.action == 'create_token' and 'data' in kwargs:
-            data = kwargs['data'].copy()
-            data['email'] = data.get('new_email')
-            data['token_type'] = 'new-email'
-            kwargs['data'] = data
-        return super().get_serializer(*args, **kwargs)
-
-    def validate_code(self, request, confirm=False):
-        serializer_class = EmailChangeConfirmSerializer if confirm else EmailChangeCodeSerializer
-        serializer = serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        pending = EmailToken.objects.filter(user=request.user, token_type='new-email').first()
-        if not pending:
-            raise ValidationError({'code': 'Código inválido ou inexistente.'})
-        token = check_email_token(pending.email, serializer.validated_data['code'], 'new-email', request.user)
-        if confirm and not request.user.check_password(serializer.validated_data['password']):
-            raise ValidationError({'password': 'Senha atual incorreta.'})
-        return token
+    def _build_token_payload(self, request) -> dict:
+        return {'email': request.data.get('new_email'), 'token_type': self.token_type}
 
     @extend_schema(
         tags=['Autenticação'],
@@ -69,7 +44,9 @@ class EmailChangeViewSet(EmailTokenViewSet):
         },
     )
     def verify_token(self, request):
-        self.validate_code(request)
+        serializer = EmailChangeCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        verify_email_change_code(user=request.user, code=serializer.validated_data['code'])
         return Response({'detail': 'Código válido.'})
 
     @extend_schema(
@@ -84,12 +61,12 @@ class EmailChangeViewSet(EmailTokenViewSet):
         },
     )
     def confirm(self, request):
-        token = self.validate_code(request, confirm=True)
-        with transaction.atomic():
-            consume_email_token(token)
-            if User.objects.filter(email__iexact=token.email).exclude(pk=request.user.pk).exists():
-                raise ValidationError({'new_email': 'Já existe um usuário cadastrado com este e-mail.'})
-            request.user.email = token.email
-            request.user.save(update_fields=['email'])
-            revoke_sessions(request.user)
-        return Response({'detail': 'E-mail alterado. Faça login novamente.'})
+        serializer = EmailChangeConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = verify_email_change_code(
+            user=request.user,
+            code=serializer.validated_data['code'],
+            password=serializer.validated_data['password'],
+        )
+        confirm_email_change(user=request.user, token=token)
+        return clear_auth_cookies(Response({'detail': 'E-mail alterado. Faça login novamente.'}))
