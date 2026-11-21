@@ -10,6 +10,7 @@ def get_request_ip(request):
         proxy_count=getattr(settings, 'IPWARE_PROXY_COUNT', 0),
         proxy_trusted_ips=getattr(settings, 'IPWARE_TRUSTED_PROXIES', []),
         request_header_order=getattr(settings, 'IPWARE_HEADER_ORDER', ['X_FORWARDED_FOR', 'REMOTE_ADDR']),
+        strict=getattr(settings, 'IPWARE_STRICT', None),
     )
     return ip
 

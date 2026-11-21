@@ -10,10 +10,11 @@ from unittest.mock import MagicMock, patch
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import DatabaseError
-from django.test import SimpleTestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, override_settings
 
 from app.operational_logging import OperationalFormatter
 from app.runtime_checks import check_dependencies, check_runtime, check_staticfiles
+from modules.accounts.http import get_request_ip
 from scripts.runtime import main, required_integer
 
 
@@ -64,6 +65,10 @@ assert s.CSRF_COOKIE_SAMESITE == s.SESSION_COOKIE_SAMESITE == 'Lax'
             """
 assert s.SECURE_PROXY_SSL_HEADER == ('HTTP_X_FORWARDED_PROTO', 'https')
 assert s.REST_FRAMEWORK['NUM_PROXIES'] == 1
+assert s.IPWARE_PROXY_COUNT == 0
+assert s.IPWARE_STRICT is False
+assert s.IPWARE_HEADER_ORDER == ['HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR']
+assert s.DATABASES['default']['OPTIONS']['pool'] is True
 assert s.SECURE_HSTS_SECONDS == 3600
 assert not s.SECURE_HSTS_INCLUDE_SUBDOMAINS and not s.SECURE_HSTS_PRELOAD
 """,
@@ -71,6 +76,25 @@ assert not s.SECURE_HSTS_INCLUDE_SUBDOMAINS and not s.SECURE_HSTS_PRELOAD
             HSTS_SECONDS='3600',
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_get_request_ip_ignores_spoofed_xff_behind_single_trusted_proxy(self):
+        rf = RequestFactory()
+        with override_settings(
+            IPWARE_PROXY_COUNT=0,
+            IPWARE_STRICT=False,
+            IPWARE_HEADER_ORDER=['HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'],
+        ):
+            honest = rf.get('/', HTTP_X_FORWARDED_FOR='203.0.113.5', REMOTE_ADDR='10.0.0.1')
+            spoofed = rf.get('/', HTTP_X_FORWARDED_FOR='1.2.3.4, 203.0.113.5', REMOTE_ADDR='10.0.0.1')
+            self.assertEqual(get_request_ip(honest), '203.0.113.5')
+            self.assertEqual(get_request_ip(spoofed), '203.0.113.5')
+        with override_settings(
+            IPWARE_PROXY_COUNT=0,
+            IPWARE_STRICT=True,
+            IPWARE_HEADER_ORDER=['REMOTE_ADDR'],
+        ):
+            direct = rf.get('/', HTTP_X_FORWARDED_FOR='1.2.3.4', REMOTE_ADDR='198.51.100.7')
+            self.assertEqual(get_request_ip(direct), '198.51.100.7')
 
     def test_invalid_origins_security_flags_public_storage_and_demo_services_are_rejected(self):
         for extra in (

@@ -91,8 +91,10 @@ WS_ALLOWED_ORIGINS = [PUBLIC_ORIGIN]
 FRONTEND_URL = FRONTEND_ADMIN_URL = PUBLIC_ORIGIN
 BACKEND_REVISION = os.environ.get('BACKEND_REVISION', '')
 
-# ASGI não deve manter conexões persistentes por requisição; worker também fecha por ciclo.
-DATABASES = {'default': dj_database_url.parse(_required('DATABASE_URL'), conn_max_age=0, conn_health_checks=True)}
+# ASGI usa pool psycopg3 com conn_max_age=0; worker também fecha conexões ociosas por ciclo.
+_database = dj_database_url.parse(_required('DATABASE_URL'), conn_max_age=0, conn_health_checks=True)
+_database.setdefault('OPTIONS', {})['pool'] = True
+DATABASES = {'default': _database}
 if DATABASES['default']['ENGINE'] != 'django.db.backends.postgresql':
     raise ImproperlyConfigured('DATABASE_URL deve apontar para PostgreSQL em produção.')
 if not all(DATABASES['default'].get(key) for key in ('NAME', 'USER', 'PASSWORD', 'HOST')):
@@ -137,8 +139,10 @@ TRUST_PROXY_HEADERS = _boolean('TRUST_PROXY_HEADERS')
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if TRUST_PROXY_HEADERS else None
 # Exceção mínima sem dados para o probe HTTP interno; readiness continua exigindo HTTPS.
 SECURE_REDIRECT_EXEMPT = [r'^health/live/$']
+# Em django-ipware 8+, `proxy_count` conta proxies intermediários dentro do XFF (0 = 1 proxy reverso confiável).
 IPWARE_PROXY_COUNT = 0
-IPWARE_HEADER_ORDER = ['REMOTE_ADDR']
+IPWARE_STRICT = not TRUST_PROXY_HEADERS
+IPWARE_HEADER_ORDER = ['HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] if TRUST_PROXY_HEADERS else ['REMOTE_ADDR']
 REST_FRAMEWORK = {**common.REST_FRAMEWORK, 'NUM_PROXIES': 1 if TRUST_PROXY_HEADERS else 0}
 LOGGING = {
     'version': 1,

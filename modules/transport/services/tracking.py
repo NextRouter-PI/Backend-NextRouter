@@ -6,51 +6,76 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from modules.organizations.models import CompanyMembership
 from modules.transport.broadcast import broadcast_approaching
-from modules.transport.models import Travel
+from modules.transport.models import Notification, Travel
+from shared.exceptions import get, require
 from shared.geo import distance_meters
 
-from .common import active_actor, lock_travel, notify, require
-from .execution import driver_actor
+from .actors import active_actor, driver_actor
+from .notifications import notify
 
 logger = logging.getLogger(__name__)
 APPROACHING_RADIUS_METERS = 300.0
 
 
-def _notify_approaching_passengers(travel, latitude, longitude):
-    waiting = travel.participations.filter(status='allocated').select_related('eligibility__passenger')
+def location_cache_key(travel_id: int) -> str:
+    return f'travel_location:{travel_id}'
+
+
+def _notify_approaching_passengers(travel: Travel, latitude: float, longitude: float) -> None:
+    waiting = list(travel.participations.filter(status='allocated').select_related('eligibility__passenger'))
+    if not waiting:
+        return
+    prefix = f'approaching:{travel.pk}:'
+    already_notified = set(
+        Notification.objects.filter(
+            resource_type='travel',
+            resource_id=str(travel.pk),
+            deduplication_key__startswith=prefix,
+        ).values_list('deduplication_key', flat=True)
+    )
     for participation in waiting:
+        key = f'{prefix}{participation.pk}'
+        if key in already_notified:
+            continue
         point = participation.eligibility.point_snapshot or {}
         p_lat = point.get('latitude')
         p_lng = point.get('longitude')
-        if not (isinstance(p_lat, (int, float)) and isinstance(p_lng, (int, float))):
+        if not (type(p_lat) in (int, float) and type(p_lng) in (int, float) and isfinite(p_lat) and isfinite(p_lng)):
             continue
         distance = distance_meters(latitude, longitude, float(p_lat), float(p_lng))
         if distance <= APPROACHING_RADIUS_METERS:
+            recipient_id = participation.eligibility.passenger.user_id
             notify(
-                recipients=[participation.eligibility.passenger.user_id],
+                recipients=[recipient_id],
                 kind='operation',
                 resource_type='travel',
                 resource_id=travel.pk,
-                key=f'approaching:{travel.pk}:{participation.pk}',
+                key=key,
                 status='approaching',
                 revision=travel.revision,
             )
             broadcast_approaching(
                 travel.pk,
-                participation.eligibility.passenger.user_id,
+                recipient_id,
                 participation.pk,
                 round(distance),
             )
+            already_notified.add(key)
 
 
 @transaction.atomic
 def save_location(*, actor_id, travel_id, latitude, longitude, recorded_at, max_future_skew, deliver=None):
-    _, travel = lock_travel(travel_id)
+    # Trava apenas a linha da viagem (não a empresa inteira) para não bloquear o tenant no GPS.
+    travel = get(
+        Travel.objects.dated().select_for_update(of=('self',)).select_related('company__user', 'driver'),
+        pk=travel_id,
+    )
     driver_actor(travel, actor_id)
-    require(travel.status == 'in_progress', 'travel_not_active', 'A viagem não está em andamento.')
+    require(travel.status == Travel.Status.IN_PROGRESS, 'travel_not_active', 'A viagem não está em andamento.')
     require(
         all(type(value) in (int, float) for value in (latitude, longitude))
         and -90 <= latitude <= 90
@@ -77,35 +102,44 @@ def save_location(*, actor_id, travel_id, latitude, longitude, recorded_at, max_
             'position_rate_limited',
             'Envio de posição muito frequente.',
         )
-    travel.current_latitude, travel.current_longitude, travel.location_updated_at = latitude, longitude, recorded_at
+    travel.current_latitude = latitude
+    travel.current_longitude = longitude
+    travel.location_updated_at = recorded_at
     travel.save(update_fields=['current_latitude', 'current_longitude', 'location_updated_at'])
     _notify_approaching_passengers(travel, latitude, longitude)
     event = {'latitude': latitude, 'longitude': longitude, 'updated_at': recorded_at.isoformat()}
-    cache.set(f'travel_location:{travel.pk}', event, timeout=max(30, settings.LOCATION_MAX_AGE_SECONDS * 2))
-    if deliver:
+    cache_timeout = max(30, settings.LOCATION_MAX_AGE_SECONDS * 2)
 
-        def after_commit():
-            if not Travel.objects.filter(pk=travel.pk, status='in_progress', location_updated_at=recorded_at).exists():
-                return
+    def after_commit():
+        if not Travel.objects.filter(
+            pk=travel.pk, status=Travel.Status.IN_PROGRESS, location_updated_at=recorded_at
+        ).exists():
+            return
+        try:
+            cache.set(location_cache_key(travel.pk), event, timeout=cache_timeout)
+        except Exception:
+            logger.warning('location_cache_write_failed travel_id=%s', travel.pk)
+        if deliver:
             try:
                 deliver(travel.pk, event)
             except Exception:
                 logger.warning('location_delivery_failed travel_id=%s', travel.pk)
 
-        transaction.on_commit(after_commit)
+    transaction.on_commit(after_commit)
     return event
 
 
-@transaction.atomic
 def read_location(*, actor_id, travel_id):
-    company, travel = lock_travel(travel_id)
+    """Leitura pura sem lock de escrita: valida autorização e lê cache Redis com fallback no banco."""
+    travel = get(Travel.objects.dated().select_related('company__user', 'driver'), pk=travel_id)
+    company = travel.company
     active_actor(actor_id)
     require(
-        company.is_approved and not company.is_rejected and company.user.is_active,
+        company.is_operational,
         'company_unavailable',
         'A empresa não está apta a operar.',
     )
-    require(travel.status == 'in_progress', 'travel_not_active', 'A viagem não está em andamento.')
+    require(travel.status == Travel.Status.IN_PROGRESS, 'travel_not_active', 'A viagem não está em andamento.')
     participant = travel.participations.filter(
         eligibility__passenger__user_id=actor_id,
         status__in=['allocated', 'on_board'],
@@ -123,6 +157,32 @@ def read_location(*, actor_id, travel_id):
         'permission_denied',
         'Acompanhamento não autorizado.',
     )
+
+    cached = None
+    try:
+        cached = cache.get(location_cache_key(travel.pk))
+    except Exception:
+        logger.warning('location_cache_read_failed travel_id=%s', travel.pk)
+    if (
+        travel.location_updated_at is not None
+        and isinstance(cached, dict)
+        and type(cached.get('latitude')) in (int, float)
+        and type(cached.get('longitude')) in (int, float)
+        and isfinite(cached['latitude'])
+        and isfinite(cached['longitude'])
+        and isinstance(cached.get('updated_at'), str)
+    ):
+        updated_at = parse_datetime(cached['updated_at'])
+        if updated_at is not None and timezone.is_aware(updated_at) and updated_at >= travel.location_updated_at:
+            return {
+                'position': {
+                    'latitude': cached['latitude'],
+                    'longitude': cached['longitude'],
+                    'updated_at': cached['updated_at'],
+                },
+                'stale': (timezone.now() - updated_at).total_seconds() > settings.LOCATION_MAX_AGE_SECONDS,
+            }
+
     if travel.location_updated_at is None:
         return {'position': None, 'stale': True}
     return {

@@ -2,6 +2,7 @@
 
 import tempfile
 from pathlib import Path
+from time import monotonic
 from uuid import uuid4
 
 from django.conf import settings
@@ -11,6 +12,26 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 
 from shared.frontend_artifact import verify_artifact
+
+STORAGE_PROBE_TTL_SECONDS = 15.0
+_STORAGE_PROBE_OK_UNTIL: dict[str, float] = {}
+
+
+def _check_private_storage() -> None:
+    directory = Path(settings.PRIVATE_DOCUMENT_ROOT)
+    if not directory.is_absolute() or not directory.is_dir():
+        raise RuntimeError('storage_unavailable')
+    key = str(directory.resolve())
+    now = monotonic()
+    if _STORAGE_PROBE_OK_UNTIL.get(key, 0.0) > now:
+        return
+    with tempfile.TemporaryFile(dir=directory) as probe:
+        probe.write(b'nextrouter-storage-probe')
+        probe.flush()
+        probe.seek(0)
+        if probe.read() != b'nextrouter-storage-probe':
+            raise RuntimeError('storage_unavailable')
+    _STORAGE_PROBE_OK_UNTIL[key] = now + STORAGE_PROBE_TTL_SECONDS
 
 
 def check_dependencies():
@@ -25,15 +46,7 @@ def check_dependencies():
             raise RuntimeError('cache_unavailable')
     finally:
         cache.delete(key)
-    directory = Path(settings.PRIVATE_DOCUMENT_ROOT)
-    if not directory.is_absolute() or not directory.is_dir():
-        raise RuntimeError('storage_unavailable')
-    with tempfile.TemporaryFile(dir=directory) as probe:
-        probe.write(b'nextrouter-storage-probe')
-        probe.flush()
-        probe.seek(0)
-        if probe.read() != b'nextrouter-storage-probe':
-            raise RuntimeError('storage_unavailable')
+    _check_private_storage()
 
 
 def check_staticfiles():

@@ -41,7 +41,11 @@ def send_email_token(email: str, code: str, subject: str) -> bool:
         message.send()
         return True
     except Exception as exc:
-        logger.warning('email_token_delivery_failed reason=%s', type(exc).__name__)
+        logger.warning(
+            'email_token_delivery_failed reason=%s',
+            type(exc).__name__,
+            extra={'op_event': 'email_delivery_failed'},
+        )
         return False
 
 

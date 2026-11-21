@@ -1,10 +1,13 @@
 """Artefato Vue isolado: nenhuma pasta do repositório vira raiz pública."""
 
+import hashlib
 from pathlib import Path
 
 from django.conf import settings
-from django.http import Http404, HttpResponse, HttpResponseNotAllowed
+from django.http import Http404, HttpResponse, HttpResponseNotAllowed, HttpResponseNotModified
 from django.utils.cache import patch_vary_headers
+from django.utils.http import parse_etags
+from django.views.decorators.http import require_safe
 from whitenoise import WhiteNoise
 from whitenoise.middleware import WhiteNoiseMiddleware
 
@@ -25,6 +28,8 @@ RESERVED = {
     'health',
 }
 
+_ARTIFACT_CACHE: dict[str, tuple[int, int, bytes, str]] = {}
+
 
 def safe_file(root, relative):
     path = root / relative
@@ -35,6 +40,23 @@ def safe_file(root, relative):
     if any(parent.is_symlink() for parent in (path, *path.parents) if parent != root.parent):
         return None
     return path
+
+
+def _read_artifact(path: Path) -> tuple[bytes, str]:
+    """Lê bytes e ETag do artefato, mantendo cache em memória quando DEBUG=False."""
+    if settings.DEBUG:
+        content = path.read_bytes()
+        etag = f'"{hashlib.sha256(content).hexdigest()[:16]}"'
+        return content, etag
+    stat = path.stat()
+    key = str(path.resolve())
+    cached = _ARTIFACT_CACHE.get(key)
+    if cached is not None and cached[0] == stat.st_mtime_ns and cached[1] == stat.st_size:
+        return cached[2], cached[3]
+    content = path.read_bytes()
+    etag = f'"{hashlib.sha256(content).hexdigest()[:16]}"'
+    _ARTIFACT_CACHE[key] = (stat.st_mtime_ns, stat.st_size, content, etag)
+    return content, etag
 
 
 def asset_headers(headers, path, url):
@@ -83,6 +105,27 @@ class PrivateResponseMiddleware:
         return response
 
 
+def _etag_matches(if_none_match: str, etag: str) -> bool:
+    if not if_none_match:
+        return False
+    target = etag.removeprefix('W/')
+    return any(candidate == '*' or candidate.removeprefix('W/') == target for candidate in parse_etags(if_none_match))
+
+
+def _build_artifact_response(request, path: Path, *, content_type: str, cache_control: str) -> HttpResponse:
+    content, etag = _read_artifact(path)
+    if _etag_matches(request.headers.get('If-None-Match', ''), etag):
+        response = HttpResponseNotModified()
+        response['ETag'] = etag
+        response['Cache-Control'] = cache_control
+        return response
+    response = HttpResponse(content if request.method == 'GET' else b'', content_type=content_type)
+    response['Content-Length'] = len(content)
+    response['ETag'] = etag
+    response['Cache-Control'] = cache_control
+    return response
+
+
 def frontend(request, route=''):
     segments = route.split('/')
     if segments[0] in RESERVED or any('.' in part or '\\' in part for part in segments):
@@ -94,21 +137,17 @@ def frontend(request, route=''):
     path = safe_file(Path(settings.FRONTEND_DIST), 'index.html')
     if path is None:
         raise Http404
-    content = path.read_bytes()
-    response = HttpResponse(content if request.method == 'GET' else b'', content_type='text/html; charset=utf-8')
-    response['Content-Length'] = len(content)
-    response['Cache-Control'] = 'no-cache'
-    return response
+    return _build_artifact_response(request, path, content_type='text/html; charset=utf-8', cache_control='no-cache')
 
 
+@require_safe
 def favicon(request):
-    if request.method not in ('GET', 'HEAD'):
-        return HttpResponseNotAllowed(['GET', 'HEAD'])
     path = safe_file(Path(settings.FRONTEND_DIST), 'favicon.ico')
     if path is None:
         raise Http404
-    content = path.read_bytes()
-    response = HttpResponse(content if request.method == 'GET' else b'', content_type='image/x-icon')
-    response['Content-Length'] = len(content)
-    response['Cache-Control'] = 'public, max-age=0, must-revalidate'
-    return response
+    return _build_artifact_response(
+        request,
+        path,
+        content_type='image/x-icon',
+        cache_control='public, max-age=0, must-revalidate',
+    )
