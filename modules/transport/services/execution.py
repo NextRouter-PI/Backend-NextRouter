@@ -284,9 +284,13 @@ def record_participation(*, actor_id, participation_id, kind, operation_id):
         )
     now = timezone.now()
     _set_participant(participant, target, now)
-    return ParticipationEvent.objects.create(
+    event = ParticipationEvent.objects.create(
         participation=participant, kind=kind, actor_id=actor_id, occurred_at=now, operation_id=operation_id
     )
+    from modules.transport.broadcast import broadcast_presence
+
+    broadcast_presence(travel.pk, participant.eligibility.passenger.user_id, participant.pk, target)
+    return event
 
 
 @transaction.atomic

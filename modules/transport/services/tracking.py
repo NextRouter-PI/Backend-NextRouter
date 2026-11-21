@@ -8,6 +8,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from modules.organizations.models import CompanyMembership
+from modules.transport.broadcast import broadcast_approaching
 from modules.transport.models import Travel
 
 from .common import active_actor, lock_travel, notify, require
@@ -43,6 +44,12 @@ def _notify_approaching_passengers(travel, latitude, longitude):
                 key=f'approaching:{travel.pk}:{participation.pk}',
                 status='approaching',
                 revision=travel.revision,
+            )
+            broadcast_approaching(
+                travel.pk,
+                participation.eligibility.passenger.user_id,
+                participation.pk,
+                round(distance),
             )
 
 
