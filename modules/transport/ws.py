@@ -90,9 +90,41 @@ class TravelLocationConsumer(AsyncWebsocketConsumer):
         # Releitura evita transmitir evento antigo ou dados a quem perdeu acesso.
         await self.send_json({'type': 'location', **position})
 
+    async def travel_approaching(self, event):
+        if not await self.session_active():
+            await self.close(code=4001)
+            return
+        user_id = str(self.scope['user'].pk)
+        if user_id != event['recipient_user_id'] and not await self.is_operational_viewer():
+            return
+        await self.send_json({
+            'type': 'approaching',
+            'participation_id': event['participation_id'],
+            'distance_meters': event['distance_meters'],
+        })
+
+    async def travel_presence(self, event):
+        if not await self.session_active():
+            await self.close(code=4001)
+            return
+        user_id = str(self.scope['user'].pk)
+        if user_id != event['recipient_user_id'] and not await self.is_operational_viewer():
+            return
+        await self.send_json({
+            'type': 'presence',
+            'participation_id': event['participation_id'],
+            'status': event['status'],
+        })
+
     async def travel_closed(self, event):
         await self.send_json({'type': 'closed'})
         await self.close(code=1000)
+
+    @database_sync_to_async
+    def is_operational_viewer(self):
+        from modules.transport.access import operational_travels_for
+
+        return operational_travels_for(self.scope['user']).filter(pk=self.travel_id).exists()
 
     @database_sync_to_async
     def session_active(self):
