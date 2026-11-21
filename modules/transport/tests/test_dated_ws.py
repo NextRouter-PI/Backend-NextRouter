@@ -121,6 +121,7 @@ class DatedWebSocketTests(ServiceTestCase):
                 actor_id=self.driver.user_id, participation_id=participant.pk, kind='no_show', operation_id=uuid4()
             )
             await database_sync_to_async(finish_travel)(actor_id=self.driver.user_id, travel_id=self.trip.pk)
+            self.assertEqual((await socket.receive_json_from())['type'], 'presence')
             self.assertEqual((await socket.receive_json_from())['type'], 'closed')
             self.assertEqual((await socket.receive_output())['code'], 1000)
             await socket.disconnect()

@@ -1,5 +1,8 @@
 """Ciclo de vida de execução da viagem: início e finalização pelo motorista."""
 
+import logging
+
+from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 
@@ -9,7 +12,10 @@ from modules.transport.services.actors import driver_actor
 from modules.transport.services.locking import lock_travel
 from modules.transport.services.notifications import notify, travel_recipients
 from modules.transport.services.planning import ready_requirements
+from modules.transport.services.tracking import location_cache_key
 from shared.exceptions import require
+
+logger = logging.getLogger(__name__)
 
 
 @transaction.atomic
@@ -68,6 +74,14 @@ def finish_travel(*, actor_id, travel_id):
         'Registre a presença/ausência dos participantes antes de finalizar.',
     )
     travel.mark_finished(now=timezone.now())
+
+    def clear_location_cache():
+        try:
+            cache.delete(location_cache_key(travel.pk))
+        except Exception:
+            logger.warning('location_cache_clear_failed travel_id=%s', travel.pk)
+
+    transaction.on_commit(clear_location_cache)
     close_travel_after_commit(travel.pk)
     notify(
         recipients=travel_recipients(travel),
