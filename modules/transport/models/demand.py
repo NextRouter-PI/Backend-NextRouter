@@ -238,6 +238,27 @@ class DailyChangeRequest(models.Model):
         self.applied_at = now
         self.save(update_fields=['application', 'applied_at'])
 
+    def supersede(self, *, now, status: str | None = None) -> None:
+        from shared.exceptions import require
+
+        require(self.application != self.Application.APPLIED, 'request_applied', 'A alteração já foi aplicada.')
+        self.status = status or self.Status.SUPERSEDED
+        self.closed_at = now
+        if self.application == self.Application.PREPARING:
+            self.application = self.Application.FAILED
+        self.save(update_fields=['status', 'closed_at', 'application'])
+        self.seat_reservations.filter(status='held').update(status='released', closed_at=now)
+        for snapshot in self.route_snapshots.select_related('travel').order_by('travel_id'):
+            snapshot.state = 'superseded'
+            snapshot.save(update_fields=['state'])
+            snapshot.optimization_jobs.exclude(status='done').update(
+                status='failed',
+                error='proposal_closed',
+                claim_token=None,
+                claim_expires_at=None,
+            )
+            snapshot.travel.restore_previous_planning_status()
+
     def clean(self):
         super().clean()
         service = related_values(self, 'proposed_service', 'direction', 'route_group_id')

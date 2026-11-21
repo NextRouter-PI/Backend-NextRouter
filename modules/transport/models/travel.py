@@ -300,6 +300,22 @@ class Travel(models.Model):
             self.save(update_fields=['planning_status'])
         return new_status
 
+    def restore_previous_planning_status(self) -> None:
+        if self.status != self.Status.SCHEDULED:
+            return
+        snapshot = self.current_snapshot
+        pending = self.route_snapshots.filter(
+            change_request__status='approved', change_request__application='preparing'
+        ).exists()
+        self.planning_status = (
+            self.PlanningStatus.PREPARING
+            if pending
+            else self.PlanningStatus.READY
+            if snapshot and snapshot.state == 'ready' and snapshot.revision == self.revision
+            else self.PlanningStatus.BLOCKED
+        )
+        self.save(update_fields=['planning_status'])
+
     def occupied_seat_count(self, *, exclude_request_id=None) -> int:
         allocated = self.participations.active_occupancy().count()
         reservations = self.seat_reservations.held()

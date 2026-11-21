@@ -44,9 +44,9 @@ from modules.transport.services.execution import (
     record_participation,
     start_travel,
 )
-from modules.transport.services.history import transition_lost_item
 from modules.transport.services.invitations import invite_driver, report_unavailability, respond_invitation
-from modules.transport.services.maintenance import read_notification
+from modules.transport.services.lost_items import transition_lost_item
+from modules.transport.services.notifications import read_notification
 from modules.transport.services.planning import assign_vehicle, calculate_travel, close_day, publish_travel
 from modules.transport.services.requests import apply_request, decide_request, withdraw_request
 from shared.admin import AdminCommandSpec, by_id, register_admin_commands
