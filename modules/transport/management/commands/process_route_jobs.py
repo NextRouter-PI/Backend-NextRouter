@@ -106,7 +106,7 @@ class Command(BaseCommand):
                             total_outcomes += o_count
                             total_jobs += j_count
                         except DomainError:
-                            logger.error('worker_stopped reason=%s', 'domain')
+                            logger.error('worker_stopped reason=%s', 'domain', extra={'op_event': 'worker_stopped'})
                 else:
                     company = Company.objects.filter(
                         pk=company_id, is_approved=True, is_rejected=False, user__is_active=True
@@ -121,6 +121,15 @@ class Command(BaseCommand):
                     total_outcomes,
                     total_jobs,
                     duration_ms,
+                    extra={
+                        'op_event': 'worker_cycle',
+                        'op_fields': {
+                            'schedules': total_schedules,
+                            'days': total_outcomes,
+                            'jobs': total_jobs,
+                            'duration_ms': duration_ms,
+                        },
+                    },
                 )
                 if total_schedules or total_outcomes or total_jobs:
                     self.stdout.write(
@@ -133,7 +142,9 @@ class Command(BaseCommand):
                 stop.wait(options['poll_seconds'])
         except (DatabaseError, DomainError) as exc:
             logger.error(
-                'worker_stopped reason=%s', 'database_unavailable' if isinstance(exc, DatabaseError) else 'domain'
+                'worker_stopped reason=%s',
+                'database_unavailable' if isinstance(exc, DatabaseError) else 'domain',
+                extra={'op_event': 'worker_stopped'},
             )
             raise CommandError(
                 'Worker interrompido; confira disponibilidade e configuração sem registrar dados privados.'

@@ -5,8 +5,7 @@ from django.db import transaction
 from modules.transport.models import RouteStop, RouteStopParticipant
 from modules.transport.models.planning import valid_coordinate_pair
 from modules.transport.osrm import optimize_coordinates, route_coordinates
-
-from .common import require
+from shared.exceptions import require
 
 
 def coordinates(point):
@@ -71,23 +70,35 @@ def calculate_frozen(frozen):
 
 
 def materialize_stops(snapshot):
-    """Associa IDs operacionais; proposta só ganha associação ao aplicar a transferência."""
+    """Associa IDs operacionais em lote; proposta só ganha associação ao aplicar a transferência."""
     require(transaction.get_connection().in_atomic_block, 'transaction_required', 'É necessária uma transação.')
+    participants_by_eligibility = {
+        participant.eligibility_id: participant for participant in snapshot.travel.participations.all()
+    }
+    to_create: list[RouteStopParticipant] = []
     for row in snapshot.stops.order_by('position'):
-        metadata = row.point_snapshot.get('_operations', [])
-        for item in metadata:
-            participant = snapshot.travel.participations.filter(eligibility_id=item['eligibility_id']).first()
-            if participant:
-                RouteStopParticipant.objects.get_or_create(
-                    stop=row, participation=participant, operation=item['operation']
-                )
+        for item in row.point_snapshot.get('_operations', []):
+            participant = participants_by_eligibility.get(item['eligibility_id'])
+            if participant is not None:
+                to_create.append(RouteStopParticipant(stop=row, participation=participant, operation=item['operation']))
+    if to_create:
+        RouteStopParticipant.objects.bulk_create(to_create, ignore_conflicts=True)
 
 
 def persist_stops(snapshot, rows):
-    for position, row in enumerate(rows, start=1):
-        point = {
-            **row['point'],
-            '_operations': [{'eligibility_id': pk, 'operation': row['operation']} for pk in row['eligibilities']],
-        }
-        RouteStop.objects.create(snapshot=snapshot, position=position, point_snapshot=point)
+    require(transaction.get_connection().in_atomic_block, 'transaction_required', 'É necessária uma transação.')
+    if rows:
+        RouteStop.objects.bulk_create([
+            RouteStop(
+                snapshot=snapshot,
+                position=position,
+                point_snapshot={
+                    **row['point'],
+                    '_operations': [
+                        {'eligibility_id': pk, 'operation': row['operation']} for pk in row['eligibilities']
+                    ],
+                },
+            )
+            for position, row in enumerate(rows, start=1)
+        ])
     materialize_stops(snapshot)
