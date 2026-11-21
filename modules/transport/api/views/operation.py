@@ -163,7 +163,11 @@ class ParticipantViewSet(DomainViewSet):
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return self.queryset
-        return participations_for(self.request.user).select_related('eligibility__passenger__user').order_by('pk')
+        return (
+            participations_for(self.request.user)
+            .select_related('eligibility__passenger__user__profile_picture')
+            .order_by('pk')
+        )
 
     @domain_action('Registre embarque ausência ou desembarque', request=PresenceInput, response=EventSerializer)
     def record(self, request, pk=None):
@@ -232,7 +236,7 @@ class StopViewSet(DomainViewSet):
         return (
             RouteStop.objects
             .filter(snapshot__travel__in=operational_travels_for(self.request.user))
-            .prefetch_related('participants')
+            .prefetch_related('participants__participation__eligibility__passenger__user__profile_picture')
             .order_by('snapshot', 'position')
         )
 

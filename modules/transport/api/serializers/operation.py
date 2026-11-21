@@ -53,8 +53,18 @@ class TravelSerializer(serializers.ModelSerializer):
         )
 
 
+def _user_avatar_url(user, request):
+    picture = getattr(user, 'profile_picture', None)
+    if not picture or not picture.file:
+        return None
+    url = picture.file.url
+    return request.build_absolute_uri(url) if request else url
+
+
 class ParticipantSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='eligibility.passenger.user.name', read_only=True)
+    profile_picture_url = serializers.SerializerMethodField()
+    point_snapshot = serializers.JSONField(source='eligibility.point_snapshot', read_only=True)
 
     class Meta:
         model = TravelParticipation
@@ -64,6 +74,8 @@ class ParticipantSerializer(serializers.ModelSerializer):
             'eligibility',
             'leg',
             'name',
+            'profile_picture_url',
+            'point_snapshot',
             'status',
             'allocated_at',
             'withdrawn_at',
@@ -71,6 +83,25 @@ class ParticipantSerializer(serializers.ModelSerializer):
             'boarded_at',
             'dropped_off_at',
         )
+
+    def get_profile_picture_url(self, obj) -> str | None:
+        return _user_avatar_url(obj.eligibility.passenger.user, self.context.get('request'))
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        is_operational = bool(
+            user
+            and user.is_authenticated
+            and (
+                user.pk == instance.travel.company.user_id
+                or user.pk == getattr(instance.travel.driver, 'user_id', None)
+            )
+        )
+        if not is_operational:
+            data.pop('point_snapshot', None)
+        return data
 
 
 class EventSerializer(serializers.ModelSerializer):
@@ -101,9 +132,15 @@ class SnapshotSerializer(serializers.ModelSerializer):
 
 
 class StopParticipantSerializer(serializers.ModelSerializer):
+    passenger_name = serializers.CharField(source='participation.eligibility.passenger.user.name', read_only=True)
+    profile_picture_url = serializers.SerializerMethodField()
+
     class Meta:
         model = RouteStopParticipant
-        fields = ('participation', 'operation')
+        fields = ('participation', 'operation', 'passenger_name', 'profile_picture_url')
+
+    def get_profile_picture_url(self, obj) -> str | None:
+        return _user_avatar_url(obj.participation.eligibility.passenger.user, self.context.get('request'))
 
 
 class StopSerializer(serializers.ModelSerializer):

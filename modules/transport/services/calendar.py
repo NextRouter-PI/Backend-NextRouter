@@ -66,6 +66,8 @@ def _generate(group, date, *, explicit=False):
     ):
         return existing
     policy = get(ResponsePolicy.objects.all(), route_group=group) if existing is None else None
+    if existing is not None and explicit:
+        policy = ResponsePolicy.objects.filter(route_group=group).first()
     services = [
         s
         for s in RecurringService.objects.filter(route_group=group).order_by('pk')
@@ -188,10 +190,28 @@ def _generate(group, date, *, explicit=False):
     for travel in day.travels.exclude(service_id__in=eligible_services).exclude(status='canceled'):
         configuration['issues'].append(f'travel:{travel.pk}:service_removed')
     old = day.configuration_snapshot
-    if existing and old != configuration:
+    deadlines_changed = False
+    if existing and explicit and policy is not None:
+        new_opens = instant(date, policy.opens_time, policy.opens_days_before)
+        new_normal = instant(date, policy.normal_time, policy.normal_days_before)
+        new_extension = (
+            instant(date, policy.extension_time, policy.extension_days_before)
+            if policy.extension_time is not None
+            else None
+        )
+        if day.opens_at != new_opens or day.normal_deadline != new_normal or day.extension_deadline != new_extension:
+            day.opens_at = new_opens
+            day.normal_deadline = new_normal
+            day.extension_deadline = new_extension
+            day.full_clean()
+            deadlines_changed = True
+    if existing and (old != configuration or deadlines_changed):
         day.revision += 1
     day.configuration_snapshot = configuration
-    day.save(update_fields=['configuration_snapshot', 'revision'])
+    update_fields = ['configuration_snapshot', 'revision']
+    if deadlines_changed:
+        update_fields.extend(['opens_at', 'normal_deadline', 'extension_deadline'])
+    day.save(update_fields=update_fields)
     if configuration['issues']:
         day.travels.filter(status='scheduled').update(planning_status='blocked')
     return day
