@@ -119,8 +119,6 @@ def run_simulation(plan: dict, *, base_url: str, duration_seconds: int, interval
             )
 
             for stop in stop_schedule.get(step_idx, []):
-                api.post(f'/api/route-stops/{stop["id"]}/handle/', {'skipped': False})
-                print(f'   ✓ Parada #{stop["position"]} atendida: {stop["name"]}')
                 for participant in stop['participants']:
                     kind = 'boarded' if participant['operation'] == 'board' else 'dropped_off'
                     api.post(
@@ -129,6 +127,8 @@ def run_simulation(plan: dict, *, base_url: str, duration_seconds: int, interval
                     )
                     verb = 'Embarque' if kind == 'boarded' else 'Desembarque'
                     print(f'   ✓ {verb} registrado: {participant["passenger_name"]}')
+                api.post(f'/api/route-stops/{stop["id"]}/handle/', {'skipped': False})
+                print(f'   ✓ Parada #{stop["position"]} atendida: {stop["name"]}')
 
             if step_idx < steps - 1:
                 target_elapsed = (step_idx + 1) * (duration_seconds / (steps - 1))
