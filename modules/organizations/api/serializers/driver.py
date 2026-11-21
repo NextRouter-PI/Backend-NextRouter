@@ -3,11 +3,8 @@ from django.db.models import Avg
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, SlugRelatedField
 
-from modules.accounts.api.serializers.user import (
-    BaseProfileCreateSerializer,
-    BaseProfilePatchSerializer,
-    UserListAndRetriveSerializer,
-)
+from modules.accounts.api.serializers.user import UserListAndRetriveSerializer
+from modules.organizations.api.serializers.base import BaseProfileCreateSerializer, BaseProfilePatchSerializer
 from modules.organizations.models.driver import Driver
 from modules.uploads.api.serializers.document import DocumentSerializer
 from modules.uploads.models.document import Document

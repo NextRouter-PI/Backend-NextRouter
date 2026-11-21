@@ -196,7 +196,7 @@ def document_viewset(
             tags=[tag],
             summary=f'Exclua {singular}',
             description=delete or change,
-            responses={delete_status: None, **write_errors} if update_response else None,
+            responses={delete_status: None, **write_errors} if (delete is not None or update_response) else None,
         ),
     }
     if not generic_patch:

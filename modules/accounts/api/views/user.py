@@ -7,8 +7,8 @@ from rest_framework.viewsets import ModelViewSet
 
 from modules.accounts.api.serializers import UserCreateSerializer, UserListAndRetriveSerializer, UserPatchSerializer
 from modules.accounts.models import User
-from modules.transport.services.common import DomainError
-from modules.transport.services.governance import deactivate_account
+from modules.accounts.services import deactivate_account
+from shared.exceptions import DomainError
 from shared.openapi import RESP_400_VALIDATION, RESP_401_UNAUTHORIZED, document_viewset
 
 

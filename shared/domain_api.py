@@ -61,6 +61,14 @@ class DomainViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericVie
     http_method_names = ('get', 'post', 'patch', 'head', 'options')
     filterset_fields = ()
 
+    def get_scoped_queryset(self, user):
+        raise NotImplementedError(f'{type(self).__name__} deve implementar get_scoped_queryset(user).')
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return self.queryset
+        return self.get_scoped_queryset(self.request.user)
+
     def input(self, serializer_class, *, partial=False):
         serializer = serializer_class(data=self.request.data, partial=partial, context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)

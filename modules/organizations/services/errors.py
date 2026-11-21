@@ -1,5 +1,5 @@
-from django.core.exceptions import ValidationError
+from shared.exceptions import DomainError
 
 
-class MembershipError(ValidationError):
+class MembershipError(DomainError):
     """Erro de domínio com código estável, independente de HTTP/admin."""

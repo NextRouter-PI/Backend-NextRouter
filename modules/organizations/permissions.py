@@ -1,6 +1,6 @@
 from rest_framework import permissions
 
-from modules.transport.access import companies_for
+from modules.organizations.access import companies_for
 
 
 class IsCompany(permissions.BasePermission):

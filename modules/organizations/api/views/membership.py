@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 
+from modules.organizations.access import memberships_for
 from modules.organizations.api.serializers.membership import (
     AssignGroupInput,
     AuthorizationsInput,
@@ -17,7 +18,6 @@ from modules.organizations.services.memberships import (
     request_membership,
     withdraw_membership,
 )
-from modules.transport.access import memberships_for
 from modules.transport.services.configuration import authorize_services
 from shared.api import ReasonInput
 from shared.domain_api import DomainViewSet, domain_action, domain_resource
@@ -30,11 +30,9 @@ class MembershipViewSet(DomainViewSet):
     write_serializer_class = MembershipInput
     filterset_fields = ('company', 'status', 'passenger', 'driver')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
+    def get_scoped_queryset(self, user):
         return (
-            memberships_for(self.request.user)
+            memberships_for(user)
             .select_related(
                 'company',
                 'passenger__user',
@@ -105,10 +103,8 @@ class MembershipEventViewSet(DomainViewSet):
     serializer_class = MembershipEventSerializer
     filterset_fields = ('membership', 'action')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
-        return MembershipEvent.objects.filter(membership__in=memberships_for(self.request.user)).order_by('pk')
+    def get_scoped_queryset(self, user):
+        return MembershipEvent.objects.filter(membership__in=memberships_for(user)).order_by('pk')
 
 
 @domain_resource('Vínculos', 'participações em grupos')
@@ -117,12 +113,10 @@ class GroupMembershipViewSet(DomainViewSet):
     serializer_class = GroupMembershipSerializer
     filterset_fields = ('membership', 'route_group')
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return self.queryset
+    def get_scoped_queryset(self, user):
         return (
             PassengerGroupMembership.objects
-            .filter(membership__in=memberships_for(self.request.user), membership__status='active')
+            .filter(membership__in=memberships_for(user), membership__status='active')
             .prefetch_related('service_authorizations')
             .order_by('pk')
         )
