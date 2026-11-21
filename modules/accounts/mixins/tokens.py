@@ -1,9 +1,3 @@
-from datetime import timedelta
-
-from django.conf import settings
-from django.contrib.auth.hashers import check_password
-from django.db.models import F
-from django.utils import timezone
 from rest_framework import serializers
 
 from modules.accounts.models.email_token import EmailToken
@@ -24,22 +18,16 @@ def check_email_token(email, code, token_type, user=None):
     if not token:
         raise serializers.ValidationError({'code': 'Código inválido ou inexistente.'})
 
-    if token_type == EmailToken.TokenType.NEW_EMAIL and (
-        not user or not user.is_authenticated or token.user_id != user.pk
-    ):
-        raise serializers.ValidationError({'code': 'Código inválido ou inexistente.'})
-
     if token.consumed:
         raise serializers.ValidationError({'code': 'Este código já foi utilizado.'})
 
-    if timezone.now() > token.created_at + timedelta(minutes=settings.EMAIL_TOKEN_EXPIRATION_MINUTES):
+    if token.is_expired():
         raise serializers.ValidationError({'code': 'Este código expirou. Solicite um novo código.'})
 
-    if token.failed_attempts >= settings.EMAIL_TOKEN_MAX_ATTEMPTS:
+    if token.is_blocked():
         raise serializers.ValidationError({'code': 'Número máximo de tentativas excedido. Solicite um novo código.'})
 
-    if not code or not check_password(code, token.token_hash):
-        EmailToken.objects.filter(pk=token.pk).update(failed_attempts=F('failed_attempts') + 1)
+    if not code or not token.verify_code(code):
         raise serializers.ValidationError({'code': 'Código inválido ou inexistente.'})
 
     return token
@@ -47,7 +35,7 @@ def check_email_token(email, code, token_type, user=None):
 
 def consume_email_token(token):
     # A atualização condicional impede duas confirmações simultâneas com o mesmo código.
-    if not EmailToken.objects.filter(pk=token.pk, consumed=False).update(consumed=True):
+    if not token.consume_atomically():
         raise serializers.ValidationError({'code': 'Este código já foi utilizado.'})
 
 

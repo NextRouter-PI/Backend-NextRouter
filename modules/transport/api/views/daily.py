@@ -1,3 +1,5 @@
+from django.db.models import Prefetch
+
 from modules.transport.access import eligibilities_for
 from modules.transport.api.serializers.daily import (
     AnswerInput,
@@ -10,7 +12,13 @@ from modules.transport.api.serializers.daily import (
     LegInput,
     ResponseSerializer,
 )
-from modules.transport.models import DailyChangeRequest, DailyResponse, ServiceDay, ServiceDayEligibility
+from modules.transport.models import (
+    DailyChangeRequest,
+    DailyResponse,
+    RecurringService,
+    ServiceDay,
+    ServiceDayEligibility,
+)
 from modules.transport.services.calendar import revise_day
 from modules.transport.services.demand import answer_day, withdraw_leg
 from modules.transport.services.execution import cancel_day
@@ -57,7 +65,18 @@ class EligibilityViewSet(DomainViewSet):
     filterset_fields = ('day', 'passenger')
 
     def get_scoped_queryset(self, user):
-        return eligibilities_for(user).select_related('day', 'response', 'passenger').order_by('pk')
+        return (
+            eligibilities_for(user)
+            .select_related('day__route_group', 'response', 'passenger')
+            .prefetch_related(
+                Prefetch(
+                    'day__route_group__services',
+                    queryset=RecurringService.objects.order_by('pk'),
+                    to_attr='ordered_services',
+                )
+            )
+            .order_by('pk')
+        )
 
     @domain_action('Responda ida e retorno na janela normal', request=AnswerInput, response=ResponseSerializer)
     def answer(self, request, pk=None):

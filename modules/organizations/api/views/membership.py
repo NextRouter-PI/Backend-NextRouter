@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from django.shortcuts import get_object_or_404
 
 from modules.organizations.access import memberships_for
@@ -9,7 +11,13 @@ from modules.organizations.api.serializers.membership import (
     MembershipInput,
     MembershipSerializer,
 )
-from modules.organizations.models import CompanyMembership, MembershipEvent, PassengerGroupMembership
+from modules.organizations.models import (
+    CompanyMembership,
+    Driver,
+    MembershipEvent,
+    Passenger,
+    PassengerGroupMembership,
+)
 from modules.organizations.services.groups import assign_passenger_group
 from modules.organizations.services.memberships import (
     approve_membership,
@@ -44,17 +52,18 @@ class MembershipViewSet(DomainViewSet):
             .order_by('-pk')
         )
 
+    PROFILE_MODELS: ClassVar[dict[str, type[Passenger | Driver]]] = {'passenger': Passenger, 'driver': Driver}
+
     def create(self, request):
         data = self.input(MembershipInput)
-        profile = get_object_or_404(
-            CompanyMembership._meta.get_field(data['profile']).remote_field.model, user=request.user
-        )
+        profile_kind = data['profile']
+        profile = get_object_or_404(self.PROFILE_MODELS[profile_kind], user=request.user)
         membership = request_membership(
             actor_id=request.user.pk,
             company_id=data['company_id'],
             route_group_id=data.get('route_group_id'),
             contact_phone=data.get('contact_phone', ''),
-            **{f'{data["profile"]}_id': profile.pk},
+            **{f'{profile_kind}_id': profile.pk},
         )
         return self.respond(membership, status=201)
 
@@ -130,4 +139,5 @@ class GroupMembershipViewSet(DomainViewSet):
     def authorize(self, request, pk=None):
         member = self.get_object()
         authorize_services(actor_id=request.user.pk, group_membership_id=member.pk, **self.input(AuthorizationsInput))
-        return self.respond(self.get_object())
+        member = self.get_queryset().get(pk=member.pk)
+        return self.respond(member)

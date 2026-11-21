@@ -32,17 +32,16 @@ class MembershipSerializer(serializers.ModelSerializer):
         )
 
     def get_applicant_name(self, obj) -> str:
-        return (obj.passenger or obj.driver).user.name
+        return obj.profile_user.name
 
     def get_applicant_profile_picture_url(self, obj) -> str | None:
-        user = (obj.passenger or obj.driver).user
-        picture = getattr(user, 'profile_picture', None)
+        picture = getattr(obj.profile_user, 'profile_picture', None)
         return picture.url if picture else None
 
     def get_contact_phone(self, obj) -> str:
         if obj.contact_phone:
             return obj.contact_phone
-        return (obj.passenger or obj.driver).user.phone or ''
+        return obj.profile_user.phone or ''
 
 
 class MembershipInput(InputSerializer):

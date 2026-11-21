@@ -1,6 +1,8 @@
 from drf_spectacular.utils import OpenApiExample, extend_schema, extend_schema_view, inline_serializer
 from rest_framework import serializers
 
+from modules.accounts.models import EmailToken
+
 from .email_token import EmailTokenViewSet
 
 REGISTRATION_REQUEST = inline_serializer('RegistrationRequest', fields={'email': serializers.EmailField()})
@@ -43,16 +45,7 @@ PASSWORD_CONFIRM = inline_serializer(
 )
 class RegistrationTokenViewSet(EmailTokenViewSet):
     authentication_classes = ()
-    token_type = 'new-user'
-
-    def get_serializer(self, *args, **kwargs):
-        if 'data' in kwargs:
-            data = kwargs['data'].copy()
-            data['token_type'] = self.token_type
-            if self.action == 'reset_password':
-                data['password'] = data.get('new_password', data.get('password'))
-            kwargs['data'] = data
-        return super().get_serializer(*args, **kwargs)
+    token_type = EmailToken.TokenType.NEW_USER
 
 
 @extend_schema_view(
@@ -87,4 +80,4 @@ class RegistrationTokenViewSet(EmailTokenViewSet):
     ),
 )
 class PasswordResetTokenViewSet(RegistrationTokenViewSet):
-    token_type = 'new-password'
+    token_type = EmailToken.TokenType.NEW_PASSWORD

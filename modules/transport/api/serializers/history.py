@@ -36,4 +36,4 @@ class LostItemInput(OperationInput):
 
 
 class CustodyInput(OperationInput):
-    target_status = serializers.ChoiceField(choices=['found', 'returned'])
+    target_status = serializers.ChoiceField(choices=[LostItem.Status.FOUND, LostItem.Status.RETURNED])

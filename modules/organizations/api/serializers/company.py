@@ -1,21 +1,47 @@
-from django.db import transaction
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
-from modules.accounts.api.serializers.user import UserListAndRetriveSerializer
+from modules.accounts.api.serializers.user import UserReadSerializer
 from modules.organizations.api.serializers.base import BaseProfileCreateSerializer, BaseProfilePatchSerializer
 from modules.organizations.models.company import Company
+from modules.organizations.services.profiles import create_company_profile, update_company_profile
 from modules.organizations.validators.cnpj import validate_cnpj
 from modules.uploads.api.serializers.document import DocumentSerializer
 from modules.uploads.models.document import Document
-from shared.geocoding import lookup_cep_brasilapi
 
 
-class CompanyListAndRetrieveSerializer(ModelSerializer):
-    user_data = UserListAndRetriveSerializer(source='user', read_only=True)
+class _CompanyPublicMixin(serializers.Serializer):
     profile_picture_url = serializers.SerializerMethodField()
     route_groups = serializers.SerializerMethodField()
+
+    def get_profile_picture_url(self, instance) -> str | None:
+        user = getattr(instance, 'user', None)
+        picture = getattr(user, 'profile_picture', None) if user else None
+        return picture.url if picture else None
+
+    def get_route_groups(self, instance) -> list[dict]:
+        groups = getattr(instance, 'matched_route_groups', None)
+        if groups is None:
+            groups = instance.route_groups.all()
+        return [
+            {
+                'id': group.id,
+                'name': group.name,
+                'city': group.destination.city if group.destination else '',
+                'state': group.destination.state if group.destination else '',
+            }
+            for group in groups
+        ]
+
+
+class CompanyPublicSerializer(_CompanyPublicMixin, ModelSerializer):
+    class Meta:
+        model = Company
+        fields = ('id', 'trade_name', 'city', 'state', 'profile_picture_url', 'route_groups')
+
+
+class CompanyListAndRetrieveSerializer(_CompanyPublicMixin, ModelSerializer):
+    user_data = UserReadSerializer(source='user', read_only=True)
     articles_of_association_document_data = DocumentSerializer(
         source='articles_of_association_document', read_only=True
     )
@@ -58,32 +84,17 @@ class CompanyListAndRetrieveSerializer(ModelSerializer):
             'certificate_of_good_stading_document_data',
         )
 
-    def get_profile_picture_url(self, instance) -> str | None:
-        user = getattr(instance, 'user', None)
-        picture = getattr(user, 'profile_picture', None) if user else None
-        return picture.url if picture else None
-
-    def get_route_groups(self, instance) -> list[dict]:
-        groups = getattr(instance, 'matched_route_groups', None)
-        if groups is None:
-            groups = instance.route_groups.select_related('destination').order_by('name', 'id')
-        return [
-            {
-                'id': group.id,
-                'name': group.name,
-                'city': group.destination.city if group.destination else '',
-                'state': group.destination.state if group.destination else '',
-            }
-            for group in groups
-        ]
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
+    def _can_view_private(self, instance) -> bool:
         request = self.context.get('request')
         user = getattr(request, 'user', None)
-        if user and (instance.user_id == user.pk or (user.is_staff and user.has_perm('organizations.view_company'))):
-            return data
-        return {key: data[key] for key in ('id', 'trade_name', 'city', 'state', 'profile_picture_url', 'route_groups')}
+        return bool(
+            user and (instance.user_id == user.pk or (user.is_staff and user.has_perm('organizations.view_company')))
+        )
+
+    def to_representation(self, instance):
+        if not self._can_view_private(instance):
+            return CompanyPublicSerializer(instance, context=self.context).data
+        return super().to_representation(instance)
 
 
 class CompanyCreateSerializer(BaseProfileCreateSerializer):
@@ -130,26 +141,8 @@ class CompanyCreateSerializer(BaseProfileCreateSerializer):
             'state_registration',
         )
 
-    @transaction.atomic
     def create(self, validated_data):
-        user_data = validated_data.pop('user')
-        user = self.create_user_instance(user_data)
-
-        has_coords = validated_data.get('latitude') is not None and validated_data.get('longitude') is not None
-        if has_coords:
-            validated_data['geocoded_at'] = timezone.now()
-        else:
-            validated_data.pop('latitude', None)
-            validated_data.pop('longitude', None)
-            cep = validated_data.get('cep')
-            if cep:
-                cep_info = lookup_cep_brasilapi(cep)
-                if cep_info and cep_info['latitude'] is not None and cep_info['longitude'] is not None:
-                    validated_data['latitude'] = cep_info['latitude']
-                    validated_data['longitude'] = cep_info['longitude']
-                    validated_data['geocoded_at'] = timezone.now()
-
-        return Company.objects.create(user=user, **validated_data)
+        return create_company_profile(validated_data, token_instance=self.context['token_instance'])
 
 
 class CompanyPatchSerializer(BaseProfilePatchSerializer):
@@ -195,30 +188,12 @@ class CompanyPatchSerializer(BaseProfilePatchSerializer):
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-
         initial_data = getattr(self, 'initial_data', {}) or {}
         if 'cnpj' in initial_data:
             raise serializers.ValidationError({
                 'cnpj': 'Você não tem permissão para alterar o campo CNPJ. Contate o suporte.'
             })
-
         return attrs
 
-    @transaction.atomic
     def update(self, instance, validated_data):
-        document_fields = [
-            'articles_of_association_document',
-            'state_operating_license_document',
-            'certificate_of_good_stading_document',
-        ]
-
-        for doc_field in document_fields:
-            if doc_field in validated_data:
-                new_doc_instance = validated_data.pop(doc_field)
-                old_doc_instance = getattr(instance, doc_field, None)
-                if old_doc_instance and old_doc_instance != new_doc_instance:
-                    old_doc_instance.delete()
-
-                setattr(instance, doc_field, new_doc_instance)
-
-        return super().update(instance, validated_data)
+        return update_company_profile(instance, validated_data)

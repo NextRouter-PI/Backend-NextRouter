@@ -173,7 +173,7 @@ class ServiceDay(models.Model):
         if self.is_canceled:
             return 'canceled'
         if moment < self.opens_at:
-            return 'upcoming'
+            return 'not_open'
         if moment < self.normal_deadline:
             return 'normal'
         if self.extension_deadline and moment < self.extension_deadline:

@@ -1,19 +1,19 @@
 from django.contrib.auth.password_validation import validate_password
-from django.db import transaction
-from django.utils import timezone
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from rest_framework.validators import UniqueValidator
 
-from modules.accounts.mixins.tokens import TokenValidatorMixin, consume_email_token
-from modules.accounts.models.user import User
+from modules.accounts.mixins.tokens import TokenValidatorMixin
+from modules.accounts.models import EmailToken, User
+from modules.accounts.services import create_user_account, update_user_account
 from modules.accounts.validators.cpf import validate_cpf
 from modules.uploads.api.serializers import ImageSerializer
 from modules.uploads.models import Image
-from shared.geocoding import lookup_cep_brasilapi
 
 
-class UserListAndRetriveSerializer(ModelSerializer):
+@extend_schema_serializer(component_name='UserListAndRetrive')
+class UserReadSerializer(ModelSerializer):
     profile_picture_data = ImageSerializer(
         source='profile_picture',
         read_only=True,
@@ -43,21 +43,21 @@ class UserListAndRetriveSerializer(ModelSerializer):
         )
 
 
-class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
-    password = serializers.CharField(
-        write_only=True,
-        required=True,
-    )
+UserListAndRetriveSerializer = UserReadSerializer
+
+
+class _ProfilePictureFieldMixin(serializers.Serializer):
     profile_picture = serializers.SlugRelatedField(
         slug_field='attachment_key',
         queryset=Image.objects.all(),
         required=False,
         allow_null=True,
     )
-    code = serializers.CharField(
-        write_only=True,
-        required=True,
-    )
+
+
+class UserCreateSerializer(_ProfilePictureFieldMixin, ModelSerializer, TokenValidatorMixin):
+    password = serializers.CharField(write_only=True, required=True)
+    code = serializers.CharField(write_only=True, required=True)
     email = serializers.EmailField(
         required=True,
         validators=[
@@ -68,10 +68,7 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
             ),
         ],
     )
-    cpf = serializers.CharField(
-        required=True,
-        validators=[validate_cpf],
-    )
+    cpf = serializers.CharField(required=True, validators=[validate_cpf])
     latitude = serializers.FloatField(min_value=-90, max_value=90, required=False, allow_null=True)
     longitude = serializers.FloatField(min_value=-180, max_value=180, required=False, allow_null=True)
 
@@ -110,63 +107,26 @@ class UserCreateSerializer(ModelSerializer, TokenValidatorMixin):
     def validate_code(self, value):
         if not value.isdigit():
             raise serializers.ValidationError('Formato de código inválido.')
-
         return value
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
         code = attrs.get('code')
-
         if not code:
             raise serializers.ValidationError({'code': 'O código é obrigatório.'})
 
-        email = attrs.get('email')
-
-        token = self.validate_token(email, code, token_type='new-user')
+        token = self.validate_token(attrs.get('email'), code, token_type=EmailToken.TokenType.NEW_USER)
         validate_password(
             attrs['password'], user=User(**{key: attrs[key] for key in ('email', 'name') if key in attrs})
         )
-
         self.context['token_instance'] = token
-
         return attrs
 
-    @transaction.atomic
     def create(self, validated_data):
-        validated_data.pop('code', None)
-        consume_email_token(self.context['token_instance'])
-
-        pic_instance = validated_data.pop('profile_picture', None)
-        if pic_instance:
-            # A descrição da foto é exibida para outros usuários: não incluir o CPF.
-            pic_instance.description = f'Foto de {validated_data.get("name", "")}'
-            pic_instance.save(update_fields=['description'])
-
-        has_coords = validated_data.get('latitude') is not None and validated_data.get('longitude') is not None
-        if has_coords:
-            validated_data['geocoded_at'] = timezone.now()
-        else:
-            validated_data.pop('latitude', None)
-            validated_data.pop('longitude', None)
-            cep = validated_data.get('cep')
-            if cep:
-                cep_info = lookup_cep_brasilapi(cep)
-                if cep_info and cep_info['latitude'] is not None and cep_info['longitude'] is not None:
-                    validated_data['latitude'] = cep_info['latitude']
-                    validated_data['longitude'] = cep_info['longitude']
-                    validated_data['geocoded_at'] = timezone.now()
-
-        user = User.objects.create_user(**validated_data, profile_picture=pic_instance)
-
-        return user
+        return create_user_account(validated_data, token_instance=self.context['token_instance'])
 
 
-class UserPatchSerializer(UserCreateSerializer):
-    password = None
-    email = None
-    code = None
-    cpf = None
-
+class UserPatchSerializer(_ProfilePictureFieldMixin, ModelSerializer):
     class Meta:
         model = User
         fields = (
@@ -191,31 +151,5 @@ class UserPatchSerializer(UserCreateSerializer):
             })
         return attrs
 
-    @transaction.atomic
     def update(self, instance: User, validated_data):
-        if 'profile_picture' in validated_data:
-            new_pic_instance = validated_data.pop('profile_picture')
-            old_pic_instance = instance.profile_picture
-
-            if old_pic_instance and old_pic_instance != new_pic_instance:
-                old_pic_instance.delete()
-
-            if new_pic_instance:
-                new_pic_instance.description = f'Foto de {validated_data.get("name", instance.name)}'
-                new_pic_instance.save(update_fields=['description'])
-
-            instance.profile_picture = new_pic_instance
-
-        old_cep = instance.cep
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-
-        if 'cep' in validated_data and instance.cep and (instance.cep != old_cep or instance.latitude is None):
-            cep_info = lookup_cep_brasilapi(instance.cep)
-            if cep_info and cep_info['latitude'] is not None and cep_info['longitude'] is not None:
-                instance.latitude = cep_info['latitude']
-                instance.longitude = cep_info['longitude']
-                instance.geocoded_at = timezone.now()
-
-        instance.save()
-        return instance
+        return update_user_account(instance, validated_data)
