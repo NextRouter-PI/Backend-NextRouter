@@ -9,7 +9,7 @@ from django.utils import timezone
 from modules.transport.models import RouteOptimizationJob
 from modules.transport.osrm import OSRMError
 
-from .common import DomainError, get, lock_company, require
+from .common import DomainError, get, lock_company, lock_for_company, require
 from .requests import apply_request, fail_application
 from .routing import calculate_frozen, persist_stops
 
@@ -69,9 +69,11 @@ def _owned(job, token):
 
 @transaction.atomic
 def _complete(job_id, token, result):
-    initial = get(RouteOptimizationJob.objects.filter(snapshot__isnull=False), pk=job_id)
-    lock_company(initial.snapshot.travel.company_id)
-    job = get(RouteOptimizationJob.objects.select_for_update(), pk=job_id)
+    _, job = lock_for_company(
+        RouteOptimizationJob.objects.filter(snapshot__isnull=False),
+        job_id,
+        company_getter=lambda item: item.snapshot.travel.company_id,
+    )
     if not _owned(job, token):
         return False
     snapshot, travel = job.snapshot, job.snapshot.travel
@@ -130,9 +132,11 @@ def _complete(job_id, token, result):
 
 @transaction.atomic
 def _failed(job_id, token, *, max_attempts, retry_delay):
-    initial = get(RouteOptimizationJob.objects.filter(snapshot__isnull=False), pk=job_id)
-    lock_company(initial.snapshot.travel.company_id)
-    job = get(RouteOptimizationJob.objects.select_for_update(), pk=job_id)
+    _, job = lock_for_company(
+        RouteOptimizationJob.objects.filter(snapshot__isnull=False),
+        job_id,
+        company_getter=lambda item: item.snapshot.travel.company_id,
+    )
     if not _owned(job, token):
         return False
     if job.attempts >= max_attempts:

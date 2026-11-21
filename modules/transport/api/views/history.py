@@ -10,7 +10,8 @@ from modules.transport.api.serializers.history import (
     RatingSerializer,
 )
 from modules.transport.models import DriverRating, LostItem
-from modules.transport.services.history import rate_driver, report_lost_item, transition_lost_item
+from modules.transport.services.lost_items import report_lost_item, transition_lost_item
+from modules.transport.services.ratings import rate_driver
 from shared.domain_api import DomainViewSet, domain_action, domain_resource
 
 

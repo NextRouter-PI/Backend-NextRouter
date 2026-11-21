@@ -156,7 +156,7 @@ class AuthenticationTests(BaseAPITestCase):
         self.assertTrue(EmailToken.objects.get(email='new@example.com').consumed)
 
     def test_failed_delivery_rolls_back_code(self):
-        with patch('modules.accounts.services.send_email_token', return_value=False):
+        with patch('modules.accounts.services.email_tokens.send_email_token', return_value=False):
             response = self.client.post('/api/registration/request/', {'email': 'new@example.com'})
         self.assertEqual(response.status_code, 200)
         self.assertFalse(EmailToken.objects.filter(email='new@example.com').exists())
