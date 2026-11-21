@@ -118,7 +118,11 @@ def run_simulation(plan: dict, *, base_url: str, duration_seconds: int, interval
                 f'[{_format_clock(elapsed)} / {_format_clock(duration_seconds)}] {pct:3d}% · GPS ({lat:.5f}, {lng:.5f})'
             )
 
-            for stop in stop_schedule.get(step_idx, []):
+            stops_here = stop_schedule.get(step_idx, [])
+            if stops_here:
+                # Pequeno respiro para o SQLite concluir o commit de save_location do WebSocket.
+                time.sleep(0.35)
+            for stop in stops_here:
                 for participant in stop['participants']:
                     kind = 'boarded' if participant['operation'] == 'board' else 'dropped_off'
                     api.post(
