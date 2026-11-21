@@ -7,7 +7,7 @@ from math import hypot
 from urllib.parse import urlsplit
 from uuid import uuid4
 
-import requests
+import httpx
 
 from .scenarios import interpolate_route
 from .ws_client import SimpleWebSocketClient
@@ -18,7 +18,7 @@ class DriverApiSession:
 
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip('/')
-        self.session = requests.Session()
+        self.session = httpx.Client()
         self.csrf_token = ''
 
     def _refresh_csrf(self):
@@ -39,7 +39,7 @@ class DriverApiSession:
             },
             timeout=15,
         )
-        if not resp.ok:
+        if not resp.is_success:
             raise RuntimeError(f'POST {path} falhou ({resp.status_code}): {resp.text[:300]}')
         if 'csrftoken' in self.session.cookies:
             self.csrf_token = self.session.cookies['csrftoken']
@@ -51,7 +51,10 @@ class DriverApiSession:
         self._refresh_csrf()
 
     def cookie_header(self) -> str:
-        return '; '.join(f'{c.name}={c.value}' for c in self.session.cookies)
+        return '; '.join(f'{name}={value}' for name, value in self.session.cookies.items())
+
+    def close(self):
+        self.session.close()
 
 
 def _assign_stop_steps(points: list[tuple[float, float]], stops: list[dict]) -> dict[int, list[dict]]:
@@ -144,3 +147,4 @@ def run_simulation(plan: dict, *, base_url: str, duration_seconds: int, interval
         print('✓ Viagem finalizada com sucesso! O acompanhamento ao vivo foi encerrado na tela do passageiro.')
     finally:
         ws.close()
+        api.close()

@@ -70,7 +70,7 @@ Todos os caminhos de código e comandos abaixo são relativos à raiz do backend
   - `domain_api.py`: `DomainViewSet`, `@domain_resource` e `@domain_action` para views finas e schema OpenAPI padronizado.
   - `exceptions.py`: `custom_exception_handler` (mapeia `DjangoValidationError` e erros de integridade para respostas HTTP padronizadas).
   - `frontend_artifact.py`: contrato offline de inspeção, manifesto (`frontend-release.json`), preparo e verificação de `frontend_dist/`.
-  - `pagination.py` (`CustomPagination`), `openapi.py`, `address.py`, `geocoding.py`, `admin.py` e `demo.py`.
+  - `pagination.py` (`CustomPagination`), `openapi.py`, `address.py`, `geocoding.py`, `http.py`, `geo.py`, `admin.py` e `demo.py`.
 - **Scripts e testes (`scripts/`, `tests/`, `html-template-test/`):**
   - `scripts/dev.py` (launcher ASGI local/LAN), `scripts/runtime.py` (launcher/preflight de produção), `scripts/frontend_artifact.py` e `scripts/auditar_schema.py`.
   - `tests/helpers.py`: `BaseAPITestCase` e fábricas com dados fictícios válidos.

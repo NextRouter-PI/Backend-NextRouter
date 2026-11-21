@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from math import atan2, cos, isfinite, radians, sin, sqrt
+from math import isfinite
 
 from django.conf import settings
 from django.core.cache import cache
@@ -10,20 +10,13 @@ from django.utils import timezone
 from modules.organizations.models import CompanyMembership
 from modules.transport.broadcast import broadcast_approaching
 from modules.transport.models import Travel
+from shared.geo import distance_meters
 
 from .common import active_actor, lock_travel, notify, require
 from .execution import driver_actor
 
 logger = logging.getLogger(__name__)
 APPROACHING_RADIUS_METERS = 300.0
-
-
-def _haversine_meters(lat1, lng1, lat2, lng2):
-    r = 6371000.0
-    d_lat = radians(lat2 - lat1)
-    d_lng = radians(lng2 - lng1)
-    a = sin(d_lat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(d_lng / 2) ** 2
-    return 2 * r * atan2(sqrt(a), sqrt(1 - a))
 
 
 def _notify_approaching_passengers(travel, latitude, longitude):
@@ -34,7 +27,7 @@ def _notify_approaching_passengers(travel, latitude, longitude):
         p_lng = point.get('longitude')
         if not (isinstance(p_lat, (int, float)) and isinstance(p_lng, (int, float))):
             continue
-        distance = _haversine_meters(latitude, longitude, float(p_lat), float(p_lng))
+        distance = distance_meters(latitude, longitude, float(p_lat), float(p_lng))
         if distance <= APPROACHING_RADIUS_METERS:
             notify(
                 recipients=[participation.eligibility.passenger.user_id],

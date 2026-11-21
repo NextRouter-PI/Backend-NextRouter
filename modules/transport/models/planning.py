@@ -6,18 +6,9 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from shared.geo import valid_coordinate_pair
+
 from .validation import related_values
-
-
-def valid_coordinate_pair(coordinates):
-    return (
-        isinstance(coordinates, list)
-        and len(coordinates) == 2
-        and all(type(value) in (int, float) for value in coordinates)
-        and -180 <= coordinates[0] <= 180
-        and -90 <= coordinates[1] <= 90
-        and all(isfinite(value) for value in coordinates)
-    )
 
 
 class RouteSnapshot(models.Model):

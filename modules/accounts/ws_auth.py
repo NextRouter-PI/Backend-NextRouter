@@ -1,6 +1,6 @@
-from http.cookies import CookieError, SimpleCookie
-
 from channels.db import database_sync_to_async
+from channels.sessions import CookieMiddleware
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from rest_framework.exceptions import AuthenticationFailed
@@ -28,23 +28,21 @@ def get_user_from_token(token):
 
 class JWTAuthMiddleware:
     """
-    Usa o cookie HttpOnly, evitando colocar tokens em URLs e logs de proxy.
+    Usa o cookie HttpOnly (via `CookieMiddleware`), evitando colocar tokens em URLs e logs de proxy.
     """
 
     def __init__(self, app):
         self.app = app
+        self._cookie_fallback = CookieMiddleware(self._authenticate_and_call)
 
     async def __call__(self, scope, receive, send):
-        cookies = SimpleCookie()
-        for header, value in scope.get('headers', []):
-            header_name = header.lower()
-            if header_name == b'cookie':
-                try:
-                    cookies.load(value.decode('latin1'))
-                except CookieError:
-                    cookies = SimpleCookie()
-        token_cookie = cookies.get('access_token')
-        token = token_cookie.value if token_cookie else None
+        if 'cookies' not in scope:
+            return await self._cookie_fallback(scope, receive, send)
+        return await self._authenticate_and_call(scope, receive, send)
+
+    async def _authenticate_and_call(self, scope, receive, send):
+        cookie_name = settings.SIMPLE_JWT.get('AUTH_COOKIE', 'access_token')
+        token = scope.get('cookies', {}).get(cookie_name)
 
         scope['user'], scope['access_jti'], scope['access_exp'] = (
             await get_user_from_token(token) if token else (AnonymousUser(), None, None)
