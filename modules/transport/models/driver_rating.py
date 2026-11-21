@@ -59,4 +59,8 @@ class DriverRating(models.Model):
         ordering = ('-created_at',)
 
     def __str__(self):
-        return f'{self.score}/5 para {self.driver.user.name.title()} por {self.passenger.name.title()}'
+        driver = self._state.fields_cache.get('driver')
+        passenger = self._state.fields_cache.get('passenger')
+        if driver is not None and 'user' in driver._state.fields_cache and passenger is not None:
+            return f'{self.score}/5 para {driver.user.name.title()} por {passenger.name.title()}'
+        return f'Avaliação #{self.pk} ({self.score}/5)'

@@ -2,6 +2,15 @@ from typing import ClassVar
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
+
+
+class AutomationScheduleQuerySet(models.QuerySet):
+    def due_for_company(self, company_id, *, now=None):
+        moment = now or timezone.now()
+        return self.filter(route_group__company_id=company_id, enabled=True, next_run_at__lte=moment).order_by(
+            'next_run_at', 'pk'
+        )
 
 
 class AutomationSchedule(models.Model):
@@ -25,6 +34,8 @@ class AutomationSchedule(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='configured_automation_schedules'
     )
     configured_at = models.DateTimeField()
+
+    objects = AutomationScheduleQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Agenda automática'

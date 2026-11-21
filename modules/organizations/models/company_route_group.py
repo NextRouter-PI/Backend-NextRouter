@@ -5,6 +5,35 @@ from django.utils.translation import gettext_lazy as _
 from modules.organizations.models.company import Company
 
 
+class CompanyRouteGroupQuerySet(models.QuerySet):
+    def served_cities(self, *, state: str | None = None) -> list[dict[str, str]]:
+        qs = (
+            self
+            .filter(
+                company__is_approved=True,
+                company__is_rejected=False,
+                company__user__is_active=True,
+                destination__isnull=False,
+            )
+            .exclude(destination__city='')
+            .exclude(destination__state='')
+        )
+        if state:
+            qs = qs.filter(destination__state__iexact=state.strip())
+        seen: set[tuple[str, str]] = set()
+        results: list[dict[str, str]] = []
+        for city, st in qs.values_list('destination__city', 'destination__state').order_by(
+            'destination__state', 'destination__city'
+        ):
+            clean_city = city.strip()
+            clean_state = st.strip().upper()
+            key = (clean_city.casefold(), clean_state)
+            if clean_city and clean_state and key not in seen:
+                seen.add(key)
+                results.append({'city': clean_city, 'state': clean_state})
+        return results
+
+
 class CompanyRouteGroup(models.Model):
     company = models.ForeignKey(
         Company,
@@ -27,6 +56,8 @@ class CompanyRouteGroup(models.Model):
         verbose_name=_('Destino operacional'),
     )
 
+    objects = CompanyRouteGroupQuerySet.as_manager()
+
     class Meta:
         verbose_name = _('Grupo de Rota')
         verbose_name_plural = _('Grupos de Rotas')
@@ -38,7 +69,9 @@ class CompanyRouteGroup(models.Model):
         )
 
     def __str__(self):
-        return f'{self.name.title()} ({self.company.trade_name})'
+        company = self._state.fields_cache.get('company')
+        label = company.trade_name if company is not None else f'empresa #{self.company_id}'
+        return f'{self.name.title()} ({label})'
 
     def clean(self):
         super().clean()

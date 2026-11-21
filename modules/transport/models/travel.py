@@ -1,10 +1,88 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Exists, OuterRef, Q
 from django.utils.translation import gettext_lazy as _
 
 from modules.organizations.models.company import Company
 from modules.organizations.models.driver import Driver
 from modules.transport.models.vehicle import Vehicle
+from shared.exceptions import require
+
+
+class TravelQuerySet(models.QuerySet):
+    def dated(self):
+        return self.filter(service_day__isnull=False)
+
+    def for_company(self, company):
+        return self.filter(company=company)
+
+    def scheduled(self):
+        return self.filter(status=Travel.Status.SCHEDULED)
+
+    def active(self):
+        return self.filter(status=Travel.Status.IN_PROGRESS)
+
+    def not_canceled(self):
+        return self.exclude(status=Travel.Status.CANCELED)
+
+    def with_execution_details(self):
+        return self.select_related('company', 'service_day', 'service', 'driver__user', 'vehicle')
+
+    def conflicting_resources(self, *, driver_id=None, vehicle_id=None, exclude_pk=None):
+        query = Q()
+        if driver_id is not None:
+            query |= Q(driver_id=driver_id)
+        if vehicle_id is not None:
+            query |= Q(vehicle_id=vehicle_id)
+        if not query:
+            return self.none()
+        qs = self.filter(query)
+        if exclude_pk is not None:
+            qs = qs.exclude(pk=exclude_pk)
+        return qs
+
+    def overlapping_window(self, *, start, end, driver_id=None, vehicle_id=None, exclude_pk=None):
+        return (
+            self
+            .dated()
+            .not_canceled()
+            .conflicting_resources(driver_id=driver_id, vehicle_id=vehicle_id, exclude_pk=exclude_pk)
+            .filter(planned_start__lt=end, planned_end__gt=start)
+        )
+
+    def _operational_filter(self, user):
+        from modules.organizations.models import CompanyMembership
+
+        owned_company = Company.objects.operational_for(user).filter(pk=OuterRef('company_id'))
+        driver_member = CompanyMembership.objects.active().filter(
+            company_id=OuterRef('company_id'),
+            company__is_approved=True,
+            company__is_rejected=False,
+            company__user__is_active=True,
+            driver__user=user,
+        )
+        return Exists(owned_company) | (Q(driver__user=user) & Exists(driver_member))
+
+    def visible_to(self, user):
+        if not user or not user.is_authenticated or not user.is_active:
+            return self.none()
+        from modules.organizations.models import CompanyMembership
+        from modules.transport.models.participation import TravelParticipation
+
+        passenger_participation = TravelParticipation.objects.filter(
+            travel_id=OuterRef('pk'),
+            eligibility__passenger__user=user,
+            eligibility__group_membership__membership__status=CompanyMembership.Status.ACTIVE,
+            eligibility__day__route_group__company__is_approved=True,
+            eligibility__day__route_group__company__is_rejected=False,
+            eligibility__day__route_group__company__user__is_active=True,
+        )
+        return self.dated().filter(self._operational_filter(user) | Exists(passenger_participation))
+
+    def operational_for(self, user):
+        if not user or not user.is_authenticated or not user.is_active:
+            return self.none()
+        return self.dated().filter(self._operational_filter(user))
 
 
 class Travel(models.Model):
@@ -13,6 +91,12 @@ class Travel(models.Model):
         IN_PROGRESS = 'in_progress', _('Em andamento')
         FINISHED = 'finished', _('Finalizada')
         CANCELED = 'canceled', _('Cancelada')
+
+    class PlanningStatus(models.TextChoices):
+        DRAFT = 'draft', 'Rascunho'
+        PREPARING = 'preparing', 'Preparando'
+        BLOCKED = 'blocked', 'Com pendência'
+        READY = 'ready', 'Pronto'
 
     company = models.ForeignKey(
         Company,
@@ -28,8 +112,8 @@ class Travel(models.Model):
     revision = models.PositiveIntegerField(default=1)
     planning_status = models.CharField(
         max_length=10,
-        choices=[('draft', 'Rascunho'), ('preparing', 'Preparando'), ('blocked', 'Com pendência'), ('ready', 'Pronto')],
-        default='draft',
+        choices=PlanningStatus.choices,
+        default=PlanningStatus.DRAFT,
     )
     published_revision = models.PositiveIntegerField(null=True, blank=True)
     current_snapshot = models.ForeignKey(
@@ -90,6 +174,8 @@ class Travel(models.Model):
         blank=True,
         verbose_name=_('Última atualização de localização'),
     )
+
+    objects = TravelQuerySet.as_manager()
 
     class Meta:
         verbose_name = _('Viagem')
@@ -162,7 +248,91 @@ class Travel(models.Model):
 
     def __str__(self):
         day = self.started_at.day if self.started_at else '?'
-        return f'Viagem do dia {day} da empresa {self.company.user.name.title()}'
+        company = self._state.fields_cache.get('company')
+        if company is not None and 'user' in company._state.fields_cache:
+            return f'Viagem do dia {day} da empresa {company.user.name.title()}'
+        return f'Viagem #{self.pk} (dia {day})'
+
+    @property
+    def is_editable(self) -> bool:
+        return self.status == self.Status.SCHEDULED and not self.service_day.canceled_at
+
+    @property
+    def is_published_current(self) -> bool:
+        return (
+            self.published_revision is not None
+            and self.published_revision == self.revision
+            and self.published_snapshot_id is not None
+            and self.published_snapshot_id == self.current_snapshot_id
+        )
+
+    def ensure_editable(self) -> None:
+        require(self.status == self.Status.SCHEDULED, 'travel_not_scheduled', 'A viagem não pode mais ser alterada.')
+        require(not self.service_day.canceled_at, 'day_canceled', 'O atendimento está cancelado.')
+
+    def frozen_service(self) -> dict:
+        config = self.service_day.service_config(self.service_id)
+        require(config is not None, 'missing_configuration', 'O serviço não está congelado no dia.')
+        return config
+
+    def invalidate(self) -> None:
+        self.ensure_editable()
+        self.revision = max([self.revision, *self.route_snapshots.values_list('revision', flat=True)]) + 1
+        self.current_snapshot = None
+        self.planning_status = self.PlanningStatus.DRAFT
+        self.save(update_fields=['revision', 'current_snapshot', 'planning_status'])
+
+    def recompute_planning_status(self) -> str:
+        from modules.transport.models.planning import RouteSnapshot
+
+        if self.current_snapshot_id and self.current_snapshot.state == RouteSnapshot.State.READY:
+            new_status = self.PlanningStatus.READY
+        elif self.route_snapshots.filter(
+            change_request__isnull=True,
+            base_revision=self.revision,
+            state=RouteSnapshot.State.PENDING,
+        ).exists():
+            new_status = self.PlanningStatus.PREPARING
+        else:
+            new_status = self.PlanningStatus.DRAFT
+        if self.planning_status != new_status:
+            self.planning_status = new_status
+            self.save(update_fields=['planning_status'])
+        return new_status
+
+    def occupied_seat_count(self, *, exclude_request_id=None) -> int:
+        allocated = self.participations.active_occupancy().count()
+        reservations = self.seat_reservations.held()
+        if exclude_request_id is not None:
+            reservations = reservations.exclude(request_id=exclude_request_id)
+        return allocated + reservations.count()
+
+    def recipient_user_ids(self) -> list:
+        recipients = [self.company.user_id]
+        if self.driver_id:
+            recipients.append(self.driver.user_id)
+        recipients.extend(self.participations.values_list('eligibility__passenger__user_id', flat=True))
+        return recipients
+
+    def mark_started(self, *, now) -> None:
+        self.status = self.Status.IN_PROGRESS
+        self.started_at = now
+        self.full_clean()
+        self.save(update_fields=['status', 'started_at'])
+
+    def mark_finished(self, *, now) -> None:
+        self.status = self.Status.FINISHED
+        self.finished_at = now
+        self.current_latitude = None
+        self.current_longitude = None
+        self.location_updated_at = None
+        self.save(
+            update_fields=['status', 'finished_at', 'current_latitude', 'current_longitude', 'location_updated_at']
+        )
+
+    def mark_canceled(self) -> None:
+        self.status = self.Status.CANCELED
+        self.save(update_fields=['status'])
 
     def clean(self):
         super().clean()

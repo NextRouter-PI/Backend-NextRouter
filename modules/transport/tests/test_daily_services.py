@@ -240,7 +240,7 @@ class DailyServiceTests(ServiceTestCase):
 
         travel = self.ready_travel()
         with (
-            patch.object(Notification.objects, 'get_or_create', side_effect=RuntimeError('Falha simulada')),
+            patch.object(Notification.objects, 'bulk_create', side_effect=RuntimeError('Falha simulada')),
             self.assertRaises(RuntimeError),
         ):
             publish_travel(actor_id=self.company.user_id, travel_id=travel.pk, expected_revision=travel.revision)

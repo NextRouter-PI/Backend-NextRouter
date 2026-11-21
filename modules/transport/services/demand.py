@@ -17,7 +17,7 @@ def eligibility_access(eligibility_id, actor_id, *, company_only=False, allow_cl
     expected_actor = company.user_id if company_only else eligibility.passenger.user_id
     require(actor.pk == expected_actor, 'permission_denied', 'Acesso não autorizado à resposta diária.')
     if not allow_closed_membership:
-        require(company.is_approved and company.user.is_active, 'company_unavailable', 'Empresa indisponível.')
+        require(company.is_operational, 'company_unavailable', 'Empresa indisponível.')
         participation = eligibility.group_membership
         require(
             participation.ended_at is None

@@ -4,8 +4,28 @@ from typing import ClassVar
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 
 from .validation import related_values, same_company
+
+
+class RecurringServiceQuerySet(models.QuerySet):
+    def for_group(self, group):
+        return self.filter(route_group=group)
+
+    def valid_on(self, date):
+        return self.filter(
+            Q(valid_from__isnull=True) | Q(valid_from__lte=date),
+            Q(valid_until__isnull=True) | Q(valid_until__gte=date),
+        )
+
+    def with_snapshot_relations(self):
+        return self.select_related(
+            'origin',
+            'destination',
+            'vehicle__garage_point',
+            'driver_membership',
+        ).prefetch_related('configured_stops__point')
 
 
 class RecurringService(models.Model):
@@ -51,6 +71,8 @@ class RecurringService(models.Model):
     )
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='created_services')
 
+    objects = RecurringServiceQuerySet.as_manager()
+
     class Meta:
         verbose_name = 'Serviço habitual'
         verbose_name_plural = 'Serviços habituais'
@@ -81,6 +103,23 @@ class RecurringService(models.Model):
 
     def __str__(self):
         return f'Serviço #{self.pk}'
+
+    def runs_on(self, date) -> bool:
+        if self.valid_from and date < self.valid_from:
+            return False
+        if self.valid_until and date > self.valid_until:
+            return False
+        return bool(self.weekdays & (1 << date.weekday()))
+
+    def effective_origin(self):
+        return self.origin or (self.vehicle.garage_point if self.vehicle_id else None)
+
+    def effective_destination(self, group):
+        if self.destination is not None:
+            return self.destination
+        if self.direction == self.Direction.OUTBOUND:
+            return group.destination
+        return self.vehicle.garage_point if self.vehicle_id else None
 
     def clean(self):
         super().clean()
