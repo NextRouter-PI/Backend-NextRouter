@@ -1,18 +1,15 @@
-import mimetypes
 import uuid
 
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
 
-from modules.uploads.helpers.files import get_content_type
+from modules.uploads.helpers.files import extension_for_content_type, get_content_type
 
 
 def document_file_path(document, _) -> str:
-    content_type = get_content_type(document.file)
-    extension: str = mimetypes.guess_extension(content_type)
-
-    return f'documents/{document.public_id}{extension or ""}'
+    extension = extension_for_content_type(get_content_type(document.file))
+    return f'documents/{document.public_id}{extension}'
 
 
 def get_document_storage():

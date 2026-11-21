@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from shared.geocoding import lookup_cep_brasilapi
+from shared.geocoding import GeocodingError, lookup_cep_brasilapi
 
 
 class CepLookupView(APIView):
@@ -40,10 +40,16 @@ class CepLookupView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        data = lookup_cep_brasilapi(clean_cep)
+        try:
+            data = lookup_cep_brasilapi(clean_cep, raise_on_error=True)
+        except GeocodingError:
+            return Response(
+                {'detail': 'Serviço de consulta de CEP temporariamente indisponível.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         if data is None:
             return Response(
-                {'detail': 'CEP não encontrado ou serviço temporariamente indisponível.'},
+                {'detail': 'CEP não encontrado.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
         return Response(data)
