@@ -28,7 +28,7 @@ class UserSession(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sessions')
 
     access_jti = models.CharField(max_length=255, db_index=True)
-    refresh_jti = models.CharField(max_length=255, unique=True, db_index=True)
+    refresh_jti = models.CharField(max_length=255, unique=True)
 
     device_name = models.CharField(max_length=255)
     device_type = models.CharField(max_length=20, blank=True)
@@ -47,7 +47,13 @@ class UserSession(models.Model):
     objects = UserSessionQuerySet.as_manager()
 
     class Meta:
-        indexes: ClassVar[list[models.Index]] = [models.Index(fields=['user', 'is_active'])]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=['user', 'is_active']),
+            models.Index(
+                fields=['user', 'access_jti', 'is_active', 'expires_at'],
+                name='session_user_jti_active_idx',
+            ),
+        ]
         ordering: ClassVar[list[str]] = ['-last_activity']
 
     def __str__(self) -> str:

@@ -7,6 +7,8 @@ from django.contrib.auth.models import (
     PermissionsMixin,
 )
 from django.db import models
+from django.db.models import Q
+from django.db.models.functions import Lower
 from django.utils.translation import gettext_lazy as _
 
 from modules.accounts.validators.cpf import validate_cpf
@@ -22,7 +24,7 @@ class UserQuerySet(models.QuerySet):
         return self.filter(is_staff=True, is_active=True)
 
     def by_email(self, email: str):
-        return self.filter(email__iexact=email.strip())
+        return self.alias(email_lower=Lower('email')).filter(email_lower=email.strip().lower())
 
 
 class BaseAppUserManager(BaseUserManager):
@@ -202,6 +204,17 @@ class User(GeocodableAddressMixin, AbstractBaseUser, PermissionsMixin):
         verbose_name = _('user')
         verbose_name_plural = _('users')
         ordering: ClassVar[list[str]] = ['-created_at']
+        constraints: ClassVar[list] = [
+            models.UniqueConstraint(
+                fields=['cpf'],
+                condition=~Q(cpf=''),
+                name='unique_nonempty_user_cpf',
+            ),
+        ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=['cpf'], name='user_cpf_idx'),
+            models.Index(Lower('email'), name='user_email_lower_idx'),
+        ]
 
     def __str__(self) -> str:
         return f'{self.name} <{self.email}>' if self.name else self.email

@@ -51,78 +51,45 @@ class RetiredSchemaTests(TestCase):
 
 
 @tag('migration')
-class RetirementGuardTests(SimpleTestCase):
-    def test_existing_legacy_data_aborts_before_dropping_columns_or_records(self):
-        for kind in ('profile', 'path'):
-            with (
-                self.subTest(kind=kind),
-                tempfile.TemporaryDirectory(prefix='nextrouter-retirement-', dir='/tmp/opencode') as tmp,
-            ):
-                env = {
-                    **os.environ,
-                    'DJANGO_SETTINGS_MODULE': 'app.settings.dev',
-                    'NEXTROUTER_ENV_FILE': f'{tmp}/empty.env',
-                    'DATABASE_URL': f'sqlite:///{tmp}/test.sqlite3',
-                    'MEDIA_ROOT': f'{tmp}/media',
-                    'PRIVATE_DOCUMENT_ROOT': f'{tmp}/documents',
-                    'NEXTROUTER_LAN_HOST': '',
-                    'FRONTEND_URL': 'http://127.0.0.1:5173',
-                    'REDIS_URL': '',
-                    'GEOCODING_URL': '',
-                    'OSRM_URL': '',
-                    'EMAIL_HOST': '',
-                    'CLOUDINARY_URL': '',
-                    'SECRET_KEY': 'chave-ficticia-exclusiva-do-teste-de-retirada',
-                }
+class CleanInitialMigrationTests(SimpleTestCase):
+    def test_clean_database_migrates_from_initial_without_legacy_tables_or_pending_changes(self):
+        with tempfile.TemporaryDirectory(prefix='nextrouter-initial-migration-', dir='/tmp/opencode') as tmp:
+            env = {
+                **os.environ,
+                'DJANGO_SETTINGS_MODULE': 'app.settings.dev',
+                'NEXTROUTER_ENV_FILE': f'{tmp}/empty.env',
+                'DATABASE_URL': f'sqlite:///{tmp}/test.sqlite3',
+                'MEDIA_ROOT': f'{tmp}/media',
+                'PRIVATE_DOCUMENT_ROOT': f'{tmp}/documents',
+                'NEXTROUTER_LAN_HOST': '',
+                'FRONTEND_URL': 'http://127.0.0.1:5173',
+                'REDIS_URL': '',
+                'GEOCODING_URL': '',
+                'OSRM_URL': '',
+                'EMAIL_HOST': '',
+                'CLOUDINARY_URL': '',
+                'SECRET_KEY': 'chave-ficticia-exclusiva-do-teste-de-migrations',
+            }
 
-                def run(*args, env=env):
-                    return subprocess.run(
-                        [sys.executable, 'manage.py', *args],
-                        env=env,
-                        cwd=Path(__file__).resolve().parents[1],
-                        capture_output=True,
-                        text=True,
-                        timeout=60,
-                    )
+            def run(*args, env=env):
+                return subprocess.run(
+                    [sys.executable, 'manage.py', *args],
+                    env=env,
+                    cwd=Path(__file__).resolve().parents[1],
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                )
 
-                before = run('migrate', 'router', '0002_lost_item_audit', '--noinput')
-                self.assertEqual(before.returncode, 0, before.stderr)
-                fixture = """
+            migrated = run('migrate', '--noinput')
+            self.assertEqual(migrated.returncode, 0, migrated.stderr)
+            checked = run('makemigrations', '--check', '--dry-run')
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+            verify = """
 from django.db import connection
-from django.db.migrations.executor import MigrationExecutor
-apps = MigrationExecutor(connection).loader.project_state([('router', '0002_lost_item_audit')]).apps
-user = apps.get_model('authenticator', 'User').objects.create(
-    email='fixture@example.invalid', name='Fixture', cpf='90000000191', password='!'
-)
-company = apps.get_model('organizations', 'Company').objects.create(user=user, cnpj='90000001000191')
-group = apps.get_model('organizations', 'CompanyRouteGroup').objects.create(
-    company=company, name='Fixture', common_cep=''
-)
+tables = set(connection.introspection.table_names())
+assert not (tables & {'router_path', 'router_company_route_schedule', 'router_confirm_passenger_route'})
+assert {'authenticator_user', 'organizations_companymembership', 'router_travel'} <= tables
 """
-                if kind == 'profile':
-                    fixture += """
-apps.get_model('organizations', 'Passenger').objects.create(
-    user=user, route_group=group, is_approved=True
-)
-"""
-                else:
-                    fixture += "apps.get_model('router', 'Path').objects.create(route_group=group, name='Fixture')"
-                inserted = run('shell', '-c', fixture)
-                self.assertEqual(inserted.returncode, 0, inserted.stderr)
-                denied = run('migrate', '--noinput')
-                self.assertNotEqual(denied.returncode, 0)
-                self.assertIn('Remoção do legado bloqueada', denied.stderr)
-                verify = """
-from django.db import connection
-from django.db.migrations.recorder import MigrationRecorder
-assert not MigrationRecorder(connection).migration_qs.filter(app='organizations', name='0002_retire_legacy').exists()
-assert not MigrationRecorder(connection).migration_qs.filter(app='router', name='0003_retire_legacy').exists()
-with connection.cursor() as cursor:
-    columns = {item.name for item in connection.introspection.get_table_description(cursor, 'authenticator_passenger')}
-    assert 'route_group_id' in columns
-    table = 'authenticator_passenger' if 'PROFILE' == 'profile' else 'router_path'
-    cursor.execute('SELECT COUNT(*) FROM ' + table)
-    assert cursor.fetchone()[0] == 1
-""".replace('PROFILE', kind)
-                preserved = run('shell', '-c', verify)
-                self.assertEqual(preserved.returncode, 0, preserved.stderr)
+            verified = run('shell', '-c', verify)
+            self.assertEqual(verified.returncode, 0, verified.stderr)
