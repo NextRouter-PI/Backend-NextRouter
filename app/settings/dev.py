@@ -88,11 +88,12 @@ STORAGES = {
     'default': {'BACKEND': common.MEDIA_STORAGE_BACKEND},
     'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 }
-EMAIL_BACKEND = (
-    'django.core.mail.backends.smtp.EmailBackend'
-    if common.EMAIL_HOST
-    else 'django.core.mail.backends.console.EmailBackend'
-)
+if common.BREVO_API_KEY:
+    EMAIL_BACKEND = 'app.email_backends.BrevoEmailBackend'
+elif common.EMAIL_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL') or common.EMAIL_HOST_USER or 'noreply@example.invalid'
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
