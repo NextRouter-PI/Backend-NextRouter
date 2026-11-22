@@ -1,3 +1,10 @@
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = []
+
 [project]
 name = "nextrouter"
 version = "1.0.0"
@@ -70,6 +77,8 @@ format = { composite = ["ruff format .", "ruff check --fix ."] }
 schema = "python manage.py spectacular --settings=app.settings.dev --validate --fail-on-warn --file /tmp/opencode/nextrouter-schema.yaml"
 
 # Produção/entrega identificada: configuração explícita, fora da rotina local.
+prod-build = "python -m scripts.runtime build"
+prod-migrate = "python manage.py migrate --noinput --settings=app.settings.prod"
 prod-web = "python -m scripts.runtime web"
 prod-worker = "python -m scripts.runtime worker"
 release-check = "python -m scripts.runtime release"

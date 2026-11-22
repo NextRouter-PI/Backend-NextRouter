@@ -327,39 +327,31 @@ class RuntimeEntryTests(SimpleTestCase):
                 self.assertEqual(execute.call_count, int(role == 'web'))
                 if role == 'web':
                     self.assertIn('--access-log', execute.call_args.args[1])
-        worker = dict.fromkeys(
-            (
-                'WORKER_COMPANY_ID',
-                'WORKER_LEASE_SECONDS',
-                'WORKER_MAX_ATTEMPTS',
-                'WORKER_RETRY_SECONDS',
-                'WORKER_POLL_SECONDS',
-                'WORKER_SCHEDULE_BATCH_SIZE',
-                'WORKER_MAINTENANCE_BATCH_SIZE',
-                'WORKER_JOB_BATCH_SIZE',
-            ),
-            '1',
-        )
+        with (
+            patch.object(sys, 'argv', ['runtime', 'build']),
+            patch('django.setup'),
+            patch('django.core.management.call_command') as command,
+            patch('os.execvp') as execute,
+        ):
+            main()
+            self.assertEqual([call.args[0] for call in command.call_args_list], ['collectstatic', 'migrate'])
+            execute.assert_not_called()
         with (
             patch.object(sys, 'argv', ['runtime', 'worker']),
-            patch.dict(os.environ, worker, clear=True),
+            patch.dict(os.environ, {}, clear=True),
             patch('django.setup'),
             patch('django.core.management.call_command'),
             patch('os.execvp') as execute,
         ):
+            # Sem variáveis WORKER_*, usa defaults seguros e --all-companies
+            main()
+            self.assertIn('--all-companies', execute.call_args.args[1])
+            execute.reset_mock()
+            os.environ['WORKER_COMPANY_ID'] = '1'
             main()
             self.assertIn('--company-id', execute.call_args.args[1])
             execute.reset_mock()
-            os.environ['WORKER_COMPANY_ID'] = ''
-            with self.assertRaises(SystemExit):
-                main()
-            execute.assert_not_called()
             os.environ['WORKER_ALL_COMPANIES'] = 'true'
-            main()
-            self.assertIn('--all-companies', execute.call_args.args[1])
-            self.assertNotIn('--company-id', execute.call_args.args[1])
-            execute.reset_mock()
-            os.environ['WORKER_COMPANY_ID'] = '1'
             with self.assertRaises(SystemExit):
                 main()
             execute.assert_not_called()

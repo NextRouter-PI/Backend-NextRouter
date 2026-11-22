@@ -11,7 +11,7 @@ from django.core.files.storage import storages
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 
-from shared.frontend_artifact import verify_artifact
+from shared.frontend_artifact import MANIFEST_NAME, inspect_artifact, verify_artifact
 
 STORAGE_PROBE_TTL_SECONDS = 15.0
 _STORAGE_PROBE_OK_UNTIL: dict[str, float] = {}
@@ -19,7 +19,14 @@ _STORAGE_PROBE_OK_UNTIL: dict[str, float] = {}
 
 def _check_private_storage() -> None:
     directory = Path(settings.PRIVATE_DOCUMENT_ROOT)
-    if not directory.is_absolute() or not directory.is_dir():
+    if not directory.is_absolute():
+        raise RuntimeError('storage_unavailable')
+    if not directory.exists():
+        try:
+            directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        except OSError as exc:
+            raise RuntimeError('storage_unavailable') from exc
+    if not directory.is_dir():
         raise RuntimeError('storage_unavailable')
     key = str(directory.resolve())
     now = monotonic()
@@ -64,5 +71,12 @@ def check_runtime(*, require_frontend=True):
     if executor.migration_plan(executor.loader.graph.leaf_nodes()):
         raise RuntimeError('migrations_pending')
     check_staticfiles()
+    frontend_root = Path(settings.FRONTEND_DIST)
     if require_frontend:
-        verify_artifact(settings.FRONTEND_DIST, expected_backend_revision=settings.BACKEND_REVISION)
+        verify_artifact(frontend_root, expected_backend_revision=settings.BACKEND_REVISION or None)
+    elif frontend_root.is_dir() and any(frontend_root.iterdir()):
+        manifest = frontend_root.parent / MANIFEST_NAME
+        if manifest.is_file():
+            verify_artifact(frontend_root, expected_backend_revision=settings.BACKEND_REVISION or None)
+        else:
+            inspect_artifact(frontend_root)

@@ -1,4 +1,5 @@
 import logging
+import os
 import signal
 from datetime import timedelta
 from threading import Event, current_thread, main_thread
@@ -16,6 +17,13 @@ from modules.transport.services.maintenance import process_due
 logger = logging.getLogger(__name__)
 
 
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name, '').strip()
+    if raw and raw.isascii() and raw.isdecimal():
+        return int(raw)
+    return default
+
+
 class Command(BaseCommand):
     help = 'Gera datas opt-in, fecha pendências e processa snapshots com limites e checkpoints persistentes.'
 
@@ -23,16 +31,16 @@ class Command(BaseCommand):
         parser.add_argument('--once', action='store_true')
         parser.add_argument('--all-companies', action='store_true')
         parser.add_argument('--company-id', type=int)
-        for name in (
-            'lease-seconds',
-            'max-attempts',
-            'retry-seconds',
-            'schedule-batch-size',
-            'maintenance-batch-size',
-            'job-batch-size',
+        for name, env_name, default in (
+            ('lease-seconds', 'WORKER_LEASE_SECONDS', 60),
+            ('max-attempts', 'WORKER_MAX_ATTEMPTS', 3),
+            ('retry-seconds', 'WORKER_RETRY_SECONDS', 15),
+            ('schedule-batch-size', 'WORKER_SCHEDULE_BATCH_SIZE', 20),
+            ('maintenance-batch-size', 'WORKER_MAINTENANCE_BATCH_SIZE', 20),
+            ('job-batch-size', 'WORKER_JOB_BATCH_SIZE', 10),
         ):
-            parser.add_argument(f'--{name}', type=int, required=True)
-        parser.add_argument('--poll-seconds', type=int)
+            parser.add_argument(f'--{name}', type=int, default=_env_int(env_name, default))
+        parser.add_argument('--poll-seconds', type=int, default=_env_int('WORKER_POLL_SECONDS', 5))
 
     def _process_company(self, company, options, stop):
         schedules = process_schedules(
@@ -62,10 +70,15 @@ class Command(BaseCommand):
         return len(schedules), len(outcomes), jobs
 
     def handle(self, *args, **options):
-        all_companies = bool(options.get('all_companies'))
+        all_companies = options.get('all_companies')
         company_id = options.get('company_id')
-        if all_companies == (company_id is not None):
-            raise CommandError('Informe exatamente um entre --company-id e --all-companies.')
+        if all_companies and company_id is not None:
+            raise CommandError('Informe apenas um entre --company-id e --all-companies.')
+        if all_companies is False and company_id is None and 'all_companies' in options:
+            # Quando chamado na CLI sem flags, processa todas as empresas aprovadas por padrão.
+            all_companies = True
+        else:
+            all_companies = bool(all_companies) or company_id is None
         if (
             (company_id is not None and company_id <= 0)
             or options['lease_seconds'] <= 0
