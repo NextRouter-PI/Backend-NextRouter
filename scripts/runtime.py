@@ -83,10 +83,12 @@ def main():
         sys.stdout.flush()
         sys.stderr.flush()
         os.execvp(command[0], command)
-    except Exception:
-        raise SystemExit(
-            'Runtime recusado. Confira configuração, serviços, schema e artefato; nenhum migrate/seed foi executado.'
-        ) from None
+    except Exception as exc:
+        from django.core.exceptions import ImproperlyConfigured
+
+        if isinstance(exc, (ImproperlyConfigured, ValueError)):
+            raise SystemExit(f'Runtime recusado (configuração): {exc}') from None
+        raise SystemExit(f'Runtime recusado ({type(exc).__name__}): confira serviços, schema e artefato.') from None
 
 
 if __name__ == '__main__':
