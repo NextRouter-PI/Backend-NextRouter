@@ -1,0 +1,424 @@
+/* Identidade visual NextRouter para o Django Admin */
+
+:root,
+[data-theme="light"] {
+  --nr-primary: #ec8314;
+  --nr-primary-hover: #d4710c;
+  --nr-primary-light: #f59a32;
+  --nr-primary-soft: rgba(236, 131, 20, 0.08);
+  --nr-primary-tint: rgba(236, 131, 20, 0.14);
+  --nr-chrome-bg: #1c1c1e;
+  --nr-chrome-surface: #262629;
+  --nr-chrome-text: #f5f5f7;
+  --nr-chrome-muted: #a1a1aa;
+  --nr-surface: #ffffff;
+  --nr-bg: #fafafa;
+  --nr-altbg: #f0eeea;
+  --nr-border: #e4e4e7;
+  --nr-text: #1c1917;
+  --nr-text-muted: #71717a;
+  --nr-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(0, 0, 0, 0.05);
+  --nr-radius: 10px;
+  --nr-radius-lg: 14px;
+
+  /* Tokens oficiais do Django Admin */
+  --primary: #ec8314;
+  --secondary: #1c1c1e;
+  --accent: #f59a32;
+  --primary-fg: #ffffff;
+
+  --body-fg: #1c1917;
+  --body-bg: #fafafa;
+  --body-quiet-color: #71717a;
+  --body-medium-color: #52525b;
+  --body-loud-color: #1c1917;
+
+  --header-color: #f5f5f7;
+  --header-branding-color: #f5f5f7;
+  --header-bg: #1c1c1e;
+  --header-link-color: #f5f5f7;
+
+  --breadcrumbs-fg: #a1a1aa;
+  --breadcrumbs-link-fg: #f5f5f7;
+  --breadcrumbs-bg: #262629;
+
+  --link-fg: #d4710c;
+  --link-hover-color: #ec8314;
+  --link-selected-fg: #ec8314;
+
+  --hairline-color: #e4e4e7;
+  --border-color: #d4d4d8;
+
+  --error-fg: #dc2626;
+  --message-success-bg: #ecfdf5;
+  --message-warning-bg: #fefce8;
+  --message-error-bg: #fef2f2;
+
+  --darkened-bg: #f4f3ef;
+  --selected-bg: rgba(236, 131, 20, 0.12);
+  --selected-row: rgba(236, 131, 20, 0.08);
+
+  --button-fg: #ffffff;
+  --button-bg: #ec8314;
+  --button-hover-bg: #d4710c;
+  --default-button-bg: #ec8314;
+  --default-button-hover-bg: #d4710c;
+  --close-button-bg: #71717a;
+  --close-button-hover-bg: #52525b;
+  --delete-button-bg: #ef4444;
+  --delete-button-hover-bg: #dc2626;
+
+  --object-tools-fg: #ffffff;
+  --object-tools-bg: #262629;
+  --object-tools-hover-bg: #ec8314;
+
+  --font-family-primary: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] {
+    --nr-chrome-bg: #141416;
+    --nr-chrome-surface: #202024;
+    --nr-surface: #1c1c1e;
+    --nr-bg: #111113;
+    --nr-altbg: #18181b;
+    --nr-border: #2e2e32;
+    --nr-text: #f3f3f5;
+    --nr-text-muted: #a1a1aa;
+    --nr-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.35);
+
+    --primary: #ec8314;
+    --secondary: #141416;
+    --accent: #f59a32;
+
+    --body-fg: #f3f3f5;
+    --body-bg: #111113;
+    --body-quiet-color: #a1a1aa;
+    --body-medium-color: #d4d4d8;
+    --body-loud-color: #ffffff;
+
+    --header-bg: #141416;
+    --breadcrumbs-bg: #202024;
+
+    --link-fg: #f59a32;
+    --link-hover-color: #ec8314;
+    --link-selected-fg: #f59a32;
+
+    --hairline-color: #2e2e32;
+    --border-color: #3f3f46;
+
+    --darkened-bg: #18181b;
+    --selected-bg: rgba(236, 131, 20, 0.18);
+    --selected-row: rgba(236, 131, 20, 0.14);
+
+    --message-success-bg: #052e16;
+    --message-warning-bg: #422006;
+    --message-error-bg: #450a0a;
+
+    --object-tools-bg: #262629;
+    --object-tools-hover-bg: #ec8314;
+  }
+}
+
+[data-theme="dark"] {
+  --nr-chrome-bg: #141416;
+  --nr-chrome-surface: #202024;
+  --nr-surface: #1c1c1e;
+  --nr-bg: #111113;
+  --nr-altbg: #18181b;
+  --nr-border: #2e2e32;
+  --nr-text: #f3f3f5;
+  --nr-text-muted: #a1a1aa;
+  --nr-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  --primary: #ec8314;
+  --secondary: #141416;
+  --accent: #f59a32;
+
+  --body-fg: #f3f3f5;
+  --body-bg: #111113;
+  --body-quiet-color: #a1a1aa;
+  --body-medium-color: #d4d4d8;
+  --body-loud-color: #ffffff;
+
+  --header-bg: #141416;
+  --breadcrumbs-bg: #202024;
+
+  --link-fg: #f59a32;
+  --link-hover-color: #ec8314;
+  --link-selected-fg: #f59a32;
+
+  --hairline-color: #2e2e32;
+  --border-color: #3f3f46;
+
+  --darkened-bg: #18181b;
+  --selected-bg: rgba(236, 131, 20, 0.18);
+  --selected-row: rgba(236, 131, 20, 0.14);
+
+  --message-success-bg: #052e16;
+  --message-warning-bg: #422006;
+  --message-error-bg: #450a0a;
+
+  --object-tools-bg: #262629;
+  --object-tools-hover-bg: #ec8314;
+}
+
+/* Cabeçalho principal com a identidade do AppTopBar */
+#header {
+  background: var(--nr-chrome-bg);
+  border-bottom: 2px solid var(--nr-primary);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+  padding: 12px 28px;
+}
+
+.nr-admin-brand {
+  margin: 0;
+}
+
+.nr-admin-brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--nr-chrome-text);
+  transition: opacity 0.18s ease;
+}
+
+.nr-admin-brand-link:hover {
+  opacity: 0.92;
+}
+
+.nr-admin-pin {
+  width: 26px;
+  height: 26px;
+  color: var(--nr-primary);
+  flex-shrink: 0;
+}
+
+.nr-admin-wordmark {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.nr-admin-accent {
+  color: var(--nr-primary);
+}
+
+.nr-admin-rest {
+  color: var(--nr-chrome-text);
+}
+
+.nr-admin-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--nr-primary-tint);
+  border: 1px solid rgba(236, 131, 20, 0.35);
+  color: var(--nr-primary-light);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Breadcrumbs */
+div.breadcrumbs {
+  background: var(--nr-chrome-surface);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 10px 28px;
+  font-size: 0.85rem;
+}
+
+/* Sidebar de navegação */
+#nav-sidebar {
+  background: var(--nr-surface);
+  border-inline-end: 1px solid var(--nr-border);
+}
+
+#nav-sidebar .current-model {
+  background: var(--nr-primary-soft);
+}
+
+#nav-sidebar .current-app .section:link,
+#nav-sidebar .current-app .section:visited {
+  color: var(--nr-chrome-text);
+}
+
+.toggle-nav-sidebar {
+  background: var(--nr-surface);
+  border-inline-end: 1px solid var(--nr-border);
+  color: var(--nr-primary);
+}
+
+.toggle-nav-sidebar:hover,
+.toggle-nav-sidebar:focus {
+  background: var(--nr-primary-soft);
+}
+
+/* Módulos / Cards */
+.module {
+  background: var(--nr-surface);
+  border: 1px solid var(--nr-border);
+  border-radius: var(--nr-radius-lg);
+  box-shadow: var(--nr-shadow);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+  background: var(--nr-chrome-bg);
+  color: var(--nr-chrome-text);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  padding: 11px 16px;
+  border-bottom: 2px solid var(--nr-primary);
+}
+
+.module caption a.section:link,
+.module caption a.section:visited {
+  color: var(--nr-chrome-text);
+}
+
+#content h1 {
+  font-weight: 700;
+  color: var(--nr-text);
+  margin-bottom: 18px;
+}
+
+/* Tabelas */
+table thead th {
+  background: var(--darkened-bg);
+  border-bottom: 1px solid var(--nr-border);
+  font-weight: 600;
+}
+
+table tbody tr {
+  transition: background-color 0.14s ease;
+}
+
+table tbody tr:hover {
+  background: var(--nr-primary-soft);
+}
+
+/* Botões e controles */
+.button,
+input[type="submit"],
+input[type="button"],
+.submit-row input,
+a.button {
+  border-radius: var(--nr-radius);
+  font-weight: 600;
+  padding: 9px 16px;
+  transition:
+    background-color 0.18s ease,
+    transform 0.12s ease,
+    box-shadow 0.18s ease;
+}
+
+.button:hover,
+input[type="submit"]:hover,
+input[type="button"]:hover,
+a.button:hover {
+  box-shadow: 0 2px 8px rgba(236, 131, 20, 0.25);
+}
+
+.button:active,
+input[type="submit"]:active,
+input[type="button"]:active,
+a.button:active {
+  transform: scale(0.98);
+}
+
+.object-tools a:link,
+.object-tools a:visited {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 600;
+  transition: background-color 0.18s ease, transform 0.12s ease;
+}
+
+.submit-row {
+  background: var(--nr-surface);
+  border: 1px solid var(--nr-border);
+  border-radius: var(--nr-radius-lg);
+  padding: 14px 16px;
+  box-shadow: var(--nr-shadow);
+}
+
+/* Inputs e selects */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="url"],
+input[type="number"],
+input[type="tel"],
+textarea,
+select,
+.vTextField {
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="number"]:focus,
+input[type="tel"]:focus,
+textarea:focus,
+select:focus,
+.vTextField:focus {
+  border-color: var(--nr-primary);
+  box-shadow: 0 0 0 3px var(--nr-primary-tint);
+  outline: none;
+}
+
+/* Mensagens de status */
+ul.messagelist li {
+  border-radius: var(--nr-radius);
+  margin: 0 0 10px 0;
+  border: 1px solid var(--nr-border);
+}
+
+/* Tela de login do Admin */
+.login {
+  background: var(--nr-bg);
+}
+
+.login #container {
+  background: var(--nr-surface);
+  border: 1px solid var(--nr-border);
+  border-radius: var(--nr-radius-lg);
+  box-shadow: var(--nr-shadow);
+  overflow: hidden;
+  max-width: 420px;
+}
+
+.login #header {
+  justify-content: center;
+  padding: 18px 24px;
+}
+
+.login #content {
+  padding: 24px 28px 28px;
+}
+
+.login .submit-row {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding: 12px 0 0;
+}
+
+.login .submit-row input {
+  width: 100%;
+  padding: 11px 18px;
+  font-size: 0.95rem;
+}

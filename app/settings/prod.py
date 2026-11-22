@@ -132,21 +132,17 @@ if not Path(PRIVATE_DOCUMENT_ROOT).is_absolute() or any(
 OSRM_URL = _routing_url('OSRM_URL')
 GEOCODING_URL = _routing_url('GEOCODING_URL')
 
-BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '').strip()
-EMAIL_HOST = os.environ.get('EMAIL_HOST', '').strip()
-if BREVO_API_KEY:
-    DEFAULT_FROM_EMAIL = _required('DEFAULT_FROM_EMAIL')
-    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '').strip()
-    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').strip()
-    EMAIL_BACKEND = 'app.email_backends.BrevoEmailBackend'
-elif EMAIL_HOST:
-    EMAIL_HOST_USER = _required('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = _required('EMAIL_HOST_PASSWORD')
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-else:
-    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '').strip()
-    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').strip()
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+_email = common.resolve_email_settings(os.environ, strict=True, fallback_from='noreply@example.invalid')
+EMAIL_BACKEND = _email['EMAIL_BACKEND']
+BREVO_API_KEY = _email['BREVO_API_KEY']
+EMAIL_HOST = _email['EMAIL_HOST']
+EMAIL_HOST_USER = _email['EMAIL_HOST_USER']
+EMAIL_HOST_PASSWORD = _email['EMAIL_HOST_PASSWORD']
+EMAIL_USE_TLS = _email['EMAIL_USE_TLS']
+EMAIL_USE_SSL = _email['EMAIL_USE_SSL']
+EMAIL_PORT = _email['EMAIL_PORT']
+DEFAULT_FROM_EMAIL = _email['DEFAULT_FROM_EMAIL']
+EMAIL_TIMEOUT = _email['EMAIL_TIMEOUT']
 
 MEDIA_URL = '/media/'
 SECURE_SSL_REDIRECT = True
