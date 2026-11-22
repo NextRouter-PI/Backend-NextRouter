@@ -121,7 +121,9 @@ else:
     CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
     CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
 
-PRIVATE_DOCUMENT_ROOT = os.environ.get('PRIVATE_DOCUMENT_ROOT', '').strip() or '/tmp/nextrouter-private-documents'
+PRIVATE_DOCUMENT_ROOT = os.environ.get('PRIVATE_DOCUMENT_ROOT', '').strip() or str(
+    common.BASE_DIR / 'private-documents'
+)
 if not Path(PRIVATE_DOCUMENT_ROOT).is_absolute() or any(
     Path(PRIVATE_DOCUMENT_ROOT).resolve().is_relative_to(Path(root).resolve())
     for root in (common.MEDIA_ROOT, common.STATIC_ROOT, common.FRONTEND_DIST, *common.STATICFILES_DIRS)

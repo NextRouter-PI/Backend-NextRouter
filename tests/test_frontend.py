@@ -7,7 +7,7 @@ from django.test import SimpleTestCase, override_settings
 class FrontendArtifactTests(SimpleTestCase):
     def setUp(self):
         super().setUp()
-        directory = tempfile.TemporaryDirectory(prefix='nextrouter-spa-', dir='/tmp/opencode')
+        directory = tempfile.TemporaryDirectory(prefix='nextrouter-spa-')
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name)
         (self.root / 'assets').mkdir()

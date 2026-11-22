@@ -82,7 +82,7 @@ class HtmlTemplateDeliveryTests(SimpleTestCase):
         self.assertEqual(self.client.get('/assets/not-real.js').status_code, 404)
 
     def test_allowlist_does_not_follow_symlinks(self):
-        with tempfile.TemporaryDirectory(prefix='nr-html-files-', dir='/tmp/opencode') as directory:
+        with tempfile.TemporaryDirectory(prefix='nr-html-files-') as directory:
             root = Path(directory)
             folder = root / 'html-template-test'
             folder.mkdir()

@@ -53,7 +53,7 @@ class RetiredSchemaTests(TestCase):
 @tag('migration')
 class CleanInitialMigrationTests(SimpleTestCase):
     def test_clean_database_migrates_from_initial_without_legacy_tables_or_pending_changes(self):
-        with tempfile.TemporaryDirectory(prefix='nextrouter-initial-migration-', dir='/tmp/opencode') as tmp:
+        with tempfile.TemporaryDirectory(prefix='nextrouter-initial-migration-') as tmp:
             env = {
                 **os.environ,
                 'DJANGO_SETTINGS_MODULE': 'app.settings.dev',
