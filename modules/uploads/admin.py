@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from shared.admin import is_superuser_request
+
 from .models import Document, Image
 
 
@@ -9,11 +11,20 @@ class AttachmentAdmin(admin.ModelAdmin):
     list_filter = ('uploaded_on',)
     readonly_fields = ('attachment_key', 'public_id', 'uploaded_on')
     date_hierarchy = 'uploaded_on'
-    actions = None
     fieldsets = (
         ('Arquivo', {'fields': ('file', 'description')}),
         ('Identificação', {'fields': ('attachment_key', 'public_id', 'uploaded_on'), 'classes': ('collapse',)}),
     )
+
+    def get_actions(self, request):
+        if is_superuser_request(request):
+            return super().get_actions(request)
+        return {}
+
+    def get_readonly_fields(self, request, obj=None):
+        if is_superuser_request(request):
+            return ('uploaded_on',)
+        return super().get_readonly_fields(request, obj)
 
 
 @admin.register(Image)

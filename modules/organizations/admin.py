@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 
 from modules.organizations.admin_commands import MEMBERSHIP_COMMANDS
 from modules.organizations.services.moderation import review_company
-from shared.admin import DomainCommandAdmin, ReadOnlyAdmin
+from shared.admin import DomainCommandAdmin, ReadOnlyAdmin, is_superuser_request
 from shared.exceptions import DomainError
 
 from .models import (
@@ -25,12 +25,20 @@ class CompanyAdmin(admin.ModelAdmin):
     list_select_related = ('user',)
     actions = ('approve_companies', 'reject_companies')
 
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not is_superuser_request(request):
+            actions.pop('delete_selected', None)
+        return actions
+
     def get_readonly_fields(self, request, obj=None):
+        if is_superuser_request(request):
+            return ()
         protected = ('is_approved', 'is_rejected', 'reviewed_by', 'reviewed_at', 'latitude', 'longitude', 'geocoded_at')
         return (*protected, 'user', 'cnpj') if obj else protected
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        return is_superuser_request(request)
 
     @admin.action(description='Aprovar empresas selecionadas')
     def approve_companies(self, request, queryset):
