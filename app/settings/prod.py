@@ -29,8 +29,10 @@ def _nonnegative_integer(name, default='0'):
     return int(value)
 
 
-def _routing_url(name):
-    value = _required(name)
+def _routing_url(name, *, required=False):
+    value = _required(name) if required else os.environ.get(name, '').strip()
+    if not value:
+        return ''
     try:
         parsed = urlsplit(value)
         port = parsed.port
@@ -104,17 +106,22 @@ if DATABASES['default']['ENGINE'] != 'django.db.backends.postgresql':
 if not all(DATABASES['default'].get(key) for key in ('NAME', 'USER', 'PASSWORD', 'HOST')):
     raise ImproperlyConfigured('DATABASE_URL deve conter nome, usuário, senha e host do PostgreSQL.')
 
-REDIS_URL = _required('REDIS_URL')
-try:
-    _redis = urlsplit(REDIS_URL)
-    _redis_port = _redis.port
-except ValueError:
-    raise ImproperlyConfigured('REDIS_URL deve apontar para Redis/Redis TLS válido.') from None
-if _redis.scheme not in ('redis', 'rediss') or not _redis.hostname or _redis_port == 0:
-    raise ImproperlyConfigured('REDIS_URL deve apontar para Redis/Redis TLS.')
-CACHES = {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache', 'LOCATION': REDIS_URL}}
-CHANNEL_LAYERS = {'default': {'BACKEND': 'channels_redis.core.RedisChannelLayer', 'CONFIG': {'hosts': [REDIS_URL]}}}
-PRIVATE_DOCUMENT_ROOT = _required('PRIVATE_DOCUMENT_ROOT')
+REDIS_URL = os.environ.get('REDIS_URL', '').strip()
+if REDIS_URL:
+    try:
+        _redis = urlsplit(REDIS_URL)
+        _redis_port = _redis.port
+    except ValueError:
+        raise ImproperlyConfigured('REDIS_URL deve apontar para Redis/Redis TLS válido.') from None
+    if _redis.scheme not in ('redis', 'rediss') or not _redis.hostname or _redis_port == 0:
+        raise ImproperlyConfigured('REDIS_URL deve apontar para Redis/Redis TLS.')
+    CACHES = {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache', 'LOCATION': REDIS_URL}}
+    CHANNEL_LAYERS = {'default': {'BACKEND': 'channels_redis.core.RedisChannelLayer', 'CONFIG': {'hosts': [REDIS_URL]}}}
+else:
+    CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
+    CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
+
+PRIVATE_DOCUMENT_ROOT = os.environ.get('PRIVATE_DOCUMENT_ROOT', '').strip() or '/tmp/nextrouter-private-documents'
 if not Path(PRIVATE_DOCUMENT_ROOT).is_absolute() or any(
     Path(PRIVATE_DOCUMENT_ROOT).resolve().is_relative_to(Path(root).resolve())
     for root in (common.MEDIA_ROOT, common.STATIC_ROOT, common.FRONTEND_DIST, *common.STATICFILES_DIRS)
@@ -123,10 +130,15 @@ if not Path(PRIVATE_DOCUMENT_ROOT).is_absolute() or any(
 OSRM_URL = _routing_url('OSRM_URL')
 GEOCODING_URL = _routing_url('GEOCODING_URL')
 
-EMAIL_HOST = _required('EMAIL_HOST')
-EMAIL_HOST_USER = _required('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = _required('EMAIL_HOST_PASSWORD')
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', '').strip()
+if EMAIL_HOST:
+    EMAIL_HOST_USER = _required('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = _required('EMAIL_HOST_PASSWORD')
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '').strip()
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').strip()
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 MEDIA_URL = '/media/'
 SECURE_SSL_REDIRECT = True
@@ -139,7 +151,8 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = _boolean('HSTS_INCLUDE_SUBDOMAINS')
 SECURE_HSTS_PRELOAD = _boolean('HSTS_PRELOAD')
 if (SECURE_HSTS_INCLUDE_SUBDOMAINS or SECURE_HSTS_PRELOAD) and SECURE_HSTS_SECONDS == 0:
     raise ImproperlyConfigured('Habilite HSTS antes de incluir subdomínios/preload; confirme o controle do domínio.')
-TRUST_PROXY_HEADERS = _boolean('TRUST_PROXY_HEADERS')
+_default_trust_proxy = 'true' if os.environ.get('RENDER', '').strip().lower() == 'true' else 'false'
+TRUST_PROXY_HEADERS = _boolean('TRUST_PROXY_HEADERS', default=_default_trust_proxy)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if TRUST_PROXY_HEADERS else None
 # Exceção mínima sem dados para o probe HTTP interno; readiness continua exigindo HTTPS.
 SECURE_REDIRECT_EXEMPT = [r'^health/live/$']

@@ -1,8 +1,8 @@
 """CLI do simulador modular de percurso de viagem.
 
 Exemplos:
-  pdm run simulate-trip --scenario outbound --duration 120 --reset-db --confirm-fictitious
-  pdm run simulate-trip --scenario return --duration 120 --reset-db --confirm-fictitious
+  pdm run simulate-trip
+  pdm run simulate-trip --scenario return --reset-db
 """
 
 import argparse
@@ -14,7 +14,7 @@ import httpx
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
-        description='Recria o banco local fictício e simula um percurso completo com GPS ao vivo via WebSocket.'
+        description='Prepara o banco local fictício e simula um percurso completo com GPS ao vivo via WebSocket.'
     )
     parser.add_argument('--scenario', default='outbound', choices=('outbound', 'return'))
     parser.add_argument('--duration', type=int, default=120, help='Duração total da corrida em segundos (padrão: 120).')
@@ -24,7 +24,10 @@ def parse_args(argv=None):
     parser.add_argument('--base-url', default='http://127.0.0.1:8000', help='URL do servidor Django/Daphne local.')
     parser.add_argument('--reset-db', action='store_true', help='Apaga backend/dev.sqlite3 e recria do zero.')
     parser.add_argument(
-        '--confirm-fictitious', action='store_true', help='Confirmação obrigatória para resetar o banco fictício.'
+        '--confirm-fictitious',
+        action='store_true',
+        default=True,
+        help='Mantido por compatibilidade (a verificação de segurança valida DEBUG e o caminho de dev.sqlite3).',
     )
     parser.add_argument('--prepare-only', action='store_true', help='Apenas prepara o banco/viagem sem iniciar a rota.')
     parser.add_argument('--no-wait', action='store_true', help='Inicia a corrida imediatamente sem aguardar ENTER.')

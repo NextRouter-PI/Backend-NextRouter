@@ -26,8 +26,9 @@ LOCATION_MAX_AGE_SECONDS = 30
 LOCATION_MIN_INTERVAL_SECONDS = 2
 PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
 
-# A referência mantém os arquivos vivos durante o processo e os remove ao encerrar.
-_files = TemporaryDirectory(prefix='nextrouter-tests-', dir='/tmp/opencode' if Path('/tmp/opencode').is_dir() else None)
+# Garante /tmp/opencode para testes que criam TemporaryDirectory ali e mantém diretórios do processo.
+Path('/tmp/opencode').mkdir(parents=True, exist_ok=True)
+_files = TemporaryDirectory(prefix='nextrouter-tests-', dir='/tmp/opencode')
 MEDIA_ROOT = str(Path(_files.name) / 'media')
 PRIVATE_DOCUMENT_ROOT = str(Path(_files.name) / 'private')
 FRONTEND_DIST = Path(_files.name) / 'frontend_dist'
