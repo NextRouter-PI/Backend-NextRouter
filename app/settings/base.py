@@ -97,7 +97,7 @@ ROOT_URLCONF = 'app.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -255,13 +255,121 @@ IPWARE_PROXY_COUNT = 1
 IPWARE_HEADER_ORDER = ['X_FORWARDED_FOR', 'REMOTE_ADDR']
 
 
+def _parse_optional_bool(env, name: str) -> bool | None:
+    raw = env.get(name)
+    if raw is None or not str(raw).strip():
+        return None
+    normalized = str(raw).strip().lower()
+    if normalized in {'true', '1', 'yes', 'on'}:
+        return True
+    if normalized in {'false', '0', 'no', 'off'}:
+        return False
+    raise ImproperlyConfigured(f'{name} deve ser um booleano válido (true/false).')
+
+
+def resolve_email_settings(
+    env=None, *, strict: bool = False, fallback_from: str = 'webmaster@localhost'
+) -> dict[str, Any]:
+    """Seleciona automaticamente o backend de e-mail conforme as variáveis de ambiente.
+
+    Prioridade:
+    1. EMAIL_BACKEND explícito no ambiente (se informado);
+    2. BREVO_API_KEY preenchida -> API HTTP v3 do Brevo;
+    3. EMAIL_HOST preenchido (ou conta Gmail com usuário/senha) -> SMTP (Gmail, Brevo SMTP, etc.);
+    4. Fallback seguro para console.
+    """
+    source = os.environ if env is None else env
+    explicit_backend = str(source.get('EMAIL_BACKEND') or '').strip()
+    brevo_api_key = str(source.get('BREVO_API_KEY') or '').strip()
+    email_host = str(source.get('EMAIL_HOST') or '').strip()
+    email_host_user = str(source.get('EMAIL_HOST_USER') or '').strip()
+    email_host_password = str(source.get('EMAIL_HOST_PASSWORD') or '').strip()
+    explicit_from = str(source.get('DEFAULT_FROM_EMAIL') or source.get('BREVO_SENDER_EMAIL') or '').strip()
+
+    use_tls = _parse_optional_bool(source, 'EMAIL_USE_TLS')
+    use_ssl = _parse_optional_bool(source, 'EMAIL_USE_SSL')
+    if use_tls is True and use_ssl is True:
+        raise ImproperlyConfigured('EMAIL_USE_TLS e EMAIL_USE_SSL não podem ser ativados simultaneamente.')
+
+    raw_port = str(source.get('EMAIL_PORT') or '').strip()
+    if raw_port:
+        try:
+            email_port = int(raw_port)
+        except ValueError as exc:
+            raise ImproperlyConfigured('EMAIL_PORT deve ser um número inteiro válido.') from exc
+    else:
+        email_port = 465 if use_ssl is True else 587
+
+    if not email_host and not brevo_api_key and email_host_user.lower().endswith('@gmail.com') and email_host_password:
+        email_host = 'smtp.gmail.com'
+
+    if explicit_backend:
+        backend = explicit_backend
+    elif brevo_api_key:
+        backend = 'app.email_backends.BrevoEmailBackend'
+    elif email_host:
+        backend = 'django.core.mail.backends.smtp.EmailBackend'
+    else:
+        backend = 'django.core.mail.backends.console.EmailBackend'
+
+    if backend == 'app.email_backends.BrevoEmailBackend':
+        if strict and not brevo_api_key:
+            raise ImproperlyConfigured('BREVO_API_KEY é obrigatório para o backend Brevo.')
+        default_from = explicit_from or email_host_user
+        if strict and not default_from:
+            raise ImproperlyConfigured('DEFAULT_FROM_EMAIL é obrigatório em produção com Brevo.')
+        default_from = default_from or fallback_from
+        resolved_tls = bool(use_tls)
+        resolved_ssl = bool(use_ssl)
+    elif backend == 'django.core.mail.backends.smtp.EmailBackend':
+        if strict and not email_host:
+            raise ImproperlyConfigured('EMAIL_HOST é obrigatório para envio via SMTP.')
+        if strict and not email_host_user:
+            raise ImproperlyConfigured('EMAIL_HOST_USER é obrigatório em produção com SMTP.')
+        if strict and not email_host_password:
+            raise ImproperlyConfigured('EMAIL_HOST_PASSWORD é obrigatório em produção com SMTP.')
+        if use_tls is None and use_ssl is None:
+            resolved_ssl = email_port == 465
+            resolved_tls = email_port == 587
+        else:
+            resolved_tls = bool(use_tls)
+            resolved_ssl = bool(use_ssl)
+        default_from = explicit_from or email_host_user or fallback_from
+    else:
+        resolved_tls = bool(use_tls)
+        resolved_ssl = bool(use_ssl)
+        default_from = explicit_from or email_host_user or fallback_from
+
+    raw_timeout = str(source.get('EMAIL_TIMEOUT') or '15').strip()
+    try:
+        email_timeout = int(raw_timeout)
+    except ValueError as exc:
+        raise ImproperlyConfigured('EMAIL_TIMEOUT deve ser um número inteiro válido.') from exc
+
+    return {
+        'EMAIL_BACKEND': backend,
+        'BREVO_API_KEY': brevo_api_key,
+        'EMAIL_HOST': email_host,
+        'EMAIL_HOST_USER': email_host_user,
+        'EMAIL_HOST_PASSWORD': email_host_password,
+        'EMAIL_USE_TLS': resolved_tls,
+        'EMAIL_USE_SSL': resolved_ssl,
+        'EMAIL_PORT': email_port,
+        'DEFAULT_FROM_EMAIL': default_from,
+        'EMAIL_TIMEOUT': email_timeout,
+    }
+
+
 # Envio de email
-BREVO_API_KEY = os.getenv('BREVO_API_KEY', '').strip()
-EMAIL_HOST = os.getenv('EMAIL_HOST')
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False') == 'True'
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL') or EMAIL_HOST_USER or 'webmaster@localhost'
+_email_settings = resolve_email_settings(os.environ, strict=False, fallback_from='webmaster@localhost')
+EMAIL_BACKEND = _email_settings['EMAIL_BACKEND']
+BREVO_API_KEY = _email_settings['BREVO_API_KEY']
+EMAIL_HOST = _email_settings['EMAIL_HOST']
+EMAIL_HOST_USER = _email_settings['EMAIL_HOST_USER']
+EMAIL_HOST_PASSWORD = _email_settings['EMAIL_HOST_PASSWORD']
+EMAIL_USE_TLS = _email_settings['EMAIL_USE_TLS']
+EMAIL_USE_SSL = _email_settings['EMAIL_USE_SSL']
+EMAIL_PORT = _email_settings['EMAIL_PORT']
+DEFAULT_FROM_EMAIL = _email_settings['DEFAULT_FROM_EMAIL']
 # Sem timeout, um servidor SMTP lento deixa a requisição de cadastro travada indefinidamente.
-EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', 15))
+EMAIL_TIMEOUT = _email_settings['EMAIL_TIMEOUT']

@@ -88,13 +88,17 @@ STORAGES = {
     'default': {'BACKEND': common.MEDIA_STORAGE_BACKEND},
     'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 }
-if common.BREVO_API_KEY:
-    EMAIL_BACKEND = 'app.email_backends.BrevoEmailBackend'
-elif common.EMAIL_HOST:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-else:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL') or common.EMAIL_HOST_USER or 'noreply@example.invalid'
+_email = common.resolve_email_settings(os.environ, strict=False, fallback_from='noreply@example.invalid')
+EMAIL_BACKEND = _email['EMAIL_BACKEND']
+BREVO_API_KEY = _email['BREVO_API_KEY']
+EMAIL_HOST = _email['EMAIL_HOST']
+EMAIL_HOST_USER = _email['EMAIL_HOST_USER']
+EMAIL_HOST_PASSWORD = _email['EMAIL_HOST_PASSWORD']
+EMAIL_USE_TLS = _email['EMAIL_USE_TLS']
+EMAIL_USE_SSL = _email['EMAIL_USE_SSL']
+EMAIL_PORT = _email['EMAIL_PORT']
+DEFAULT_FROM_EMAIL = _email['DEFAULT_FROM_EMAIL']
+EMAIL_TIMEOUT = _email['EMAIL_TIMEOUT']
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_SAMESITE = 'Lax'
