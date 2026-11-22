@@ -5,7 +5,15 @@ from django.urls import include, path, re_path
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
-from app.frontend import favicon, frontend
+from app.frontend import (
+    favicon,
+    frontend,
+    pwa_icon,
+    pwa_manifest,
+    pwa_register_sw,
+    pwa_service_worker,
+    pwa_workbox,
+)
 from app.health import live, ready
 from app.html_templates import html_template
 
@@ -36,4 +44,14 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_ENDPOINT, document_root=settings.MEDIA_ROOT)
 
-urlpatterns += [path('favicon.ico', favicon), re_path(r'^(?P<route>.*)$', frontend)]
+urlpatterns += [
+    path('favicon.ico', favicon),
+    path('manifest.webmanifest', pwa_manifest),
+    path('sw.js', pwa_service_worker),
+    path('registerSW.js', pwa_register_sw),
+    re_path(r'^(?P<filename>workbox-[0-9a-f]{8}\.js)$', pwa_workbox),
+    re_path(r'^icons/(?P<filename>[^/]+)$', pwa_icon),
+    re_path(r'^(?P<route>.*)$', frontend),
+]
+
+handler404 = 'app.frontend.not_found'

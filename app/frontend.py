@@ -4,14 +4,15 @@ import hashlib
 from pathlib import Path
 
 from django.conf import settings
-from django.http import Http404, HttpResponse, HttpResponseNotAllowed, HttpResponseNotModified
+from django.http import Http404, HttpResponse, HttpResponseNotAllowed, HttpResponseNotModified, JsonResponse
+from django.shortcuts import render
 from django.utils.cache import patch_vary_headers
 from django.utils.http import parse_etags
 from django.views.decorators.http import require_safe
 from whitenoise import WhiteNoise
 from whitenoise.middleware import WhiteNoiseMiddleware
 
-from shared.frontend_artifact import ASSET_EXTENSIONS
+from shared.frontend_artifact import ASSET_EXTENSIONS, ICON_EXTENSIONS, WORKBOX_FILE_RE
 
 RESERVED = {
     'api',
@@ -151,3 +152,89 @@ def favicon(request):
         content_type='image/x-icon',
         cache_control='public, max-age=0, must-revalidate',
     )
+
+
+@require_safe
+def pwa_manifest(request):
+    path = safe_file(Path(settings.FRONTEND_DIST), 'manifest.webmanifest')
+    if path is None:
+        raise Http404
+    return _build_artifact_response(
+        request,
+        path,
+        content_type='application/manifest+json; charset=utf-8',
+        cache_control='public, max-age=0, must-revalidate',
+    )
+
+
+@require_safe
+def pwa_service_worker(request):
+    path = safe_file(Path(settings.FRONTEND_DIST), 'sw.js')
+    if path is None:
+        raise Http404
+    response = _build_artifact_response(
+        request,
+        path,
+        content_type='application/javascript; charset=utf-8',
+        cache_control='no-cache',
+    )
+    response['Service-Worker-Allowed'] = '/'
+    return response
+
+
+@require_safe
+def pwa_register_sw(request):
+    path = safe_file(Path(settings.FRONTEND_DIST), 'registerSW.js')
+    if path is None:
+        raise Http404
+    return _build_artifact_response(
+        request,
+        path,
+        content_type='application/javascript; charset=utf-8',
+        cache_control='no-cache',
+    )
+
+
+@require_safe
+def pwa_workbox(request, filename):
+    if not WORKBOX_FILE_RE.fullmatch(filename):
+        raise Http404
+    path = safe_file(Path(settings.FRONTEND_DIST), filename)
+    if path is None:
+        raise Http404
+    return _build_artifact_response(
+        request,
+        path,
+        content_type='application/javascript; charset=utf-8',
+        cache_control='public, max-age=0, must-revalidate',
+    )
+
+
+_ICON_CONTENT_TYPES = {
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.webp': 'image/webp',
+}
+
+
+@require_safe
+def pwa_icon(request, filename):
+    path = safe_file(Path(settings.FRONTEND_DIST) / 'icons', filename)
+    if path is None or path.suffix.lower() not in ICON_EXTENSIONS:
+        raise Http404
+    return _build_artifact_response(
+        request,
+        path,
+        content_type=_ICON_CONTENT_TYPES[path.suffix.lower()],
+        cache_control='public, max-age=0, must-revalidate',
+    )
+
+
+def not_found(request, exception=None):
+    """Retorna a tela 404 padronizada para navegação HTML e JSON 404 para API/clientes não-HTML."""
+    is_api_path = request.path_info.startswith('/api/')
+    accepts_html = 'text/html' in request.headers.get('Accept', '')
+    if is_api_path or not accepts_html:
+        return JsonResponse({'detail': 'Não encontrado.'}, status=404)
+    return render(request, '404.html', status=404)

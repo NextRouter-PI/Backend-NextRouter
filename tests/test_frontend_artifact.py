@@ -45,7 +45,7 @@ class PreparedArtifactTests(SimpleTestCase):
         self.assertTrue((self.destination / 'frontend_dist/index.html').is_file())
 
     def test_hidden_files_maps_manifests_and_symlinks_are_not_silently_published(self):
-        for name in ('.env', 'assets/code.js.map', 'assets/manifest.json', 'sw.js', 'assets/.hidden.js'):
+        for name in ('.env', 'assets/code.js.map', 'assets/manifest.json', 'unlisted.js', 'assets/.hidden.js'):
             path = self.source / name
             path.write_text('fixture')
             with self.subTest(name=name), self.assertRaises(ArtifactError):
@@ -55,6 +55,25 @@ class PreparedArtifactTests(SimpleTestCase):
         with self.assertRaises(ArtifactError):
             self.prepare()
         self.assertFalse(self.destination.exists())
+
+    def test_authorized_pwa_files_and_icons_are_accepted(self):
+        (self.source / 'icons').mkdir()
+        (self.source / 'icons/icon-192x192.png').write_bytes(b'png')
+        (self.source / 'manifest.webmanifest').write_text('{"name":"NextRouter"}')
+        (self.source / 'sw.js').write_text('// sw')
+        (self.source / 'registerSW.js').write_text('// register')
+        (self.source / 'workbox-a1b2c3d4.js').write_text('// workbox')
+        (self.source / 'index.html').write_text(
+            '<!doctype html>'
+            '<link rel="manifest" href="/manifest.webmanifest">'
+            '<link rel="apple-touch-icon" href="/icons/icon-192x192.png">'
+            '<script type="module" src="/assets/index-Hash.js"></script>'
+            '<script defer src="/registerSW.js"></script>'
+        )
+        metadata = self.prepare()
+        self.assertIn('manifest.webmanifest', metadata['files'])
+        self.assertIn('sw.js', metadata['files'])
+        self.assertIn('icons/icon-192x192.png', metadata['files'])
 
     def test_missing_external_and_traversal_references_are_rejected(self):
         for reference in (
