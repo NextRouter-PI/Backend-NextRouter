@@ -67,13 +67,25 @@ class DatedTravelModelTests(DayModelTestCase):
         client.force_authenticate(self.passenger.user)
         self.assertEqual(client.post('/api/confirmations/', {'travel': travel.pk}, format='json').status_code, 404)
 
-    def test_admin_cannot_change_new_travel(self):
+    def test_admin_blocks_non_superuser_staff_and_allows_superuser_on_travel(self):
+        from django.contrib.auth.models import Permission
+
         travel = Travel.objects.create(**self.travel_data())
-        administrator = create_user('dated-travel-admin@example.com', is_staff=True, is_superuser=True)
-        self.client.force_login(administrator)
+        staff = create_user('dated-travel-staff@example.com', is_staff=True, is_superuser=False)
+        staff.user_permissions.add(
+            Permission.objects.get(content_type__app_label='router', codename='view_travel'),
+            Permission.objects.get(content_type__app_label='router', codename='change_travel'),
+        )
+        self.client.force_login(staff)
         url = reverse('admin:router_travel_change', args=[travel.pk])
         self.assertEqual(self.client.get(url).status_code, 200)
         self.assertEqual(self.client.post(url, {'status': 'finished'}).status_code, 403)
+
+        administrator = create_user('dated-travel-admin@example.com', is_staff=True, is_superuser=True)
+        self.client.force_login(administrator)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['has_change_permission'])
 
 
 class ParticipationModelTests(DayModelTestCase):

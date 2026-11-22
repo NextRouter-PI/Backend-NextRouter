@@ -5,6 +5,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
+from shared.admin import is_superuser_request
+
 from .models import EmailToken, User, UserSession
 from .services import deactivate_account, guard_account_deactivation, revoke_session
 
@@ -52,7 +54,6 @@ class UserAdmin(BaseUserAdmin):
     list_filter = ('is_active', 'is_staff', 'is_superuser')
     search_fields = ('email', 'name', 'cpf')
     readonly_fields = ('last_login', 'created_at', 'latitude', 'longitude', 'geocoded_at')
-    actions = None
     fieldsets = (
         ('Acesso', {'fields': ('email', 'password')}),
         ('Dados pessoais', {'fields': ('name', 'profile_picture', 'phone', 'cpf', 'birthday')}),
@@ -62,6 +63,16 @@ class UserAdmin(BaseUserAdmin):
         ('Datas', {'fields': ('last_login', 'created_at'), 'classes': ('collapse',)}),
     )
     add_fieldsets = ((None, {'classes': ('wide',), 'fields': ('email', 'password1', 'password2')}),)
+
+    def get_actions(self, request):
+        if is_superuser_request(request):
+            return super().get_actions(request)
+        return {}
+
+    def get_readonly_fields(self, request, obj=None):
+        if is_superuser_request(request):
+            return ('created_at',)
+        return super().get_readonly_fields(request, obj)
 
     def save_model(self, request, obj, form, change):
         if change and not obj.is_active:
@@ -82,11 +93,22 @@ class UserSessionAdmin(admin.ModelAdmin):
     readonly_fields = fields
     actions = ('revoke_selected',)
 
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not is_superuser_request(request):
+            actions.pop('delete_selected', None)
+        return actions
+
+    def get_readonly_fields(self, request, obj=None):
+        if is_superuser_request(request):
+            return ('created_at', 'last_activity')
+        return self.fields
+
     def has_add_permission(self, request):
-        return False
+        return is_superuser_request(request)
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        return is_superuser_request(request)
 
     @admin.action(description='Revogar sessões selecionadas', permissions=['change'])
     def revoke_selected(self, request, queryset):
@@ -103,10 +125,19 @@ class EmailTokenAdmin(admin.ModelAdmin):
     list_select_related = ('user',)
     fields = ('user', 'email', 'token_type', 'consumed', 'failed_attempts', 'created_at')
     readonly_fields = fields
-    actions = None
+
+    def get_actions(self, request):
+        if is_superuser_request(request):
+            return super().get_actions(request)
+        return {}
+
+    def get_readonly_fields(self, request, obj=None):
+        if is_superuser_request(request):
+            return ('created_at',)
+        return self.fields
 
     def has_add_permission(self, request):
-        return False
+        return is_superuser_request(request)
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        return is_superuser_request(request)

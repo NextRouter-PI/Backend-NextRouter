@@ -259,7 +259,9 @@ class DatedApiTests(ServiceTestCase):
         from modules.transport.models import Travel
 
         model_admin = admin.site._registry[Travel]
-        self.assertFalse(model_admin.has_change_permission(type('Request', (), {'user': staff})(), travel))
+        regular_staff = create_user('api-staff@example.com', is_staff=True, is_superuser=False)
+        self.assertFalse(model_admin.has_change_permission(type('Request', (), {'user': regular_staff})(), travel))
+        self.assertTrue(model_admin.has_change_permission(type('Request', (), {'user': staff})(), travel))
         result = self.client.post(
             '/admin/router/travel/',
             {
