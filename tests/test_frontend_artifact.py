@@ -9,7 +9,7 @@ from shared.frontend_artifact import ArtifactError, inspect_artifact, prepare_ar
 
 class PreparedArtifactTests(SimpleTestCase):
     def setUp(self):
-        temporary = tempfile.TemporaryDirectory(prefix='nextrouter-artifact-', dir='/tmp/opencode')
+        temporary = tempfile.TemporaryDirectory(prefix='nextrouter-artifact-')
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         self.source = self.root / 'dist'

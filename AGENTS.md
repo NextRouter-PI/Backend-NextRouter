@@ -218,16 +218,9 @@ Todos os caminhos de código e comandos abaixo são relativos à raiz do backend
   apontando para um caminho inexistente e isole os caminhos/serviços:
 
 ```sh
-export NEXTROUTER_ENV_FILE=/tmp/opencode/nextrouter-env-inexistente
+export NEXTROUTER_ENV_FILE=.env.inexistente
 export SUPABASE_DATABASE_URL=
-export DATABASE_URL=sqlite:////tmp/opencode/nextrouter-autorizado.sqlite3
-export MEDIA_ROOT=/tmp/opencode/nextrouter-autorizado-media
-export PRIVATE_DOCUMENT_ROOT=/tmp/opencode/nextrouter-autorizado-private
-export REDIS_URL=
-export GEOCODING_URL=
-export OSRM_URL=
-export EMAIL_HOST=
-export CLOUDINARY_URL=
+export DATABASE_URL=
 pdm run lint
 pdm run check
 pdm run schema

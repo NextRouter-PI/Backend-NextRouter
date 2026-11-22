@@ -27,7 +27,7 @@ class ProductionSettingsTests(SimpleTestCase):
             'PUBLIC_ORIGIN': 'https://app.example.com',
             'DATABASE_URL': 'postgresql://test:test@localhost/test',
             'REDIS_URL': 'redis://localhost:6379/15',
-            'PRIVATE_DOCUMENT_ROOT': '/tmp/opencode/stage4-settings-documents',
+            'PRIVATE_DOCUMENT_ROOT': '',
             'OSRM_URL': 'https://routes.example.com',
             'GEOCODING_URL': 'https://geocode.example.com',
             'EMAIL_HOST': 'smtp.example.com',
@@ -116,7 +116,7 @@ assert not s.SECURE_HSTS_INCLUDE_SUBDOMAINS and not s.SECURE_HSTS_PRELOAD
             {'OSRM_URL': 'file:///tmp/test'},
             {'REDIS_URL': 'http://localhost'},
             {'REDIS_URL': 'redis://localhost:invalid'},
-            {'SUPABASE_DATABASE_URL': 'sqlite:////tmp/opencode/invalido.sqlite3'},
+            {'SUPABASE_DATABASE_URL': 'sqlite:////tmp/invalido.sqlite3'},
             {'SUPABASE_DATABASE_URL': 'postgresql://localhost/postgres'},
         ):
             with self.subTest(extra=extra):
@@ -158,7 +158,7 @@ assert db['OPTIONS']['pool'] is True
 
         dev_env = {
             **os.environ,
-            'NEXTROUTER_ENV_FILE': '/tmp/opencode/nextrouter-env-inexistente',
+            'NEXTROUTER_ENV_FILE': '/tmp/nextrouter-env-inexistente',
             'SUPABASE_DATABASE_URL': pooler_url,
             'DATABASE_URL': '',
         }
@@ -201,7 +201,7 @@ class HealthTests(SimpleTestCase):
 
     def test_probes_check_database_cache_and_private_storage_without_business_queries(self):
         with (
-            tempfile.TemporaryDirectory(prefix='nextrouter-probe-', dir='/tmp/opencode') as directory,
+            tempfile.TemporaryDirectory(prefix='nextrouter-probe-') as directory,
             override_settings(PRIVATE_DOCUMENT_ROOT=directory),
             patch('app.runtime_checks.connection') as connection,
             patch('app.runtime_checks.cache') as cache,
@@ -246,7 +246,7 @@ class HealthTests(SimpleTestCase):
         self.assertNotIn('NuncaExporErroPrivado', str(caught.exception))
 
     def test_staticfiles_manifest_must_exist_be_valid_and_readable_before_exec(self):
-        with tempfile.TemporaryDirectory(prefix='nextrouter-statics-', dir='/tmp/opencode') as directory:
+        with tempfile.TemporaryDirectory(prefix='nextrouter-statics-') as directory:
             manifest = Path(directory) / 'staticfiles.json'
             storage_settings = {
                 'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},

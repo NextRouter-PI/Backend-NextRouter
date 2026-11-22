@@ -56,7 +56,7 @@ executá-los; não substitua o caminho pelo banco habitual, não use `--fake` e 
 reaproveite um banco legado:
 
 ```sh
-HTML_TEST_ROOT=$(mktemp -d /tmp/opencode/nextrouter-html-XXXXXX)
+HTML_TEST_ROOT=$(mktemp -d)
 export NEXTROUTER_ENV_FILE="$HTML_TEST_ROOT/empty.env"
 export DATABASE_URL="sqlite:///$HTML_TEST_ROOT/db.sqlite3"
 export MEDIA_ROOT="$HTML_TEST_ROOT/media"
@@ -151,7 +151,7 @@ pdm run test-html
 
 Smoke opcional com **Node >=22 e Firefox já instalados**, sem npm, Playwright ou
 driver. O comando exige confirmação fictícia, cria banco/arquivos/perfis em diretório
-novo sob `/tmp/opencode`, ignora URLs herdadas de serviços, migra/semeia apenas o
+temporário isolado, ignora URLs herdadas de serviços, migra/semeia apenas o
 próprio banco e encerra/remove somente os próprios recursos:
 
 ```sh
