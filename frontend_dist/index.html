@@ -5,10 +5,52 @@
     <link rel="icon" type="image/png" href="/assets/logo-D4CX3Z_4.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>NextRouter</title>
-    <script type="module" crossorigin src="/assets/index-Cfo5Qe6q.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/vendor-vue-CkVlIMJE.js">
+    <style>
+      .nr-boot-splash {
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        background: #fafafa;
+        color: #1c1917;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      }
+      html.dark .nr-boot-splash {
+        background: #111113;
+        color: #f3f3f5;
+      }
+      .nr-boot-ring {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 3.5px solid #e4e4e7;
+        border-top-color: #ec8314;
+        animation: nr-boot-spin 0.8s linear infinite;
+      }
+      html.dark .nr-boot-ring {
+        border-color: #2e2e32;
+        border-top-color: #ec8314;
+      }
+      .nr-boot-brand {
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        margin: 0;
+      }
+      .nr-boot-brand span {
+        color: #ec8314;
+      }
+      @keyframes nr-boot-spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-DvsAfZ4S.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-vue-DjwLf0E4.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-http-DZ_Kha3d.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-BuXHtkmK.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-Bqf6gEya.css">
   </head>
   <body>
     <script>
@@ -19,6 +61,11 @@
         }
       })();
     </script>
-    <div id="app"></div>
+    <div id="app">
+      <div class="nr-boot-splash" role="status" aria-label="Carregando NextRouter">
+        <div class="nr-boot-ring" aria-hidden="true"></div>
+        <p class="nr-boot-brand"><span>NEXT</span>ROUTER</p>
+      </div>
+    </div>
   </body>
 </html>
