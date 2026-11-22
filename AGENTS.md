@@ -190,11 +190,12 @@ Todos os caminhos de código e comandos abaixo são relativos à raiz do backend
   fora de `MEDIA_ROOT`, `STATIC_ROOT`, `FRONTEND_DIST` e `STATICFILES_DIRS`) e só são
   entregues após verificação de permissão na API.
 - **Artefato estático (`frontend_dist/`):** inspecionado por `shared/frontend_artifact.py`,
-  aceita apenas `index.html`, `favicon.ico` e arquivos com extensão permitida sob
-  `assets/`, sem symlinks, arquivos ocultos, service workers ou manifestos públicos fora
-  da allowlist. Rotas reservadas (`api`, `admin`, `ws`, `assets`, `static`, `media`,
+  aceita apenas `index.html`, `favicon.ico`, os arquivos PWA explicitamente autorizados
+  (`manifest.webmanifest`, `sw.js`, `registerSW.js`, `workbox-<hex>.js`), ícones sob `icons/`
+  e arquivos com extensão permitida sob `assets/`, sem symlinks, arquivos ocultos ou mapas/segredos
+  fora da allowlist. Rotas reservadas (`api`, `admin`, `ws`, `assets`, `static`, `media`,
   `uploads`, `downloads`, `private-documents`, `html-template-test`, `frontend_dist`,
-  `health`) e caminhos com ponto nunca recebem fallback HTML.
+  `health`) e caminhos com ponto não listados nunca recebem fallback HTML.
 
 ## 5. Ambiente, segurança de execução e validação
 

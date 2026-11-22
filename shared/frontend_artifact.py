@@ -26,8 +26,15 @@ ASSET_EXTENSIONS = {
     '.eot',
     '.wasm',
 }
+ICON_EXTENSIONS = {'.png', '.svg', '.ico', '.webp'}
+PWA_ROOT_FILES = {'index.html', 'favicon.ico', 'manifest.webmanifest', 'sw.js', 'registerSW.js'}
+WORKBOX_FILE_RE = re.compile(r'^workbox-[0-9a-f]{8}\.js$')
 MANIFEST_NAME = 'frontend-release.json'
 MAX_ARTIFACT_BYTES = 256 * 1024 * 1024
+
+
+def is_allowed_root_file(filename: str) -> bool:
+    return filename in PWA_ROOT_FILES or bool(WORKBOX_FILE_RE.fullmatch(filename))
 
 
 class ArtifactError(ValueError):
@@ -57,10 +64,16 @@ class References(HTMLParser):
                     or parsed.netloc
                     or parsed.query
                     or parsed.fragment
-                    or not (path.startswith('/assets/') or path == '/favicon.ico')
+                    or not (
+                        path.startswith('/assets/')
+                        or path.startswith('/icons/')
+                        or path in ('/favicon.ico', '/manifest.webmanifest', '/registerSW.js')
+                    )
                     or any(part in ('', '.', '..') for part in path.lstrip('/').split('/'))
                 ):
-                    raise ArtifactError('Referências de recursos devem usar /assets/ ou /favicon.ico da mesma origem.')
+                    raise ArtifactError(
+                        'Referências de recursos devem usar /assets/, /icons/ ou arquivos PWA da mesma origem.'
+                    )
                 self.paths.append(path.lstrip('/'))
 
 
@@ -77,15 +90,16 @@ def inspect_artifact(root):
         ):
             raise ArtifactError('Artefato contém caminho oculto, inválido ou symlink.')
         if path.is_dir():
-            if relative.parts[0] != 'assets':
-                raise ArtifactError('Somente a árvore assets é permitida além do HTML/favicon.')
+            if relative.parts[0] not in ('assets', 'icons'):
+                raise ArtifactError('Somente as árvores assets e icons são permitidas além dos arquivos raiz.')
             continue
         if not path.is_file() or not (
-            relative.as_posix() in ('index.html', 'favicon.ico')
+            (len(relative.parts) == 1 and is_allowed_root_file(relative.name))
             or (relative.parts[0] == 'assets' and path.suffix.lower() in ASSET_EXTENSIONS)
+            or (relative.parts[0] == 'icons' and path.suffix.lower() in ICON_EXTENSIONS)
         ):
             raise ArtifactError(
-                'Artefato contém arquivo não autorizado; exclua mapas, manifestos e arquivos de desenvolvimento.'
+                'Artefato contém arquivo não autorizado; exclua mapas, segredos e arquivos de desenvolvimento.'
             )
         total += path.stat().st_size
         if total > MAX_ARTIFACT_BYTES or len(files) >= 25000:
