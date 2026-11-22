@@ -38,27 +38,42 @@ def get_registered_commands(model: type) -> dict[str, AdminCommandSpec]:
     return dict(_COMMAND_REGISTRY.get(model, {}))
 
 
+def is_superuser_request(request) -> bool:
+    return bool(request is not None and getattr(getattr(request, 'user', None), 'is_superuser', False))
+
+
 class ReadOnlyAdmin(admin.ModelAdmin):
-    actions = None
+    def get_actions(self, request):
+        if is_superuser_request(request):
+            return super().get_actions(request)
+        return {}
 
     def get_readonly_fields(self, request, obj=None):
+        if is_superuser_request(request):
+            return super().get_readonly_fields(request, obj)
         return tuple(field.name for field in self.model._meta.fields)
 
     def has_add_permission(self, request):
-        return False
+        return is_superuser_request(request)
 
     def has_change_permission(self, request, obj=None):
-        return False
+        return is_superuser_request(request)
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        return is_superuser_request(request)
 
 
 class DomainCommandAdmin(ReadOnlyAdmin):
-    """Consulta protegida + ações tipadas. Nunca salva estados por ModelForm/PATCH."""
+    """Consulta protegida + ações tipadas para staff; autoridade máxima para superusuário."""
 
     commands: ClassVar[dict[str, AdminCommandSpec]] = {}
     actions = ('execute_command',)
+
+    def get_actions(self, request):
+        actions = admin.ModelAdmin.get_actions(self, request)
+        if not is_superuser_request(request):
+            actions.pop('delete_selected', None)
+        return actions
 
     def __init__(self, model, admin_site):
         super().__init__(model, admin_site)

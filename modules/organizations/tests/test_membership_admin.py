@@ -47,20 +47,27 @@ class MembershipReadOnlyAdminTests(TestCase):
         args = [obj.pk] if action in ('change', 'delete') else []
         return reverse(f'admin:organizations_{obj._meta.model_name}_{action}', args=args)
 
-    def test_superuser_can_read_structural_models(self):
+    def test_superuser_has_full_authority_over_structural_models(self):
         self.client.force_login(self.admin)
         for obj in self.structural_objects():
             for action in ('changelist', 'change'):
                 with self.subTest(model=type(obj).__name__, action=action):
                     response = self.client.get(self.admin_url(obj, action))
                     self.assertEqual(response.status_code, 200)
-                    self.assertFalse(response.context['has_add_permission'])
+                    self.assertTrue(response.context['has_add_permission'])
                     if action == 'change':
-                        self.assertFalse(response.context['has_change_permission'])
-                        self.assertFalse(response.context['has_delete_permission'])
+                        self.assertTrue(response.context['has_change_permission'])
+                        self.assertTrue(response.context['has_delete_permission'])
 
-    def test_add_change_delete_are_forbidden_even_for_superuser(self):
-        self.client.force_login(self.admin)
+    def test_add_change_delete_are_forbidden_for_non_superuser_staff(self):
+        for obj in self.structural_objects():
+            for codename_prefix in ('view', 'add', 'change', 'delete'):
+                permission = Permission.objects.get(
+                    content_type__app_label='organizations',
+                    codename=f'{codename_prefix}_{obj._meta.model_name}',
+                )
+                self.staff.user_permissions.add(permission)
+        self.client.force_login(self.staff)
         for obj in self.structural_objects():
             for action in ('add', 'change', 'delete'):
                 with self.subTest(model=type(obj).__name__, action=action):
@@ -77,8 +84,14 @@ class MembershipReadOnlyAdminTests(TestCase):
         self.assertEqual(self.point.street, 'Rua Fictícia')
         self.assertIsNone(self.participation.ended_at)
 
-    def test_bulk_delete_action_is_unavailable(self):
-        self.client.force_login(self.admin)
+    def test_bulk_delete_action_is_unavailable_for_non_superuser_staff(self):
+        for obj in self.structural_objects():
+            permission = Permission.objects.get(
+                content_type__app_label='organizations',
+                codename=f'view_{obj._meta.model_name}',
+            )
+            self.staff.user_permissions.add(permission)
+        self.client.force_login(self.staff)
         for obj in self.structural_objects():
             with self.subTest(model=type(obj).__name__):
                 response = self.client.post(
@@ -108,8 +121,13 @@ class MembershipReadOnlyAdminTests(TestCase):
                 self.assertEqual(self.client.get(url).status_code, 200)
                 self.assertEqual(self.client.post(url, {'post': 'yes'}).status_code, 403)
 
-    def test_group_admin_cannot_write_destination_through_generic_form(self):
-        self.client.force_login(self.admin)
+    def test_group_admin_blocks_generic_form_for_staff_and_allows_superuser(self):
+        permission = Permission.objects.get(
+            content_type__app_label='organizations',
+            codename='view_companyroutegroup',
+        )
+        self.staff.user_permissions.add(permission)
+        self.client.force_login(self.staff)
         url = reverse('admin:organizations_companyroutegroup_change', args=[self.group.pk])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -121,6 +139,11 @@ class MembershipReadOnlyAdminTests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.group.refresh_from_db()
         self.assertIsNone(self.group.destination_id)
+
+        self.client.force_login(self.admin)
+        super_response = self.client.get(url)
+        self.assertEqual(super_response.status_code, 200)
+        self.assertIn('destination', super_response.context['adminform'].form.fields)
 
     def test_company_user_cannot_access_admin_models(self):
         self.client.force_login(self.company.user)
