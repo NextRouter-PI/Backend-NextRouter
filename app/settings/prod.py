@@ -132,8 +132,14 @@ if not Path(PRIVATE_DOCUMENT_ROOT).is_absolute() or any(
 OSRM_URL = _routing_url('OSRM_URL')
 GEOCODING_URL = _routing_url('GEOCODING_URL')
 
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '').strip()
 EMAIL_HOST = os.environ.get('EMAIL_HOST', '').strip()
-if EMAIL_HOST:
+if BREVO_API_KEY:
+    DEFAULT_FROM_EMAIL = _required('DEFAULT_FROM_EMAIL')
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '').strip()
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').strip()
+    EMAIL_BACKEND = 'app.email_backends.BrevoEmailBackend'
+elif EMAIL_HOST:
     EMAIL_HOST_USER = _required('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = _required('EMAIL_HOST_PASSWORD')
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
