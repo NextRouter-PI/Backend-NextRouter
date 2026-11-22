@@ -1,0 +1,13 @@
+Olá!
+
+{{ heading }}
+
+{{ intro }}
+
+Seu código de verificação do NextRouter é: {{ code }}
+
+Este código é válido por {{ expiration_minutes }} minutos e só pode ser utilizado uma vez.
+{{ security_note }}
+
+--
+NextRouter · Mensagem automática de segurança. Não responda a este e-mail.
