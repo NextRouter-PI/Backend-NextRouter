@@ -7,8 +7,9 @@ import string
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
+from django.template.loader import render_to_string
 from rest_framework.exceptions import ValidationError
 
 from modules.accounts.mixins.tokens import consume_email_token
@@ -24,19 +25,70 @@ EMAIL_SUBJECTS = {
     EmailToken.TokenType.NEW_EMAIL: 'NextRouter - Código de verificação do novo e-mail',
 }
 
+EMAIL_TOKEN_COPY = {
+    EmailToken.TokenType.NEW_USER: {
+        'badge': 'Cadastro',
+        'heading': 'Confirme seu e-mail',
+        'intro': (
+            'Use o código abaixo para concluir a verificação do seu e-mail '
+            'e finalizar a criação da sua conta no NextRouter.'
+        ),
+        'security_note': (
+            'Se você não iniciou um cadastro no NextRouter, ignore este e-mail. '
+            'Nunca compartilhe este código com terceiros.'
+        ),
+    },
+    EmailToken.TokenType.NEW_PASSWORD: {
+        'badge': 'Recuperação',
+        'heading': 'Redefina sua senha',
+        'intro': (
+            'Recebemos uma solicitação para redefinir a senha da sua conta. '
+            'Digite o código abaixo para continuar; ao confirmar, suas sessões anteriores serão encerradas.'
+        ),
+        'security_note': (
+            'Se você não solicitou a redefinição de senha, ignore este e-mail com segurança. '
+            'Sua senha atual permanece inalterada.'
+        ),
+    },
+    EmailToken.TokenType.NEW_EMAIL: {
+        'badge': 'Troca de e-mail',
+        'heading': 'Confirme seu novo e-mail',
+        'intro': (
+            'Digite o código abaixo para confirmar a alteração do endereço de e-mail da sua conta no NextRouter. '
+            'Ao concluir, suas sessões anteriores serão encerradas.'
+        ),
+        'security_note': 'Se você não solicitou esta alteração, ignore este e-mail e revise a segurança da sua conta.',
+    },
+}
+
+DEFAULT_EMAIL_TOKEN_COPY = {
+    'badge': 'Verificação',
+    'heading': 'Seu código de verificação',
+    'intro': 'Use o código abaixo para concluir sua verificação de segurança no NextRouter.',
+    'security_note': (
+        'Se você não solicitou este código, ignore este e-mail. Nunca compartilhe este código com terceiros.'
+    ),
+}
+
 
 def generate_verification_code() -> str:
     return ''.join(secrets.choice(string.digits) for _ in range(6))
 
 
-def send_email_token(email: str, code: str, subject: str) -> bool:
+def send_email_token(email: str, code: str, subject: str, *, token_type: str | None = None) -> bool:
     minutes = getattr(settings, 'EMAIL_TOKEN_EXPIRATION_MINUTES', 15)
-    body = (
-        'Olá!\n\n'
-        f'Seu código de verificação do NextRouter é: {code}\n\n'
-        f'O código é válido por {minutes} minutos. Se você não solicitou este código, ignore este e-mail.\n'
-    )
-    message = EmailMessage(subject=subject, body=body, to=[email])
+    copy = EMAIL_TOKEN_COPY.get(token_type, DEFAULT_EMAIL_TOKEN_COPY)
+    context = {
+        'subject': subject,
+        'code': code,
+        'expiration_minutes': minutes,
+        **copy,
+    }
+    text_body = render_to_string('emails/verification_code.txt', context)
+    html_body = render_to_string('emails/verification_code.html', context)
+
+    message = EmailMultiAlternatives(subject=subject, body=text_body, to=[email])
+    message.attach_alternative(html_body, 'text/html')
     try:
         message.send()
         return True
@@ -75,7 +127,7 @@ def issue_email_token(*, email: str, token_type: str, user=None) -> bool:
         user=user if token_type == EmailToken.TokenType.NEW_EMAIL else None,
     )
     # Envio SMTP fora de transação para evitar segurar conexão/locks em I/O de rede.
-    if not send_email_token(email, code, EMAIL_SUBJECTS[token_type]):
+    if not send_email_token(email, code, EMAIL_SUBJECTS[token_type], token_type=token_type):
         token.delete()
         return token_type != EmailToken.TokenType.NEW_EMAIL
 
