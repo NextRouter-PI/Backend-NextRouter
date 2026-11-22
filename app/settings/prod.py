@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
-import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
 from . import base as common
@@ -91,9 +90,14 @@ WS_ALLOWED_ORIGINS = [PUBLIC_ORIGIN]
 FRONTEND_URL = FRONTEND_ADMIN_URL = PUBLIC_ORIGIN
 BACKEND_REVISION = os.environ.get('BACKEND_REVISION', '')
 
-# ASGI usa pool psycopg3 com conn_max_age=0; worker também fecha conexões ociosas por ciclo.
-_database = dj_database_url.parse(_required('DATABASE_URL'), conn_max_age=0, conn_health_checks=True)
-_database.setdefault('OPTIONS', {})['pool'] = True
+# ASGI usa pool psycopg3 com conn_max_age=0 (ou Supavisor/PgBouncer externo no Supabase).
+_supabase_database_url = os.environ.get('SUPABASE_DATABASE_URL', '').strip()
+_database_url = _supabase_database_url or _required('DATABASE_URL')
+_database = common.parse_database_url(
+    _database_url,
+    is_supabase=bool(_supabase_database_url),
+    enable_pool=True,
+)
 DATABASES = {'default': _database}
 if DATABASES['default']['ENGINE'] != 'django.db.backends.postgresql':
     raise ImproperlyConfigured('DATABASE_URL deve apontar para PostgreSQL em produção.')

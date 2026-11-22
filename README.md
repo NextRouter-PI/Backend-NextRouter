@@ -16,7 +16,9 @@ dependências, aplica migrations nem cria dados.
 
 Por padrão, dev usa SQLite persistente em `dev.sqlite3`, cache e canais em
 memória. Se existir, `backend/.env` é carregado: valores preenchidos prevalecem
-sobre o terminal e podem ativar serviços externos. Confira o destino antes de iniciar.
+sobre o terminal e podem ativar serviços externos (como um banco PostgreSQL no
+Supabase quando `SUPABASE_DATABASE_URL` ou `DATABASE_URL` é informada). Confira
+o destino antes de iniciar.
 Para preparar
 um **banco novo com dados fictícios**, confirme o destino e execute separadamente:
 

@@ -116,9 +116,71 @@ assert not s.SECURE_HSTS_INCLUDE_SUBDOMAINS and not s.SECURE_HSTS_PRELOAD
             {'OSRM_URL': 'file:///tmp/test'},
             {'REDIS_URL': 'http://localhost'},
             {'REDIS_URL': 'redis://localhost:invalid'},
+            {'SUPABASE_DATABASE_URL': 'sqlite:////tmp/opencode/invalido.sqlite3'},
+            {'SUPABASE_DATABASE_URL': 'postgresql://localhost/postgres'},
         ):
             with self.subTest(extra=extra):
                 self.assertNotEqual(self.settings_process('pass', **extra).returncode, 0)
+
+    def test_supabase_database_url_enables_tls_and_pooler_compatibility_in_dev_and_prod(self):
+        pooler_url = 'postgresql://postgres.projref:secret@aws-0-sa-east-1.pooler.supabase.com:6543/postgres'
+        direct_url = 'postgresql://postgres:secret@db.projref.supabase.co:5432/postgres'
+
+        prod_pooler = self.settings_process(
+            """
+db = s.DATABASES['default']
+assert db['ENGINE'] == 'django.db.backends.postgresql'
+assert db['HOST'] == 'aws-0-sa-east-1.pooler.supabase.com'
+assert db['PORT'] == 6543
+assert db['CONN_MAX_AGE'] == 0
+assert db['CONN_HEALTH_CHECKS'] is True
+assert db['DISABLE_SERVER_SIDE_CURSORS'] is True
+assert db['OPTIONS']['sslmode'] == 'require'
+assert 'pool' not in db['OPTIONS']
+""",
+            DATABASE_URL='',
+            SUPABASE_DATABASE_URL=pooler_url,
+        )
+        self.assertEqual(prod_pooler.returncode, 0, prod_pooler.stderr)
+
+        prod_direct = self.settings_process(
+            """
+db = s.DATABASES['default']
+assert db['HOST'] == 'db.projref.supabase.co'
+assert db['PORT'] == 5432
+assert db.get('DISABLE_SERVER_SIDE_CURSORS') is not True
+assert db['OPTIONS']['sslmode'] == 'require'
+assert db['OPTIONS']['pool'] is True
+""",
+            DATABASE_URL=direct_url,
+        )
+        self.assertEqual(prod_direct.returncode, 0, prod_direct.stderr)
+
+        dev_env = {
+            **os.environ,
+            'NEXTROUTER_ENV_FILE': '/tmp/opencode/nextrouter-env-inexistente',
+            'SUPABASE_DATABASE_URL': pooler_url,
+            'DATABASE_URL': '',
+        }
+        dev_result = subprocess.run(
+            [
+                sys.executable,
+                '-c',
+                (
+                    'from app.settings import dev as s\n'
+                    "db = s.DATABASES['default']\n"
+                    "assert db['ENGINE'] == 'django.db.backends.postgresql'\n"
+                    "assert db['HOST'] == 'aws-0-sa-east-1.pooler.supabase.com'\n"
+                    "assert db['DISABLE_SERVER_SIDE_CURSORS'] is True\n"
+                    "assert db['OPTIONS']['sslmode'] == 'require'\n"
+                ),
+            ],
+            env=dev_env,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        self.assertEqual(dev_result.returncode, 0, dev_result.stderr)
 
 
 class HealthTests(SimpleTestCase):
