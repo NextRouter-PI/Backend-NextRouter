@@ -74,7 +74,7 @@ test-html = "node --test tests/html_client.test.mjs"
 check = { composite = ["python manage.py check --settings=app.settings.dev", "python manage.py makemigrations --check --dry-run --settings=app.settings.dev"] }
 lint = { composite = ["ruff check .", "ruff format --check ."] }
 format = { composite = ["ruff format .", "ruff check --fix ."] }
-schema = "python manage.py spectacular --settings=app.settings.dev --validate --fail-on-warn --file /tmp/opencode/nextrouter-schema.yaml"
+schema = "python manage.py spectacular --settings=app.settings.dev --validate --fail-on-warn"
 
 # Produção/entrega identificada: configuração explícita, fora da rotina local.
 prod-build = "python -m scripts.runtime build"

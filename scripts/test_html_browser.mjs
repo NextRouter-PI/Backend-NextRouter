@@ -6,7 +6,8 @@ import { randomBytes } from 'node:crypto';
 import { once } from 'node:events';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
-import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
@@ -26,7 +27,7 @@ async function main() {
 if (!process.argv.includes('--confirm-fictitious')) throw new Error('Exige --confirm-fictitious.');
 if (Number(process.versions.node.split('.')[0]) < 22) throw new Error('Exige Node >=22 já instalado.');
 if (spawnSync('firefox', ['--version'], { stdio: 'ignore' }).status !== 0) throw new Error('Exige Firefox já instalado.');
-const root = await mkdtemp('/tmp/opencode/nr-html-browser-');
+const root = await mkdtemp(join(tmpdir(), 'nr-html-browser-'));
 const children = [];
 const password = randomBytes(24).toString('hex');
 let transport;
