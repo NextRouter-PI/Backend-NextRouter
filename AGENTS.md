@@ -33,11 +33,11 @@ Todos os caminhos de código e comandos abaixo são relativos à raiz do backend
   O processamento assíncrono de rotas utiliza management command (`process_route_jobs`),
   **não Celery**.
 - **Perfis de configuração (`app/settings/` e `tests/settings.py`):**
-  - `app/settings/base.py`: apps instalados, middlewares, DRF, SimpleJWT, OpenAPI e limites.
+  - `app/settings/base.py`: apps instalados, middlewares, DRF, SimpleJWT, OpenAPI, limites e `parse_database_url()` (suporte a PostgreSQL/Supabase com TLS e Supavisor/PgBouncer).
   - `app/settings/dev.py`: desenvolvimento local (`pdm run dev` / `dev-lan`); lê `.env`
-    se existir, usando por padrão SQLite local (`dev.sqlite3`), cache/canais em memória,
+    se existir, usando por padrão SQLite local (`dev.sqlite3`), ou conectando ao banco configurado caso `SUPABASE_DATABASE_URL` ou `DATABASE_URL` seja informada; cache/canais em memória,
     mídia em `dev-media/`, documentos privados em `dev-private-documents/` e e-mail no console.
-  - `app/settings/prod.py`: produção explícita (`PUBLIC_ORIGIN`, HTTPS/WSS, PostgreSQL e Redis obrigatórios).
+  - `app/settings/prod.py`: produção explícita (`PUBLIC_ORIGIN`, HTTPS/WSS, PostgreSQL via `SUPABASE_DATABASE_URL` ou `DATABASE_URL`, e Redis obrigatórios).
   - `tests/settings.py`: suíte automatizada (`pdm run test`); ignora `.env`, usa SQLite,
     cache, canais e e-mail em memória e diretórios temporários isolados.
 - **Entradas da aplicação (`app/`):**
@@ -220,6 +220,7 @@ Todos os caminhos de código e comandos abaixo são relativos à raiz do backend
 
 ```sh
 export NEXTROUTER_ENV_FILE=/tmp/opencode/nextrouter-env-inexistente
+export SUPABASE_DATABASE_URL=
 export DATABASE_URL=sqlite:////tmp/opencode/nextrouter-autorizado.sqlite3
 export MEDIA_ROOT=/tmp/opencode/nextrouter-autorizado-media
 export PRIVATE_DOCUMENT_ROOT=/tmp/opencode/nextrouter-autorizado-private

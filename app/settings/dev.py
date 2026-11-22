@@ -5,7 +5,6 @@ from ipaddress import IPv4Address
 from pathlib import Path
 from urllib.parse import urlsplit
 
-import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import dotenv_values
 
@@ -59,10 +58,11 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 WS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 # Sem URL explícita, banco dedicado em arquivo e canais/cache locais.
-_database_url = os.getenv('DATABASE_URL', '').strip()
+_supabase_database_url = os.getenv('SUPABASE_DATABASE_URL', '').strip()
+_database_url = _supabase_database_url or os.getenv('DATABASE_URL', '').strip()
 DATABASES = {
     'default': (
-        dj_database_url.parse(_database_url, conn_max_age=0)
+        common.parse_database_url(_database_url, is_supabase=bool(_supabase_database_url))
         if _database_url
         else {'ENGINE': 'django.db.backends.sqlite3', 'NAME': common.BASE_DIR / 'dev.sqlite3'}
     )
