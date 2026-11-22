@@ -37,7 +37,7 @@ Todos os caminhos de código e comandos abaixo são relativos à raiz do backend
   - `app/settings/dev.py`: desenvolvimento local (`pdm run dev` / `dev-lan`); lê `.env`
     se existir, usando por padrão SQLite local (`dev.sqlite3`), ou conectando ao banco configurado caso `SUPABASE_DATABASE_URL` ou `DATABASE_URL` seja informada; cache/canais em memória,
     mídia em `dev-media/`, documentos privados em `dev-private-documents/` e e-mail no console.
-  - `app/settings/prod.py`: produção explícita (`PUBLIC_ORIGIN`, HTTPS/WSS, PostgreSQL via `SUPABASE_DATABASE_URL` ou `DATABASE_URL`, e Redis obrigatórios).
+  - `app/settings/prod.py`: produção explícita (`SECRET_KEY`, `ALLOWED_HOSTS`, `PUBLIC_ORIGIN` e PostgreSQL via `SUPABASE_DATABASE_URL` ou `DATABASE_URL` obrigatórios; `REDIS_URL`, `OSRM_URL`, `GEOCODING_URL`, `EMAIL_HOST` e `PRIVATE_DOCUMENT_ROOT` possuem fallbacks seguros quando omitidos).
   - `tests/settings.py`: suíte automatizada (`pdm run test`); ignora `.env`, usa SQLite,
     cache, canais e e-mail em memória e diretórios temporários isolados.
 - **Entradas da aplicação (`app/`):**
@@ -178,8 +178,7 @@ Todos os caminhos de código e comandos abaixo são relativos à raiz do backend
   seguem estritamente `reported → found → returned` (transições feitas apenas pela
   empresa, com `operation_id` e auditoria, sem reabertura ou DELETE). Avisos
   (`Notification`) são restritos ao destinatário (inclusive para staff).
-- **Worker e automação:** `process_route_jobs` exige escopo explícito (`--company-id` ou `--all-companies`, e em produção `WORKER_COMPANY_ID` ou `WORKER_ALL_COMPANIES=true`), além de lease, tentativas, retry,
-  poll e lotes explícitos. A agenda automática opt-in por grupo (`AutomationSchedule`)
+- **Worker e automação:** `process_route_jobs` processa por padrão todas as empresas aprovadas (`--all-companies`) com limites seguros (`lease=60s`, `attempts=3`, `retry=15s`, `poll=5s`, lotes `20/20/10`), podendo ser restrito a uma empresa via `--company-id` ou `WORKER_COMPANY_ID`. A agenda automática opt-in por grupo (`AutomationSchedule`)
   persiste horizonte, lote, frequência e checkpoint transacional no banco.
 
 ### Privacidade, documentos e entrega estática (`modules/uploads/`, `app/frontend.py`)

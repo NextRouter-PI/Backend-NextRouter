@@ -29,6 +29,23 @@ pdm run createsuperuser  # opcional
 
 Não aplique migrations no banco habitual ou legado seguindo este exemplo.
 
+## Comandos principais
+
+| Comando | Descrição |
+|---|---|
+| `pdm run dev` | Inicia o servidor ASGI em `127.0.0.1:8000` (`app.settings.dev`). |
+| `pdm run dev-lan <IPv4>` | Inicia o servidor na rede local confiável autorizando o IPv4 informado. |
+| `pdm run worker` | Inicia o worker de rotas e agendas para todas as empresas aprovadas (com defaults automáticos). |
+| `pdm run simulate-trip` | Prepara o cenário fictício local e simula uma viagem com GPS via WebSocket (`--reset-db` opcional). |
+| `pdm run prod-build` | Produção (Render/PaaS): executa `collectstatic` e `migrate` com `app.settings.prod`. |
+| `pdm run prod-web` | Produção (Render/PaaS): valida o runtime e inicia o Daphne na `$PORT` (padrão `8000`). |
+| `pdm run prod-worker` | Produção (Render/PaaS): inicia o worker em produção com defaults seguros. |
+
+No **Render** (ou qualquer PaaS com `pip` nativo, sem precisar instalar `pdm`):
+- **Build Command:** `pip install . && python -m scripts.runtime build`
+- **Start Command (Web):** `python -m scripts.runtime web`
+- **Start Command (Worker):** `python -m scripts.runtime worker`
+
 ## Rede local
 
 Quando `frontend_dist/` está presente, o Django serve os arquivos estáticos na

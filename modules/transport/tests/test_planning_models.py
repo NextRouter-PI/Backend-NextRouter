@@ -212,7 +212,7 @@ class PlanningModelTests(PlanningModelTestCase):
         with self.assertRaises(ValidationError):
             job.full_clean()
 
-    def test_worker_requires_explicit_limits_before_claiming_jobs(self):
+    def test_worker_runs_with_default_limits_and_rejects_conflicting_company_scope(self):
         job = models.RouteOptimizationJob.objects.create(
             snapshot=self.snapshot,
             input_revision=1,
@@ -220,8 +220,11 @@ class PlanningModelTests(PlanningModelTestCase):
         )
         with mock.patch('modules.transport.management.commands.process_route_jobs.claim_snapshot_job') as claim:
             with self.assertRaises(CommandError):
-                call_command('process_route_jobs', once=True)
+                call_command('process_route_jobs', once=True, all_companies=True, company_id=self.company.pk)
             claim.assert_not_called()
+            claim.return_value = None
+            call_command('process_route_jobs', once=True)
+            self.assertGreaterEqual(claim.call_count, 1)
         job.refresh_from_db()
         self.assertEqual(job.status, 'pending')
 

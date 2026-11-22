@@ -281,8 +281,6 @@ class PersistentWorkerTests(ServiceTestCase):
     def test_all_companies_mode_processes_multiple_approved_companies_and_rejects_ambiguous_scope(self):
         with self.assertRaises(CommandError):
             self.run_worker(all_companies=True)
-        with self.assertRaises(CommandError):
-            self.run_worker(company_id=None, all_companies=False)
         self.other.is_approved = True
         self.other.is_rejected = False
         self.other.save(update_fields=['is_approved', 'is_rejected'])
