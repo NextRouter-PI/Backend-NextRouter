@@ -1,0 +1,1 @@
+function r(e){if(!e||typeof e!="object")return"—";const t=[e.name,e.street&&e.number?`${e.street}, ${e.number}`:e.street,e.city&&e.state?`${e.city}/${e.state}`:e.city].filter(Boolean);return t.length?t.join(" · "):"—"}function a(){return globalThis.crypto?.randomUUID?.()||`00000000-0000-4000-8000-${String(Date.now()).padStart(12,"0").slice(-12)}`}export{a as c,r as p};
