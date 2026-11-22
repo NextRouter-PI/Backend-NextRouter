@@ -1,9 +1,51 @@
 import os
 from datetime import timedelta
 from pathlib import Path
+from typing import Any
+
+import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 # Constrói o caminho base do projeto, usado para definir caminhos relativos
 BASE_DIR = Path(__file__).resolve().parents[2]
+
+
+def parse_database_url(url: str, *, is_supabase: bool = False, enable_pool: bool = False) -> dict[str, Any]:
+    """Interpreta DATABASE_URL / SUPABASE_DATABASE_URL com suporte a TLS e Supavisor/PgBouncer."""
+    try:
+        config = dj_database_url.parse(url, conn_max_age=0, conn_health_checks=True)
+    except Exception as exc:
+        raise ImproperlyConfigured('URL de banco de dados inválida.') from exc
+
+    if config.get('ENGINE') == 'django.db.backends.sqlite3':
+        if is_supabase:
+            raise ImproperlyConfigured('SUPABASE_DATABASE_URL deve apontar para um banco PostgreSQL válido.')
+        return config
+
+    host = str(config.get('HOST') or '').lower().rstrip('.')
+    supabase_detected = is_supabase or any(
+        host == domain or host.endswith(f'.{domain}') for domain in ('supabase.co', 'supabase.com')
+    )
+    if supabase_detected and config.get('ENGINE') != 'django.db.backends.postgresql':
+        raise ImproperlyConfigured('A conexão com o Supabase deve utilizar PostgreSQL.')
+    if supabase_detected and not all(config.get(key) for key in ('NAME', 'USER', 'PASSWORD', 'HOST')):
+        raise ImproperlyConfigured('A URL do banco no Supabase deve conter nome, usuário, senha e host.')
+
+    options = dict(config.get('OPTIONS') or {})
+    is_external_pooler = host.endswith('.pooler.supabase.com') or str(config.get('PORT') or '') == '6543'
+    if supabase_detected:
+        options.setdefault('sslmode', 'require')
+    if is_external_pooler:
+        config['DISABLE_SERVER_SIDE_CURSORS'] = True
+    elif enable_pool and config.get('ENGINE') == 'django.db.backends.postgresql':
+        options.setdefault('pool', True)
+
+    if options:
+        config['OPTIONS'] = options
+    else:
+        config.pop('OPTIONS', None)
+    return config
+
 
 # Segurança e configuração básica
 FRONTEND_URL = 'http://127.0.0.1:5173'
