@@ -59,25 +59,59 @@ class CompanyAdmin(admin.ModelAdmin):
 @admin.register(CompanyMembership)
 class CompanyMembershipAdmin(DomainCommandAdmin):
     commands = MEMBERSHIP_COMMANDS
-    list_display = ('id', 'company', 'status', 'created_at')
+    list_display = ('id', 'company', 'passenger', 'driver', 'status', 'created_at')
     list_filter = ('status', 'company')
+    search_fields = (
+        'company__trade_name',
+        'passenger__user__name',
+        'passenger__user__email',
+        'driver__user__name',
+        'driver__user__email',
+    )
+    list_select_related = ('company', 'passenger__user', 'driver__user')
 
 
 @admin.register(CompanyRouteGroup)
 class CompanyRouteGroupAdmin(DomainCommandAdmin):
     list_display = ('id', 'name', 'company')
-    search_fields = ('name',)
+    list_filter = ('company',)
+    search_fields = ('name', 'company__trade_name')
+    list_select_related = ('company',)
 
 
 @admin.register(PassengerGroupMembership)
 class PassengerGroupMembershipAdmin(DomainCommandAdmin):
     list_display = ('id', 'membership', 'route_group', 'started_at', 'ended_at')
+    list_filter = ('route_group',)
+    search_fields = ('route_group__name', 'membership__passenger__user__name', 'membership__passenger__user__email')
+    list_select_related = ('membership__passenger__user', 'route_group')
 
 
 @admin.register(OperationalPoint)
 class OperationalPointAdmin(DomainCommandAdmin):
     list_display = ('id', 'company', 'created_at')
+    list_filter = ('company',)
+    search_fields = ('company__trade_name', 'street', 'city')
+    list_select_related = ('company',)
 
 
-for model in (Passenger, Driver, MembershipEvent):
-    admin.site.register(model, ReadOnlyAdmin)
+@admin.register(Passenger)
+class PassengerAdmin(ReadOnlyAdmin):
+    list_display = ('id', 'user')
+    search_fields = ('user__name', 'user__email', 'user__cpf')
+    list_select_related = ('user',)
+
+
+@admin.register(Driver)
+class DriverAdmin(ReadOnlyAdmin):
+    list_display = ('id', 'user', 'cnh')
+    search_fields = ('user__name', 'user__email', 'user__cpf')
+    list_select_related = ('user', 'cnh')
+
+
+@admin.register(MembershipEvent)
+class MembershipEventAdmin(ReadOnlyAdmin):
+    list_display = ('id', 'membership', 'action', 'actor', 'occurred_at')
+    list_filter = ('action', 'occurred_at')
+    search_fields = ('actor__email', 'actor__name', 'reason')
+    list_select_related = ('membership', 'actor')

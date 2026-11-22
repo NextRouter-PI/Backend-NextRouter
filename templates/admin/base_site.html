@@ -3,6 +3,12 @@
 
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('NextRouter') }}{% endblock %}
 
+{% block extrahead %}
+{{ block.super }}
+<meta name="theme-color" content="#1c1c1e">
+<link rel="icon" href="/favicon.ico">
+{% endblock %}
+
 {% block extrastyle %}
 {{ block.super }}
 <link rel="stylesheet" href="{% static 'admin/css/nextrouter_admin.css' %}">
