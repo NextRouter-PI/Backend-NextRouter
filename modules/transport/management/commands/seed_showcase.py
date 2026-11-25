@@ -47,17 +47,18 @@ DRIVERS = (
 )
 
 # Nome, bairro e coordenada aproximada da casa (Araquari e Joinville, SC).
+# Coordenadas na rua: o OSRM recusa pontos a mais de OSRM_MAX_SNAP_DISTANCE_METERS da via.
 PASSENGERS = (
     ('Ana Clara Ferreira', 'Centro', -26.3711, -48.7215),
     ('Bruno Henrique Dias', 'Itinga', -26.3889, -48.7062),
     ('Camila Rodrigues', 'Porto Grande', -26.4012, -48.7341),
     ('Diego Santos Moreira', 'Corveta', -26.3524, -48.7488),
-    ('Eduarda Lopes', 'Barra do Itapocu', -26.4223, -48.6905),
-    ('Felipe Augusto Neves', 'Volta Redonda', -26.3398, -48.7602),
+    ('Eduarda Lopes', 'Barra do Itapocu', -26.4161, -48.6692),
+    ('Felipe Augusto Neves', 'Volta Redonda', -26.3399, -48.7620),
     ('Gabriela Nunes', 'Itaum (Joinville)', -26.3267, -48.8312),
     ('Henrique Barbosa', 'Floresta (Joinville)', -26.3302, -48.8452),
     ('Isabela Cardoso', 'Boehmerwald (Joinville)', -26.3488, -48.8396),
-    ('João Pedro Teixeira', 'Paranaguamirim (Joinville)', -26.3605, -48.7934),
+    ('João Pedro Teixeira', 'Paranaguamirim (Joinville)', -26.3604, -48.7961),
     ('Larissa Monteiro', 'Ulysses Guimarães (Joinville)', -26.3442, -48.8021),
     ('Matheus Carvalho', 'Jarivatuba (Joinville)', -26.3379, -48.8198),
     ('Natália Ribeiro', 'Fátima (Joinville)', -26.3193, -48.8274),
@@ -99,8 +100,8 @@ DESTINATION = (
     'Colégio Agrícola',
     'Araquari',
     '89245000',
-    -26.3976,
-    -48.7203,
+    -26.3984,
+    -48.7186,
 )
 
 PALETTE = ((236, 131, 20), (37, 99, 235), (22, 163, 74), (147, 51, 234), (220, 38, 38), (8, 145, 178), (202, 138, 4))
@@ -286,7 +287,7 @@ class Command(BaseCommand):
                         valid_from=timezone.localdate(),
                         driver_membership_id=drivers[(index * 2 + offset) % len(drivers)].pk,
                         vehicle_id=vehicles[index * 2 + offset].pk,
-                        planned_duration=timedelta(minutes=70),
+                        planned_duration=timedelta(minutes=120),  # cabe ida Joinville → Araquari com 7 paradas
                         turnaround_duration=timedelta(minutes=15),
                     )
                 )

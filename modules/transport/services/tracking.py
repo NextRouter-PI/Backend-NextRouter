@@ -11,7 +11,7 @@ from django.utils.dateparse import parse_datetime
 from modules.organizations.models import CompanyMembership
 from modules.transport.broadcast import broadcast_approaching
 from modules.transport.models import Notification, Travel
-from shared.exceptions import get, require
+from shared.exceptions import DomainError, get, require
 from shared.geo import distance_meters
 
 from .actors import active_actor, driver_actor
@@ -198,3 +198,133 @@ def read_location(*, actor_id, travel_id):
         },
         'stale': (timezone.now() - travel.location_updated_at).total_seconds() > settings.LOCATION_MAX_AGE_SECONDS,
     }
+
+
+def _stop_is_open(stop, is_last):
+    """Parada ainda a cumprir: não tratada e com alguém para embarcar/desembarcar (a última sempre conta)."""
+    if stop.handled_at:
+        return False
+    items = list(stop.participants.all())
+    if is_last or not items:
+        return True
+    return any(
+        (item.operation == 'board' and item.participation.status == 'allocated')
+        or (item.operation == 'drop' and item.participation.status == 'on_board')
+        for item in items
+    )
+
+
+def live_legs(travel):
+    """Trechos de rua da última posição do motorista por cada parada aberta, em ordem, até o fim.
+
+    Devolve [(parada, resultado OSRM ou None)]. O primeiro trecho muda conforme o motorista anda;
+    os seguintes ficam no cache do OSRM. Levanta OSRMError se o serviço de rotas falhar.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    from itertools import pairwise
+
+    from modules.transport.osrm import route_coordinates
+
+    snapshot = travel.published_snapshot or travel.current_snapshot
+    stops = (
+        list(snapshot.stops.order_by('position').prefetch_related('participants__participation')) if snapshot else []
+    )
+    pending = [stop for index, stop in enumerate(stops) if _stop_is_open(stop, index == len(stops) - 1)]
+    points = [[travel.current_longitude, travel.current_latitude]] + [
+        [float(stop.point_snapshot['longitude']), float(stop.point_snapshot['latitude'])] for stop in pending
+    ]
+    pairs = [[a, b] for a, b in pairwise(points) if a != b]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(route_coordinates, pairs))
+    by_pair = {tuple(map(tuple, pair)): result for pair, result in zip(pairs, results, strict=True)}
+    legs = []
+    for start, stop in zip(points, pending, strict=False):
+        target = [float(stop.point_snapshot['longitude']), float(stop.point_snapshot['latitude'])]
+        legs.append((stop, by_pair.get((tuple(start), tuple(target)))))
+    return legs
+
+
+def approach_route(*, actor_id, travel_id):
+    """Trajeto de rua da posição atual do motorista por todas as paradas ainda abertas até o fim."""
+    from modules.transport.osrm import OSRMError
+
+    travel = get(
+        Travel.objects.dated().select_related('company', 'driver', 'published_snapshot', 'current_snapshot'),
+        pk=travel_id,
+    )
+    driver_actor(travel, actor_id)
+    require(travel.status == Travel.Status.IN_PROGRESS, 'travel_not_active', 'A viagem não está em andamento.')
+    require(travel.location_updated_at is not None, 'position_missing', 'Ainda não recebemos a sua localização.')
+    try:
+        legs = live_legs(travel)
+    except OSRMError:
+        raise DomainError('Serviço de rotas indisponível no momento.', code='routing_unavailable') from None
+    return {
+        'legs': [
+            {
+                'stop_id': stop.pk,
+                'geometry': result['geometry'] if result else None,
+                'distance_meters': result['distance_meters'] if result else 0,
+                'duration_seconds': result['duration_seconds'] if result else 0,
+            }
+            for stop, result in legs
+        ]
+    }
+
+
+def _join(results):
+    coords = []
+    for result in results:
+        line = (result or {}).get('geometry', {}).get('coordinates') or []
+        coords.extend(line[1:] if coords else line)
+    return {'type': 'LineString', 'coordinates': coords} if len(coords) >= 2 else None
+
+
+def passenger_route(*, actor_id, participation_id):
+    """Para o próprio passageiro: o caminho de rua do motorista até ele e dele até o destino.
+
+    Só traçado (sem paradas nem nomes de outros passageiros). Antes do embarque: posição do
+    motorista até a parada de embarque, e dali até a de desembarque. A bordo: posição até o desembarque.
+    Sem viagem em andamento, posição ou serviço de rotas, devolve os dois vazios (o app mostra o planejado).
+    """
+    from modules.transport.models import TravelParticipation
+    from modules.transport.osrm import OSRMError
+
+    participation = get(
+        TravelParticipation.objects.select_related(
+            'eligibility__passenger', 'travel__published_snapshot', 'travel__current_snapshot'
+        ),
+        pk=participation_id,
+    )
+    require(
+        participation.eligibility.passenger.user_id == actor_id,
+        'permission_denied',
+        'Somente o próprio passageiro vê este caminho.',
+    )
+    empty = {'to_me': None, 'to_destination': None}
+    travel = participation.travel
+    if (
+        travel.status != Travel.Status.IN_PROGRESS
+        or travel.location_updated_at is None
+        or participation.status not in ('allocated', 'on_board')
+    ):
+        return empty
+    try:
+        legs = live_legs(travel)
+    except OSRMError:
+        return empty
+    mine = {
+        item.operation: item.stop_id
+        for stop, _ in legs
+        for item in stop.participants.all()
+        if item.participation_id == participation.pk
+    }
+    stop_ids = [stop.pk for stop, _ in legs]
+    results = [result for _, result in legs]
+    drop = mine.get('drop')
+    end = stop_ids.index(drop) + 1 if drop in stop_ids else len(stop_ids)
+    board = mine.get('board') if participation.status == 'allocated' else None
+    if board in stop_ids:
+        cut = stop_ids.index(board) + 1
+        return {'to_me': _join(results[:cut]), 'to_destination': _join(results[cut:end])}
+    return {'to_me': None, 'to_destination': _join(results[:end])}

@@ -1,6 +1,12 @@
 from .invitations import InvitationSerializer, InviteInput, InviteResponseInput
 from .notifications import NotificationSerializer
-from .participations import CorrectionInput, EventSerializer, ParticipantSerializer, PresenceInput
+from .participations import (
+    CorrectionInput,
+    EventSerializer,
+    ParticipantSerializer,
+    PassengerRouteSerializer,
+    PresenceInput,
+)
 from .routes import (
     JobSerializer,
     PublicationSerializer,
@@ -10,6 +16,7 @@ from .routes import (
     StopSerializer,
 )
 from .travels import (
+    ApproachSerializer,
     LiveTravelSerializer,
     LocationSerializer,
     PositionSerializer,
@@ -18,6 +25,7 @@ from .travels import (
 )
 
 __all__ = [
+    'ApproachSerializer',
     'CorrectionInput',
     'EventSerializer',
     'InvitationSerializer',
@@ -28,6 +36,7 @@ __all__ = [
     'LocationSerializer',
     'NotificationSerializer',
     'ParticipantSerializer',
+    'PassengerRouteSerializer',
     'PositionSerializer',
     'PresenceInput',
     'PublicationSerializer',

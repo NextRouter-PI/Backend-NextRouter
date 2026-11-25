@@ -8,7 +8,7 @@ from modules.transport.models import (
     RouteStopParticipant,
     TravelPublication,
 )
-from modules.transport.services.eta import expected_at, planned_at, travel_delay_seconds
+from modules.transport.services.eta import planned_at, stop_expectations
 from shared.api import InputSerializer
 
 
@@ -66,11 +66,11 @@ class StopSerializer(serializers.ModelSerializer):
             'delay_seconds',
         )
 
-    def _delay(self, obj) -> int:
+    def _eta(self, obj):
         # Uma conta por percurso na mesma resposta (a lista inteira compartilha o contexto).
-        cache = self.context.setdefault('_eta_delay', {})
+        cache = self.context.setdefault('_eta', {})
         if obj.snapshot_id not in cache:
-            cache[obj.snapshot_id] = travel_delay_seconds(obj.snapshot)
+            cache[obj.snapshot_id] = stop_expectations(obj.snapshot)
         return cache[obj.snapshot_id]
 
     def get_planned_at(self, obj) -> str | None:
@@ -78,11 +78,11 @@ class StopSerializer(serializers.ModelSerializer):
         return value.isoformat() if value else None
 
     def get_expected_at(self, obj) -> str | None:
-        value = expected_at(obj, self._delay(obj))
+        value = self._eta(obj)[0].get(obj.pk)
         return value.isoformat() if value else None
 
     def get_delay_seconds(self, obj) -> int:
-        return self._delay(obj)
+        return self._eta(obj)[1]
 
 
 class PublicationSerializer(serializers.ModelSerializer):
