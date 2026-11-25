@@ -1,1 +1,0 @@
-import{k as u,t as r}from"./index-pB3ZcGWJ.js";function a(t,i="success",e=u){const n=String(t??"").trim();if(!n)return null;const o=i==="danger"?"error":i,s={duration:e};return o==="error"?r.error(n,s):o==="warning"?r.warning(n,s):o==="info"?r.info(n,s):r.success(n,s)}function c(t){r.dismiss(t)}function T(){return{toast:r,showToast:a,dismissToast:c}}export{T as u};
