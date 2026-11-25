@@ -45,6 +45,9 @@ def main():
         require_frontend = role != 'worker' and optional_boolean('REQUIRE_FRONTEND_ARTIFACT', default='false')
         call_command('check_runtime', backend_only=not require_frontend)
         if role == 'release':
+            # Vitrine fictícia opcional: roda na release (a saída aparece no log do deploy).
+            if optional_boolean('SHOWCASE_SEED', default='false'):
+                call_command('seed_showcase', confirm_fictitious=True)
             return
         if role == 'web':
             command = [
