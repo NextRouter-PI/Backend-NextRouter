@@ -39,11 +39,11 @@ from shared.demo import make_cnpj, make_cpf
 DOMAIN = 'vitrine.nextrouter.invalid'
 
 DRIVERS = (
-    ('Carlos Eduardo Ramos', '(47) 99811-2201'),
-    ('Mariana Souza Lima', '(47) 99811-2202'),
-    ('Roberto Alves Pereira', '(47) 99811-2203'),
-    ('Juliana Costa Martins', '(47) 99811-2204'),
-    ('Anderson Silva Rocha', '(47) 99811-2205'),
+    ('Carlos Eduardo Ramos', '47998112201'),
+    ('Mariana Souza Lima', '47998112202'),
+    ('Roberto Alves Pereira', '47998112203'),
+    ('Juliana Costa Martins', '47998112204'),
+    ('Anderson Silva Rocha', '47998112205'),
 )
 
 # Nome, bairro e coordenada aproximada da casa (Araquari e Joinville, SC).
