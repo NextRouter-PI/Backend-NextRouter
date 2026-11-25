@@ -1,0 +1,1399 @@
+[
+  {
+    "model": "authenticator.user",
+    "pk": "00000000-0000-4000-8000-000000000001",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$nextrouter2026salt$rCIvWhKS1g7bZ8y2HA54qAs40om4hUpvryYLy1HbLsA=",
+      "last_login": null,
+      "is_superuser": true,
+      "name": "Administrador Apresentação",
+      "email": "admin@apresentacao.nextrouter.local",
+      "is_active": true,
+      "is_staff": true,
+      "phone": "47998210001",
+      "cep": "89245000",
+      "street": "Rodovia BR-280, km 27",
+      "number": "S/N",
+      "complement": "Coordenação",
+      "neighborhood": "Colégio Agrícola",
+      "city": "Araquari",
+      "state": "SC",
+      "latitude": -26.3941,
+      "longitude": -48.7385,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "profile_picture": null,
+      "created_at": "2026-11-25T12:00:00Z",
+      "updated_at": "2026-11-25T12:00:00Z",
+      "cpf": "51000010112",
+      "birthday": "1990-03-15",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "authenticator.user",
+    "pk": "00000000-0000-4000-8000-000000000002",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$nextrouter2026salt$rCIvWhKS1g7bZ8y2HA54qAs40om4hUpvryYLy1HbLsA=",
+      "last_login": null,
+      "is_superuser": false,
+      "name": "Expresso BR-280 Transportes",
+      "email": "expresso280@apresentacao.nextrouter.local",
+      "is_active": true,
+      "is_staff": false,
+      "phone": "47998210002",
+      "cep": "89245000",
+      "street": "Avenida Prefeito Alberto Natalino Miquelute",
+      "number": "1450",
+      "complement": "Sala 2",
+      "neighborhood": "Itinga",
+      "city": "Araquari",
+      "state": "SC",
+      "latitude": -26.3535,
+      "longitude": -48.7865,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "profile_picture": null,
+      "created_at": "2026-11-25T12:00:00Z",
+      "updated_at": "2026-11-25T12:00:00Z",
+      "cpf": "51000010201",
+      "birthday": "1984-06-20",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "authenticator.user",
+    "pk": "00000000-0000-4000-8000-000000000003",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$nextrouter2026salt$rCIvWhKS1g7bZ8y2HA54qAs40om4hUpvryYLy1HbLsA=",
+      "last_login": null,
+      "is_superuser": false,
+      "name": "Rota Sul Araquari",
+      "email": "rotasul@apresentacao.nextrouter.local",
+      "is_active": true,
+      "is_staff": false,
+      "phone": "47998210003",
+      "cep": "89245000",
+      "street": "Rodovia BR-280, km 22",
+      "number": "2200",
+      "complement": "Galpão A",
+      "neighborhood": "Centro",
+      "city": "Araquari",
+      "state": "SC",
+      "latitude": -26.3715,
+      "longitude": -48.7195,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "profile_picture": null,
+      "created_at": "2026-11-25T12:00:00Z",
+      "updated_at": "2026-11-25T12:00:00Z",
+      "cpf": "51000010384",
+      "birthday": "1982-11-08",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "authenticator.user",
+    "pk": "00000000-0000-4000-8000-000000000004",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$nextrouter2026salt$rCIvWhKS1g7bZ8y2HA54qAs40om4hUpvryYLy1HbLsA=",
+      "last_login": null,
+      "is_superuser": false,
+      "name": "Marcos Vinícius Oliveira",
+      "email": "motorista1@apresentacao.nextrouter.local",
+      "is_active": true,
+      "is_staff": false,
+      "phone": "47998210004",
+      "cep": "89245000",
+      "street": "Rua dos Pinheiros",
+      "number": "312",
+      "complement": "Casa",
+      "neighborhood": "Itinga",
+      "city": "Araquari",
+      "state": "SC",
+      "latitude": -26.359,
+      "longitude": -48.781,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "profile_picture": null,
+      "created_at": "2026-11-25T12:00:00Z",
+      "updated_at": "2026-11-25T12:00:00Z",
+      "cpf": "51000010465",
+      "birthday": "1985-04-12",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "authenticator.user",
+    "pk": "00000000-0000-4000-8000-000000000005",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$nextrouter2026salt$rCIvWhKS1g7bZ8y2HA54qAs40om4hUpvryYLy1HbLsA=",
+      "last_login": null,
+      "is_superuser": false,
+      "name": "Fernanda Cristina Pereira",
+      "email": "motorista2@apresentacao.nextrouter.local",
+      "is_active": true,
+      "is_staff": false,
+      "phone": "47998210005",
+      "cep": "89245000",
+      "street": "Rua João Manoel da Silveira",
+      "number": "290",
+      "complement": "Casa 2",
+      "neighborhood": "Porto Grande",
+      "city": "Araquari",
+      "state": "SC",
+      "latitude": -26.3795,
+      "longitude": -48.7255,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "profile_picture": null,
+      "created_at": "2026-11-25T12:00:00Z",
+      "updated_at": "2026-11-25T12:00:00Z",
+      "cpf": "51000010546",
+      "birthday": "1988-09-23",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "authenticator.user",
+    "pk": "00000000-0000-4000-8000-000000000006",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$nextrouter2026salt$rCIvWhKS1g7bZ8y2HA54qAs40om4hUpvryYLy1HbLsA=",
+      "last_login": null,
+      "is_superuser": false,
+      "name": "Ana Beatriz Mendes",
+      "email": "passageiro1@apresentacao.nextrouter.local",
+      "is_active": true,
+      "is_staff": false,
+      "phone": "47998210006",
+      "cep": "89235270",
+      "street": "Rua Waldomiro José Borges",
+      "number": "1280",
+      "complement": "Casa",
+      "neighborhood": "Itinga",
+      "city": "Joinville",
+      "state": "SC",
+      "latitude": -26.3478,
+      "longitude": -48.7982,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "profile_picture": null,
+      "created_at": "2026-11-25T12:00:00Z",
+      "updated_at": "2026-11-25T12:00:00Z",
+      "cpf": "51000010627",
+      "birthday": "2008-02-14",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "authenticator.user",
+    "pk": "00000000-0000-4000-8000-000000000007",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$nextrouter2026salt$rCIvWhKS1g7bZ8y2HA54qAs40om4hUpvryYLy1HbLsA=",
+      "last_login": null,
+      "is_superuser": false,
+      "name": "Lucas Gabriel Costa",
+      "email": "passageiro2@apresentacao.nextrouter.local",
+      "is_active": true,
+      "is_staff": false,
+      "phone": "47998210007",
+      "cep": "89245000",
+      "street": "Rua das Palmeiras",
+      "number": "410",
+      "complement": "Casa A",
+      "neighborhood": "Itinga",
+      "city": "Araquari",
+      "state": "SC",
+      "latitude": -26.3642,
+      "longitude": -48.7745,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "profile_picture": null,
+      "created_at": "2026-11-25T12:00:00Z",
+      "updated_at": "2026-11-25T12:00:00Z",
+      "cpf": "51000010708",
+      "birthday": "2007-07-19",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "authenticator.user",
+    "pk": "00000000-0000-4000-8000-000000000008",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$nextrouter2026salt$rCIvWhKS1g7bZ8y2HA54qAs40om4hUpvryYLy1HbLsA=",
+      "last_login": null,
+      "is_superuser": false,
+      "name": "Mariana Eduarda Ribeiro",
+      "email": "passageiro3@apresentacao.nextrouter.local",
+      "is_active": true,
+      "is_staff": false,
+      "phone": "47998210008",
+      "cep": "89245000",
+      "street": "Rua José Manoel de Oliveira",
+      "number": "215",
+      "complement": "",
+      "neighborhood": "Itinga",
+      "city": "Araquari",
+      "state": "SC",
+      "latitude": -26.3785,
+      "longitude": -48.758,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "profile_picture": null,
+      "created_at": "2026-11-25T12:00:00Z",
+      "updated_at": "2026-11-25T12:00:00Z",
+      "cpf": "51000010899",
+      "birthday": "2008-10-03",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "authenticator.user",
+    "pk": "00000000-0000-4000-8000-000000000009",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$nextrouter2026salt$rCIvWhKS1g7bZ8y2HA54qAs40om4hUpvryYLy1HbLsA=",
+      "last_login": null,
+      "is_superuser": false,
+      "name": "Pedro Henrique Almeida",
+      "email": "passageiro4@apresentacao.nextrouter.local",
+      "is_active": true,
+      "is_staff": false,
+      "phone": "47998210009",
+      "cep": "89245000",
+      "street": "Rua Coronel Almeida",
+      "number": "320",
+      "complement": "Apto 102",
+      "neighborhood": "Centro",
+      "city": "Araquari",
+      "state": "SC",
+      "latitude": -26.3738,
+      "longitude": -48.7224,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "profile_picture": null,
+      "created_at": "2026-11-25T12:00:00Z",
+      "updated_at": "2026-11-25T12:00:00Z",
+      "cpf": "51000010970",
+      "birthday": "2007-05-27",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "authenticator.user",
+    "pk": "00000000-0000-4000-8000-000000000010",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$nextrouter2026salt$rCIvWhKS1g7bZ8y2HA54qAs40om4hUpvryYLy1HbLsA=",
+      "last_login": null,
+      "is_superuser": false,
+      "name": "Sofia Vitória Cardoso",
+      "email": "passageiro5@apresentacao.nextrouter.local",
+      "is_active": true,
+      "is_staff": false,
+      "phone": "47998210010",
+      "cep": "89245000",
+      "street": "Rua João Manoel da Silveira",
+      "number": "540",
+      "complement": "Casa",
+      "neighborhood": "Porto Grande",
+      "city": "Araquari",
+      "state": "SC",
+      "latitude": -26.3822,
+      "longitude": -48.7278,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "profile_picture": null,
+      "created_at": "2026-11-25T12:00:00Z",
+      "updated_at": "2026-11-25T12:00:00Z",
+      "cpf": "51000011003",
+      "birthday": "2008-08-11",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "authenticator.user",
+    "pk": "00000000-0000-4000-8000-000000000011",
+    "fields": {
+      "password": "pbkdf2_sha256$1000000$nextrouter2026salt$rCIvWhKS1g7bZ8y2HA54qAs40om4hUpvryYLy1HbLsA=",
+      "last_login": null,
+      "is_superuser": false,
+      "name": "Rafael Augusto Teixeira",
+      "email": "passageiro6@apresentacao.nextrouter.local",
+      "is_active": true,
+      "is_staff": false,
+      "phone": "47998210011",
+      "cep": "89245000",
+      "street": "Rua Antônio Ramos Alvim",
+      "number": "180",
+      "complement": "",
+      "neighborhood": "Colégio Agrícola",
+      "city": "Araquari",
+      "state": "SC",
+      "latitude": -26.3892,
+      "longitude": -48.733,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "profile_picture": null,
+      "created_at": "2026-11-25T12:00:00Z",
+      "updated_at": "2026-11-25T12:00:00Z",
+      "cpf": "51000011194",
+      "birthday": "2007-12-04",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "organizations.company",
+    "pk": 1,
+    "fields": {
+      "user": "00000000-0000-4000-8000-000000000002",
+      "trade_name": "Expresso BR-280 Transportes",
+      "legal_name": "Expresso BR-280 Transportes Escolares LTDA",
+      "cnpj": "51234567000163",
+      "state_registration": "258147369",
+      "contact_phone": "47998210002",
+      "contact_email": "contato@expresso280.nextrouter.local",
+      "cep": "89245000",
+      "street": "Avenida Prefeito Alberto Natalino Miquelute",
+      "number": "1450",
+      "complement": "Sala 2",
+      "neighborhood": "Itinga",
+      "city": "Araquari",
+      "state": "SC",
+      "latitude": -26.3535,
+      "longitude": -48.7865,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "articles_of_association_document": null,
+      "state_operating_license_document": null,
+      "certificate_of_good_stading_document": null,
+      "is_approved": true,
+      "is_rejected": false,
+      "reviewed_by": "00000000-0000-4000-8000-000000000001",
+      "reviewed_at": "2026-11-25T12:05:00Z"
+    }
+  },
+  {
+    "model": "organizations.company",
+    "pk": 2,
+    "fields": {
+      "user": "00000000-0000-4000-8000-000000000003",
+      "trade_name": "Rota Sul Araquari",
+      "legal_name": "Rota Sul Araquari Transporte Escolar LTDA",
+      "cnpj": "62345678000163",
+      "state_registration": "259368147",
+      "contact_phone": "47998210003",
+      "contact_email": "contato@rotasul.nextrouter.local",
+      "cep": "89245000",
+      "street": "Rodovia BR-280, km 22",
+      "number": "2200",
+      "complement": "Galpão A",
+      "neighborhood": "Centro",
+      "city": "Araquari",
+      "state": "SC",
+      "latitude": -26.3715,
+      "longitude": -48.7195,
+      "geocoded_at": "2026-11-25T12:00:00Z",
+      "articles_of_association_document": null,
+      "state_operating_license_document": null,
+      "certificate_of_good_stading_document": null,
+      "is_approved": true,
+      "is_rejected": false,
+      "reviewed_by": "00000000-0000-4000-8000-000000000001",
+      "reviewed_at": "2026-11-25T12:05:00Z"
+    }
+  },
+  {
+    "model": "organizations.driver",
+    "pk": 1,
+    "fields": {
+      "user": "00000000-0000-4000-8000-000000000004",
+      "cnh": null,
+      "location_consent_at": "2026-11-25T12:06:00Z"
+    }
+  },
+  {
+    "model": "organizations.driver",
+    "pk": 2,
+    "fields": {
+      "user": "00000000-0000-4000-8000-000000000005",
+      "cnh": null,
+      "location_consent_at": "2026-11-25T12:06:00Z"
+    }
+  },
+  {
+    "model": "organizations.passenger",
+    "pk": 1,
+    "fields": {
+      "user": "00000000-0000-4000-8000-000000000006"
+    }
+  },
+  {
+    "model": "organizations.passenger",
+    "pk": 2,
+    "fields": {
+      "user": "00000000-0000-4000-8000-000000000007"
+    }
+  },
+  {
+    "model": "organizations.passenger",
+    "pk": 3,
+    "fields": {
+      "user": "00000000-0000-4000-8000-000000000008"
+    }
+  },
+  {
+    "model": "organizations.passenger",
+    "pk": 4,
+    "fields": {
+      "user": "00000000-0000-4000-8000-000000000009"
+    }
+  },
+  {
+    "model": "organizations.passenger",
+    "pk": 5,
+    "fields": {
+      "user": "00000000-0000-4000-8000-000000000010"
+    }
+  },
+  {
+    "model": "organizations.passenger",
+    "pk": 6,
+    "fields": {
+      "user": "00000000-0000-4000-8000-000000000011"
+    }
+  },
+  {
+    "model": "organizations.operationalpoint",
+    "pk": 1,
+    "fields": {
+      "company": 1,
+      "point_type": "garage",
+      "name": "Garagem Expresso BR-280 (Itinga)",
+      "street": "Avenida Prefeito Alberto Natalino Miquelute",
+      "number": "1450",
+      "complement": "Pátio 1",
+      "neighborhood": "Itinga",
+      "city": "Araquari",
+      "state": "SC",
+      "cep": "89245000",
+      "latitude": -26.3535,
+      "longitude": -48.7865,
+      "created_by": "00000000-0000-4000-8000-000000000002",
+      "created_at": "2026-11-25T12:10:00Z"
+    }
+  },
+  {
+    "model": "organizations.operationalpoint",
+    "pk": 2,
+    "fields": {
+      "company": 1,
+      "point_type": "destination",
+      "name": "IFC Campus Araquari",
+      "street": "Rodovia BR-280, km 27",
+      "number": "S/N",
+      "complement": "Portaria Principal",
+      "neighborhood": "Colégio Agrícola",
+      "city": "Araquari",
+      "state": "SC",
+      "cep": "89245000",
+      "latitude": -26.3941,
+      "longitude": -48.7385,
+      "created_by": "00000000-0000-4000-8000-000000000002",
+      "created_at": "2026-11-25T12:10:00Z"
+    }
+  },
+  {
+    "model": "organizations.operationalpoint",
+    "pk": 3,
+    "fields": {
+      "company": 1,
+      "point_type": "passenger",
+      "name": "Ponto de Ana Beatriz Mendes",
+      "street": "Rua Waldomiro José Borges",
+      "number": "1280",
+      "complement": "Casa",
+      "neighborhood": "Itinga",
+      "city": "Joinville",
+      "state": "SC",
+      "cep": "89235270",
+      "latitude": -26.3478,
+      "longitude": -48.7982,
+      "created_by": "00000000-0000-4000-8000-000000000002",
+      "created_at": "2026-11-25T12:10:00Z"
+    }
+  },
+  {
+    "model": "organizations.operationalpoint",
+    "pk": 4,
+    "fields": {
+      "company": 1,
+      "point_type": "passenger",
+      "name": "Ponto de Lucas Gabriel Costa",
+      "street": "Rua das Palmeiras",
+      "number": "410",
+      "complement": "Casa A",
+      "neighborhood": "Itinga",
+      "city": "Araquari",
+      "state": "SC",
+      "cep": "89245000",
+      "latitude": -26.3642,
+      "longitude": -48.7745,
+      "created_by": "00000000-0000-4000-8000-000000000002",
+      "created_at": "2026-11-25T12:10:00Z"
+    }
+  },
+  {
+    "model": "organizations.operationalpoint",
+    "pk": 5,
+    "fields": {
+      "company": 1,
+      "point_type": "passenger",
+      "name": "Ponto de Mariana Eduarda Ribeiro",
+      "street": "Rua José Manoel de Oliveira",
+      "number": "215",
+      "complement": "",
+      "neighborhood": "Itinga",
+      "city": "Araquari",
+      "state": "SC",
+      "cep": "89245000",
+      "latitude": -26.3785,
+      "longitude": -48.758,
+      "created_by": "00000000-0000-4000-8000-000000000002",
+      "created_at": "2026-11-25T12:10:00Z"
+    }
+  },
+  {
+    "model": "organizations.operationalpoint",
+    "pk": 6,
+    "fields": {
+      "company": 2,
+      "point_type": "garage",
+      "name": "Garagem Rota Sul (BR-280)",
+      "street": "Rodovia BR-280, km 22",
+      "number": "2200",
+      "complement": "Galpão A",
+      "neighborhood": "Centro",
+      "city": "Araquari",
+      "state": "SC",
+      "cep": "89245000",
+      "latitude": -26.3715,
+      "longitude": -48.7195,
+      "created_by": "00000000-0000-4000-8000-000000000003",
+      "created_at": "2026-11-25T12:10:00Z"
+    }
+  },
+  {
+    "model": "organizations.operationalpoint",
+    "pk": 7,
+    "fields": {
+      "company": 2,
+      "point_type": "destination",
+      "name": "IFC Campus Araquari",
+      "street": "Rodovia BR-280, km 27",
+      "number": "S/N",
+      "complement": "Portaria Principal",
+      "neighborhood": "Colégio Agrícola",
+      "city": "Araquari",
+      "state": "SC",
+      "cep": "89245000",
+      "latitude": -26.3941,
+      "longitude": -48.7385,
+      "created_by": "00000000-0000-4000-8000-000000000003",
+      "created_at": "2026-11-25T12:10:00Z"
+    }
+  },
+  {
+    "model": "organizations.operationalpoint",
+    "pk": 8,
+    "fields": {
+      "company": 2,
+      "point_type": "passenger",
+      "name": "Ponto de Pedro Henrique Almeida",
+      "street": "Rua Coronel Almeida",
+      "number": "320",
+      "complement": "Apto 102",
+      "neighborhood": "Centro",
+      "city": "Araquari",
+      "state": "SC",
+      "cep": "89245000",
+      "latitude": -26.3738,
+      "longitude": -48.7224,
+      "created_by": "00000000-0000-4000-8000-000000000003",
+      "created_at": "2026-11-25T12:10:00Z"
+    }
+  },
+  {
+    "model": "organizations.operationalpoint",
+    "pk": 9,
+    "fields": {
+      "company": 2,
+      "point_type": "passenger",
+      "name": "Ponto de Sofia Vitória Cardoso",
+      "street": "Rua João Manoel da Silveira",
+      "number": "540",
+      "complement": "Casa",
+      "neighborhood": "Porto Grande",
+      "city": "Araquari",
+      "state": "SC",
+      "cep": "89245000",
+      "latitude": -26.3822,
+      "longitude": -48.7278,
+      "created_by": "00000000-0000-4000-8000-000000000003",
+      "created_at": "2026-11-25T12:10:00Z"
+    }
+  },
+  {
+    "model": "organizations.operationalpoint",
+    "pk": 10,
+    "fields": {
+      "company": 2,
+      "point_type": "passenger",
+      "name": "Ponto de Rafael Augusto Teixeira",
+      "street": "Rua Antônio Ramos Alvim",
+      "number": "180",
+      "complement": "",
+      "neighborhood": "Colégio Agrícola",
+      "city": "Araquari",
+      "state": "SC",
+      "cep": "89245000",
+      "latitude": -26.3892,
+      "longitude": -48.733,
+      "created_by": "00000000-0000-4000-8000-000000000003",
+      "created_at": "2026-11-25T12:10:00Z"
+    }
+  },
+  {
+    "model": "organizations.companyroutegroup",
+    "pk": 1,
+    "fields": {
+      "company": 1,
+      "name": "IFC Araquari — Corredor Itinga / BR-280",
+      "destination": 2
+    }
+  },
+  {
+    "model": "organizations.companyroutegroup",
+    "pk": 2,
+    "fields": {
+      "company": 2,
+      "name": "IFC Araquari — Corredor Centro / BR-280",
+      "destination": 7
+    }
+  },
+  {
+    "model": "organizations.habitualroute",
+    "pk": 1,
+    "fields": {
+      "route_group": 1,
+      "name": "Rota Itinga — BR-280",
+      "kind": "habitual",
+      "created_by": "00000000-0000-4000-8000-000000000002",
+      "created_at": "2026-11-25T12:12:00Z"
+    }
+  },
+  {
+    "model": "organizations.habitualroute",
+    "pk": 2,
+    "fields": {
+      "route_group": 2,
+      "name": "Rota Centro / Porto Grande — BR-280",
+      "kind": "habitual",
+      "created_by": "00000000-0000-4000-8000-000000000003",
+      "created_at": "2026-11-25T12:12:00Z"
+    }
+  },
+  {
+    "model": "organizations.companymembership",
+    "pk": 1,
+    "fields": {
+      "company": 1,
+      "passenger": null,
+      "driver": 1,
+      "requested_route_group": null,
+      "contact_phone": "47998210004",
+      "status": "active",
+      "requested_by": "00000000-0000-4000-8000-000000000004",
+      "created_at": "2026-11-25T12:15:00Z",
+      "reviewed_by": "00000000-0000-4000-8000-000000000002",
+      "reviewed_at": "2026-11-25T12:16:00Z",
+      "withdrawn_by": null,
+      "withdrawn_at": null,
+      "ended_by": null,
+      "ended_at": null
+    }
+  },
+  {
+    "model": "organizations.companymembership",
+    "pk": 2,
+    "fields": {
+      "company": 2,
+      "passenger": null,
+      "driver": 2,
+      "requested_route_group": null,
+      "contact_phone": "47998210005",
+      "status": "active",
+      "requested_by": "00000000-0000-4000-8000-000000000005",
+      "created_at": "2026-11-25T12:15:00Z",
+      "reviewed_by": "00000000-0000-4000-8000-000000000003",
+      "reviewed_at": "2026-11-25T12:16:00Z",
+      "withdrawn_by": null,
+      "withdrawn_at": null,
+      "ended_by": null,
+      "ended_at": null
+    }
+  },
+  {
+    "model": "organizations.companymembership",
+    "pk": 3,
+    "fields": {
+      "company": 1,
+      "passenger": 1,
+      "driver": null,
+      "requested_route_group": 1,
+      "contact_phone": "47998210006",
+      "status": "active",
+      "requested_by": "00000000-0000-4000-8000-000000000006",
+      "created_at": "2026-11-25T12:15:00Z",
+      "reviewed_by": "00000000-0000-4000-8000-000000000002",
+      "reviewed_at": "2026-11-25T12:16:00Z",
+      "withdrawn_by": null,
+      "withdrawn_at": null,
+      "ended_by": null,
+      "ended_at": null
+    }
+  },
+  {
+    "model": "organizations.companymembership",
+    "pk": 4,
+    "fields": {
+      "company": 1,
+      "passenger": 2,
+      "driver": null,
+      "requested_route_group": 1,
+      "contact_phone": "47998210007",
+      "status": "active",
+      "requested_by": "00000000-0000-4000-8000-000000000007",
+      "created_at": "2026-11-25T12:15:00Z",
+      "reviewed_by": "00000000-0000-4000-8000-000000000002",
+      "reviewed_at": "2026-11-25T12:16:00Z",
+      "withdrawn_by": null,
+      "withdrawn_at": null,
+      "ended_by": null,
+      "ended_at": null
+    }
+  },
+  {
+    "model": "organizations.companymembership",
+    "pk": 5,
+    "fields": {
+      "company": 1,
+      "passenger": 3,
+      "driver": null,
+      "requested_route_group": 1,
+      "contact_phone": "47998210008",
+      "status": "active",
+      "requested_by": "00000000-0000-4000-8000-000000000008",
+      "created_at": "2026-11-25T12:15:00Z",
+      "reviewed_by": "00000000-0000-4000-8000-000000000002",
+      "reviewed_at": "2026-11-25T12:16:00Z",
+      "withdrawn_by": null,
+      "withdrawn_at": null,
+      "ended_by": null,
+      "ended_at": null
+    }
+  },
+  {
+    "model": "organizations.companymembership",
+    "pk": 6,
+    "fields": {
+      "company": 2,
+      "passenger": 4,
+      "driver": null,
+      "requested_route_group": 2,
+      "contact_phone": "47998210009",
+      "status": "active",
+      "requested_by": "00000000-0000-4000-8000-000000000009",
+      "created_at": "2026-11-25T12:15:00Z",
+      "reviewed_by": "00000000-0000-4000-8000-000000000003",
+      "reviewed_at": "2026-11-25T12:16:00Z",
+      "withdrawn_by": null,
+      "withdrawn_at": null,
+      "ended_by": null,
+      "ended_at": null
+    }
+  },
+  {
+    "model": "organizations.companymembership",
+    "pk": 7,
+    "fields": {
+      "company": 2,
+      "passenger": 5,
+      "driver": null,
+      "requested_route_group": 2,
+      "contact_phone": "47998210010",
+      "status": "active",
+      "requested_by": "00000000-0000-4000-8000-000000000010",
+      "created_at": "2026-11-25T12:15:00Z",
+      "reviewed_by": "00000000-0000-4000-8000-000000000003",
+      "reviewed_at": "2026-11-25T12:16:00Z",
+      "withdrawn_by": null,
+      "withdrawn_at": null,
+      "ended_by": null,
+      "ended_at": null
+    }
+  },
+  {
+    "model": "organizations.companymembership",
+    "pk": 8,
+    "fields": {
+      "company": 2,
+      "passenger": 6,
+      "driver": null,
+      "requested_route_group": 2,
+      "contact_phone": "47998210011",
+      "status": "active",
+      "requested_by": "00000000-0000-4000-8000-000000000011",
+      "created_at": "2026-11-25T12:15:00Z",
+      "reviewed_by": "00000000-0000-4000-8000-000000000003",
+      "reviewed_at": "2026-11-25T12:16:00Z",
+      "withdrawn_by": null,
+      "withdrawn_at": null,
+      "ended_by": null,
+      "ended_at": null
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 1,
+    "fields": {
+      "membership": 1,
+      "action": "requested",
+      "actor": "00000000-0000-4000-8000-000000000004",
+      "occurred_at": "2026-11-25T12:15:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 2,
+    "fields": {
+      "membership": 1,
+      "action": "approved",
+      "actor": "00000000-0000-4000-8000-000000000002",
+      "occurred_at": "2026-11-25T12:16:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 3,
+    "fields": {
+      "membership": 2,
+      "action": "requested",
+      "actor": "00000000-0000-4000-8000-000000000005",
+      "occurred_at": "2026-11-25T12:15:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 4,
+    "fields": {
+      "membership": 2,
+      "action": "approved",
+      "actor": "00000000-0000-4000-8000-000000000003",
+      "occurred_at": "2026-11-25T12:16:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 5,
+    "fields": {
+      "membership": 3,
+      "action": "requested",
+      "actor": "00000000-0000-4000-8000-000000000006",
+      "occurred_at": "2026-11-25T12:15:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 6,
+    "fields": {
+      "membership": 3,
+      "action": "approved",
+      "actor": "00000000-0000-4000-8000-000000000002",
+      "occurred_at": "2026-11-25T12:16:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 7,
+    "fields": {
+      "membership": 4,
+      "action": "requested",
+      "actor": "00000000-0000-4000-8000-000000000007",
+      "occurred_at": "2026-11-25T12:15:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 8,
+    "fields": {
+      "membership": 4,
+      "action": "approved",
+      "actor": "00000000-0000-4000-8000-000000000002",
+      "occurred_at": "2026-11-25T12:16:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 9,
+    "fields": {
+      "membership": 5,
+      "action": "requested",
+      "actor": "00000000-0000-4000-8000-000000000008",
+      "occurred_at": "2026-11-25T12:15:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 10,
+    "fields": {
+      "membership": 5,
+      "action": "approved",
+      "actor": "00000000-0000-4000-8000-000000000002",
+      "occurred_at": "2026-11-25T12:16:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 11,
+    "fields": {
+      "membership": 6,
+      "action": "requested",
+      "actor": "00000000-0000-4000-8000-000000000009",
+      "occurred_at": "2026-11-25T12:15:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 12,
+    "fields": {
+      "membership": 6,
+      "action": "approved",
+      "actor": "00000000-0000-4000-8000-000000000003",
+      "occurred_at": "2026-11-25T12:16:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 13,
+    "fields": {
+      "membership": 7,
+      "action": "requested",
+      "actor": "00000000-0000-4000-8000-000000000010",
+      "occurred_at": "2026-11-25T12:15:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 14,
+    "fields": {
+      "membership": 7,
+      "action": "approved",
+      "actor": "00000000-0000-4000-8000-000000000003",
+      "occurred_at": "2026-11-25T12:16:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 15,
+    "fields": {
+      "membership": 8,
+      "action": "requested",
+      "actor": "00000000-0000-4000-8000-000000000011",
+      "occurred_at": "2026-11-25T12:15:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.membershipevent",
+    "pk": 16,
+    "fields": {
+      "membership": 8,
+      "action": "approved",
+      "actor": "00000000-0000-4000-8000-000000000003",
+      "occurred_at": "2026-11-25T12:16:00Z",
+      "reason": ""
+    }
+  },
+  {
+    "model": "organizations.passengergroupmembership",
+    "pk": 1,
+    "fields": {
+      "membership": 3,
+      "route_group": 1,
+      "transport_point": 3,
+      "habitual_route": 1,
+      "started_at": "2026-11-25T12:20:00Z",
+      "assigned_by": "00000000-0000-4000-8000-000000000002",
+      "ended_at": null,
+      "ended_by": null
+    }
+  },
+  {
+    "model": "organizations.passengergroupmembership",
+    "pk": 2,
+    "fields": {
+      "membership": 4,
+      "route_group": 1,
+      "transport_point": 4,
+      "habitual_route": 1,
+      "started_at": "2026-11-25T12:20:00Z",
+      "assigned_by": "00000000-0000-4000-8000-000000000002",
+      "ended_at": null,
+      "ended_by": null
+    }
+  },
+  {
+    "model": "organizations.passengergroupmembership",
+    "pk": 3,
+    "fields": {
+      "membership": 5,
+      "route_group": 1,
+      "transport_point": 5,
+      "habitual_route": 1,
+      "started_at": "2026-11-25T12:20:00Z",
+      "assigned_by": "00000000-0000-4000-8000-000000000002",
+      "ended_at": null,
+      "ended_by": null
+    }
+  },
+  {
+    "model": "organizations.passengergroupmembership",
+    "pk": 4,
+    "fields": {
+      "membership": 6,
+      "route_group": 2,
+      "transport_point": 8,
+      "habitual_route": 2,
+      "started_at": "2026-11-25T12:20:00Z",
+      "assigned_by": "00000000-0000-4000-8000-000000000003",
+      "ended_at": null,
+      "ended_by": null
+    }
+  },
+  {
+    "model": "organizations.passengergroupmembership",
+    "pk": 5,
+    "fields": {
+      "membership": 7,
+      "route_group": 2,
+      "transport_point": 9,
+      "habitual_route": 2,
+      "started_at": "2026-11-25T12:20:00Z",
+      "assigned_by": "00000000-0000-4000-8000-000000000003",
+      "ended_at": null,
+      "ended_by": null
+    }
+  },
+  {
+    "model": "organizations.passengergroupmembership",
+    "pk": 6,
+    "fields": {
+      "membership": 8,
+      "route_group": 2,
+      "transport_point": 10,
+      "habitual_route": 2,
+      "started_at": "2026-11-25T12:20:00Z",
+      "assigned_by": "00000000-0000-4000-8000-000000000003",
+      "ended_at": null,
+      "ended_by": null
+    }
+  },
+  {
+    "model": "router.vehicle",
+    "pk": 1,
+    "fields": {
+      "company": 1,
+      "garage_point": 1,
+      "plate": "QXA4B28",
+      "vehicle_type": "van",
+      "brand": "Mercedes-Benz",
+      "model": "Sprinter 416 Escolar",
+      "seats": 16,
+      "notes": "Van escolar dedicada ao corredor Itinga — BR-280.",
+      "year": 2023,
+      "capacity": 15,
+      "status": "active",
+      "color": "Branco",
+      "features": [
+        "Ar-condicionado",
+        "Cinto de três pontos",
+        "Wi-Fi"
+      ]
+    }
+  },
+  {
+    "model": "router.vehicle",
+    "pk": 2,
+    "fields": {
+      "company": 2,
+      "garage_point": 6,
+      "plate": "RXB7C80",
+      "vehicle_type": "microbus",
+      "brand": "Volare",
+      "model": "W9 Fly Escolar",
+      "seats": 26,
+      "notes": "Micro-ônibus dedicado ao corredor Centro / Porto Grande — BR-280.",
+      "year": 2024,
+      "capacity": 24,
+      "status": "active",
+      "color": "Branco e azul",
+      "features": [
+        "Ar-condicionado",
+        "Acessível",
+        "Câmera interna"
+      ]
+    }
+  },
+  {
+    "model": "router.responsepolicy",
+    "pk": 1,
+    "fields": {
+      "route_group": 1,
+      "opens_days_before": 1,
+      "opens_time": "08:00:00",
+      "normal_days_before": 1,
+      "normal_time": "22:00:00",
+      "extension_days_before": 0,
+      "extension_time": "06:30:00"
+    }
+  },
+  {
+    "model": "router.responsepolicy",
+    "pk": 2,
+    "fields": {
+      "route_group": 2,
+      "opens_days_before": 1,
+      "opens_time": "08:00:00",
+      "normal_days_before": 1,
+      "normal_time": "22:00:00",
+      "extension_days_before": 0,
+      "extension_time": "06:30:00"
+    }
+  },
+  {
+    "model": "router.recurringservice",
+    "pk": 1,
+    "fields": {
+      "route_group": 1,
+      "name": "Ida Manhã — Itinga / IFC",
+      "direction": "outbound",
+      "is_shared": false,
+      "weekdays": 31,
+      "target_time": "07:30:00",
+      "planned_duration": "00:45:00",
+      "turnaround_duration": "00:15:00",
+      "valid_from": "2026-01-01",
+      "valid_until": null,
+      "driver_membership": 1,
+      "vehicle": 1,
+      "origin": 1,
+      "destination": 2,
+      "created_by": "00000000-0000-4000-8000-000000000002"
+    }
+  },
+  {
+    "model": "router.recurringservice",
+    "pk": 2,
+    "fields": {
+      "route_group": 1,
+      "name": "Retorno Meio-dia — IFC / Itinga",
+      "direction": "return",
+      "is_shared": false,
+      "weekdays": 31,
+      "target_time": "12:10:00",
+      "planned_duration": "00:45:00",
+      "turnaround_duration": "00:15:00",
+      "valid_from": "2026-01-01",
+      "valid_until": null,
+      "driver_membership": 1,
+      "vehicle": 1,
+      "origin": 2,
+      "destination": 1,
+      "created_by": "00000000-0000-4000-8000-000000000002"
+    }
+  },
+  {
+    "model": "router.recurringservice",
+    "pk": 3,
+    "fields": {
+      "route_group": 2,
+      "name": "Ida Manhã — Centro / IFC",
+      "direction": "outbound",
+      "is_shared": false,
+      "weekdays": 31,
+      "target_time": "07:30:00",
+      "planned_duration": "00:35:00",
+      "turnaround_duration": "00:15:00",
+      "valid_from": "2026-01-01",
+      "valid_until": null,
+      "driver_membership": 2,
+      "vehicle": 2,
+      "origin": 6,
+      "destination": 7,
+      "created_by": "00000000-0000-4000-8000-000000000003"
+    }
+  },
+  {
+    "model": "router.recurringservice",
+    "pk": 4,
+    "fields": {
+      "route_group": 2,
+      "name": "Retorno Meio-dia — IFC / Centro",
+      "direction": "return",
+      "is_shared": false,
+      "weekdays": 31,
+      "target_time": "12:10:00",
+      "planned_duration": "00:35:00",
+      "turnaround_duration": "00:15:00",
+      "valid_from": "2026-01-01",
+      "valid_until": null,
+      "driver_membership": 2,
+      "vehicle": 2,
+      "origin": 7,
+      "destination": 6,
+      "created_by": "00000000-0000-4000-8000-000000000003"
+    }
+  },
+  {
+    "model": "router.passengerserviceauthorization",
+    "pk": 1,
+    "fields": {
+      "participation": 1,
+      "service": 1,
+      "direction": "outbound",
+      "is_habitual": true
+    }
+  },
+  {
+    "model": "router.passengerserviceauthorization",
+    "pk": 2,
+    "fields": {
+      "participation": 1,
+      "service": 2,
+      "direction": "return",
+      "is_habitual": false
+    }
+  },
+  {
+    "model": "router.passengerserviceauthorization",
+    "pk": 3,
+    "fields": {
+      "participation": 2,
+      "service": 1,
+      "direction": "outbound",
+      "is_habitual": true
+    }
+  },
+  {
+    "model": "router.passengerserviceauthorization",
+    "pk": 4,
+    "fields": {
+      "participation": 2,
+      "service": 2,
+      "direction": "return",
+      "is_habitual": false
+    }
+  },
+  {
+    "model": "router.passengerserviceauthorization",
+    "pk": 5,
+    "fields": {
+      "participation": 3,
+      "service": 1,
+      "direction": "outbound",
+      "is_habitual": true
+    }
+  },
+  {
+    "model": "router.passengerserviceauthorization",
+    "pk": 6,
+    "fields": {
+      "participation": 3,
+      "service": 2,
+      "direction": "return",
+      "is_habitual": false
+    }
+  },
+  {
+    "model": "router.passengerserviceauthorization",
+    "pk": 7,
+    "fields": {
+      "participation": 4,
+      "service": 3,
+      "direction": "outbound",
+      "is_habitual": true
+    }
+  },
+  {
+    "model": "router.passengerserviceauthorization",
+    "pk": 8,
+    "fields": {
+      "participation": 4,
+      "service": 4,
+      "direction": "return",
+      "is_habitual": false
+    }
+  },
+  {
+    "model": "router.passengerserviceauthorization",
+    "pk": 9,
+    "fields": {
+      "participation": 5,
+      "service": 3,
+      "direction": "outbound",
+      "is_habitual": true
+    }
+  },
+  {
+    "model": "router.passengerserviceauthorization",
+    "pk": 10,
+    "fields": {
+      "participation": 5,
+      "service": 4,
+      "direction": "return",
+      "is_habitual": false
+    }
+  },
+  {
+    "model": "router.passengerserviceauthorization",
+    "pk": 11,
+    "fields": {
+      "participation": 6,
+      "service": 3,
+      "direction": "outbound",
+      "is_habitual": true
+    }
+  },
+  {
+    "model": "router.passengerserviceauthorization",
+    "pk": 12,
+    "fields": {
+      "participation": 6,
+      "service": 4,
+      "direction": "return",
+      "is_habitual": false
+    }
+  }
+]
