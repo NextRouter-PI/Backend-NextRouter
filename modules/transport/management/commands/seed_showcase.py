@@ -157,7 +157,9 @@ class Command(BaseCommand):
             if phone:
                 user.phone = phone
             user.save()
-        if photo and user.profile_picture_id is None:
+        current = user.profile_picture
+        # Refaz a foto quando o arquivo sumiu (ex.: disco do container ou troca para o Cloudinary).
+        if photo and (current is None or not current.file or not current.file.storage.exists(current.file.name)):
             picture = Image.objects.create(
                 description=f'Foto de {name}', file=ContentFile(_avatar(name), name=f'{slug}.png')
             )
