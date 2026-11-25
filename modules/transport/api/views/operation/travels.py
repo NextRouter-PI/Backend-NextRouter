@@ -4,6 +4,7 @@ from modules.transport.access import travels_for
 from modules.transport.api.serializers.operation import (
     InvitationSerializer,
     InviteInput,
+    LiveTravelSerializer,
     LocationSerializer,
     PublicationSerializer,
     SnapshotSerializer,
@@ -13,6 +14,7 @@ from modules.transport.api.serializers.operation import (
 from modules.transport.models import Travel
 from modules.transport.services.execution import cancel_travel, finish_travel, start_travel
 from modules.transport.services.invitations import invite_driver, report_unavailability
+from modules.transport.services.live import live_travels_for_company_owner
 from modules.transport.services.planning import assign_vehicle, calculate_travel, publish_travel
 from modules.transport.services.tracking import read_location
 from shared.api import EmptyInput, OperationInput, RevisionInput
@@ -27,6 +29,15 @@ class TravelViewSet(DomainViewSet):
 
     def get_scoped_queryset(self, user):
         return travels_for(user).select_related('service_day', 'service').order_by('-service_day__date', 'pk')
+
+    @domain_action(
+        'Liste as viagens em andamento da empresa para o mapa geral',
+        response=LiveTravelSerializer(many=True),
+        detail=False,
+        methods=('get',),
+    )
+    def live(self, request):
+        return Response(LiveTravelSerializer(live_travels_for_company_owner(request.user), many=True).data)
 
     @domain_action(
         'Enfileire o cálculo da revisão atual', request=RevisionInput, response=SnapshotSerializer, status=202

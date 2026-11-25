@@ -7,7 +7,22 @@ from shared.api import InputModelSerializer
 class VehicleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vehicle
-        fields = ('id', 'company', 'plate', 'model', 'year', 'capacity', 'status', 'garage_point', 'color', 'features')
+        fields = (
+            'id',
+            'company',
+            'plate',
+            'vehicle_type',
+            'brand',
+            'model',
+            'year',
+            'seats',
+            'capacity',
+            'status',
+            'garage_point',
+            'color',
+            'features',
+            'notes',
+        )
 
 
 class VehicleInput(InputModelSerializer):
@@ -15,4 +30,17 @@ class VehicleInput(InputModelSerializer):
 
     class Meta:
         model = Vehicle
-        fields = ('plate', 'model', 'year', 'capacity', 'status', 'garage_point_id', 'color', 'features')
+        fields = (
+            'plate',
+            'vehicle_type',
+            'brand',
+            'model',
+            'year',
+            'seats',
+            'capacity',
+            'status',
+            'garage_point_id',
+            'color',
+            'features',
+            'notes',
+        )

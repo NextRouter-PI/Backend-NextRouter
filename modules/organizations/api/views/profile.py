@@ -1,5 +1,6 @@
 from django.db.models import Avg, Count, Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins
 from rest_framework.decorators import action
@@ -12,6 +13,7 @@ from modules.organizations.api.serializers.driver import (
     DriverCreateSerializer,
     DriverListAndRetrieveSerializer,
     DriverPatchSerializer,
+    LocationConsentInput,
 )
 from modules.organizations.api.serializers.passenger import (
     PassengerCreateSerializer,
@@ -117,6 +119,21 @@ class DriverViewSet(ProfileViewSet):
     create_serializer_class = DriverCreateSerializer
     patch_serializer_class = DriverPatchSerializer
     profile_field = 'driver'
+
+    @extend_schema(
+        summary='Autorize ou revogue o compartilhamento da sua localização',
+        description='Somente o próprio motorista. Sem consentimento, posições de viagem são recusadas.',
+        request=LocationConsentInput,
+        responses={200: DriverListAndRetrieveSerializer},
+    )
+    @action(detail=False, methods=['post'], url_path='me/location-consent')
+    def location_consent(self, request):
+        instance = get_object_or_404(self.get_base_queryset(), user=request.user)
+        data = LocationConsentInput(data=request.data)
+        data.is_valid(raise_exception=True)
+        instance.location_consent_at = timezone.now() if data.validated_data['consent'] else None
+        instance.save(update_fields=['location_consent_at'])
+        return Response(self.serializer_class(instance, context=self.get_serializer_context()).data)
 
     def get_base_queryset(self):
         return (

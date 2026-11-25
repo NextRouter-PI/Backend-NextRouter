@@ -9,7 +9,13 @@ from .routes import (
     StopParticipantSerializer,
     StopSerializer,
 )
-from .travels import LocationSerializer, PositionSerializer, TravelSerializer, VehicleAssignmentInput
+from .travels import (
+    LiveTravelSerializer,
+    LocationSerializer,
+    PositionSerializer,
+    TravelSerializer,
+    VehicleAssignmentInput,
+)
 
 __all__ = [
     'CorrectionInput',
@@ -18,6 +24,7 @@ __all__ = [
     'InviteInput',
     'InviteResponseInput',
     'JobSerializer',
+    'LiveTravelSerializer',
     'LocationSerializer',
     'NotificationSerializer',
     'ParticipantSerializer',

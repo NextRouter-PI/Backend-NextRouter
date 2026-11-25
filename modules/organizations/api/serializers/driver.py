@@ -53,7 +53,9 @@ class DriverListAndRetrieveSerializer(_DriverRatingMixin, ModelSerializer):
             'average_rating',
             'ratings_count',
             'cnh_data',
+            'location_consent_at',
         )
+        read_only_fields = ('location_consent_at',)
 
     def to_representation(self, instance):
         request = self.context.get('request')
@@ -93,3 +95,7 @@ class DriverPatchSerializer(BaseProfilePatchSerializer):
     class Meta:
         model = Driver
         fields = ('user_data', 'cnh')
+
+
+class LocationConsentInput(serializers.Serializer):
+    consent = serializers.BooleanField()

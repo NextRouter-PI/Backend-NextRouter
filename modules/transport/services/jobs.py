@@ -102,7 +102,12 @@ def _complete(job_id, token, result):
     )
     snapshot.full_clean()
     snapshot.save()
-    persist_stops(snapshot, result['stops'])
+    # Ida: horários a partir da saída; retorno: a partir da partida comum (horário-alvo).
+    persist_stops(
+        snapshot,
+        result['stops'],
+        base_time=snapshot.planned_start if service['direction'] == 'outbound' else target,
+    )
     job.status, job.claim_token, job.claim_expires_at, job.error = 'done', None, None, ''
     job.save(update_fields=['status', 'claim_token', 'claim_expires_at', 'error', 'updated_at'])
     # Ida chega ao destino no horário-alvo; retorno inclui a aproximação antes da partida comum.

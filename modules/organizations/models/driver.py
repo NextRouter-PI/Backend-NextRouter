@@ -21,6 +21,13 @@ class Driver(models.Model):
         related_name='cnh',
         verbose_name=_('CNH'),
     )
+    # Quando o motorista autorizou compartilhar a localização durante as viagens (LGPD).
+    # Sem isso o servidor recusa posições; revogar volta para nulo.
+    location_consent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Consentimento de localização em'),
+    )
 
     class Meta:
         verbose_name = _('Motorista')

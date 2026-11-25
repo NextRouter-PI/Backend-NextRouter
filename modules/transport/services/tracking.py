@@ -77,6 +77,11 @@ def save_location(*, actor_id, travel_id, latitude, longitude, recorded_at, max_
     driver_actor(travel, actor_id)
     require(travel.status == Travel.Status.IN_PROGRESS, 'travel_not_active', 'A viagem não está em andamento.')
     require(
+        travel.driver.location_consent_at is not None,
+        'location_consent_required',
+        'Autorize o compartilhamento da sua localização para enviar a posição da viagem.',
+    )
+    require(
         all(type(value) in (int, float) for value in (latitude, longitude))
         and -90 <= latitude <= 90
         and -180 <= longitude <= 180

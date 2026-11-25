@@ -30,12 +30,20 @@ class _OSRMTripWaypoint(_OSRMWaypoint):
     waypoint_index: int = Field(ge=0)
 
 
+class _OSRMLeg(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+
+    duration: FiniteFloat = Field(ge=0.0)
+
+
 class _OSRMGeometryLeg(BaseModel):
     model_config = ConfigDict(extra='ignore')
 
     distance: FiniteFloat = Field(ge=0.0)
     duration: FiniteFloat = Field(ge=0.0)
     geometry: GeoJSONLineString
+    # Trechos entre paradas consecutivas (na ordem percorrida): base do horário previsto por parada.
+    legs: list[_OSRMLeg] = Field(default_factory=list)
 
 
 class _OSRMRoutePayload(BaseModel):
@@ -118,6 +126,7 @@ def route_coordinates(coordinates):
         'order': [0, 1],
         'distance_meters': float(route.distance),
         'duration_seconds': float(route.duration),
+        'leg_seconds': [float(leg.duration) for leg in route.legs],
         'geometry': {'type': route.geometry.type, 'coordinates': [list(pt) for pt in route.geometry.coordinates]},
     }
     cache.set(key, result, getattr(settings, 'OSRM_CACHE_TIMEOUT_SECONDS', 3600))
@@ -181,6 +190,7 @@ def optimize_coordinates(coordinates, *, has_fixed_end=True):
         'order': order,
         'distance_meters': float(trip.distance),
         'duration_seconds': float(trip.duration),
+        'leg_seconds': [float(leg.duration) for leg in trip.legs],
         'geometry': {'type': trip.geometry.type, 'coordinates': [list(pt) for pt in trip.geometry.coordinates]},
     }
     cache.set(key, result, getattr(settings, 'OSRM_CACHE_TIMEOUT_SECONDS', 3600))

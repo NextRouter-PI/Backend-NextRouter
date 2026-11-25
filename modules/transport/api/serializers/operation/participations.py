@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from modules.transport.api.serializers.common import user_avatar_url
 from modules.transport.models import ParticipationEvent, TravelParticipation
+from modules.transport.services.eta import participation_timing
 from shared.api import OperationInput
 
 
@@ -9,6 +10,8 @@ class ParticipantSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='eligibility.passenger.user.name', read_only=True)
     profile_picture_url = serializers.SerializerMethodField()
     point_snapshot = serializers.JSONField(source='eligibility.point_snapshot', read_only=True)
+    # Previsão da parada deste passageiro: horário previsto/esperado e paradas antes dele.
+    timing = serializers.SerializerMethodField()
 
     class Meta:
         model = TravelParticipation
@@ -26,7 +29,13 @@ class ParticipantSerializer(serializers.ModelSerializer):
             'no_show_at',
             'boarded_at',
             'dropped_off_at',
+            'timing',
         )
+
+    def get_timing(self, obj) -> dict | None:
+        if obj.status not in ('allocated', 'on_board') or obj.travel.status in ('finished', 'canceled'):
+            return None
+        return participation_timing(obj)
 
     def get_profile_picture_url(self, obj) -> str | None:
         return user_avatar_url(obj.eligibility.passenger.user, self.context.get('request'))

@@ -11,9 +11,13 @@ from shared.exceptions import get, require
 
 VEHICLE_ALLOWED_FIELDS = frozenset({
     'plate',
+    'vehicle_type',
+    'brand',
     'model',
     'year',
+    'seats',
     'capacity',
+    'notes',
     'status',
     'garage_point_id',
     'color',
