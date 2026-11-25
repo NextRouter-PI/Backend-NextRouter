@@ -1,0 +1,1 @@
+import{u as n}from"./index-B-zOdZ_e.js";import{w as s,X as a}from"./vendor-vue-Dgj71T2q.js";function i(){const o=n(),r=o.user?.id,t=new AbortController,e=()=>!!r&&!t.signal.aborted&&o.logged&&o.user?.id===r;return s(()=>o.identityKey,()=>t.abort(),{flush:"sync"}),a(()=>t.abort()),{ownerId:r,signal:t.signal,current:e}}export{i as u};
