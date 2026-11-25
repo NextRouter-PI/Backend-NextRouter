@@ -1,5 +1,7 @@
 """Cálculo a partir de entradas congeladas; nunca consulta endereços de perfis."""
 
+from datetime import timedelta
+
 from django.db import transaction
 
 from modules.transport.models import RouteStop, RouteStopParticipant
@@ -15,6 +17,22 @@ def coordinates(point):
         'Falta ponto operacional válido.',
     )
     return [point['longitude'], point['latitude']]
+
+
+def stop_offsets(result, node_count):
+    """Segundos desde a saída até cada posição do trajeto otimizado (0 = partida).
+
+    Sem trechos no retorno do OSRM (cache antigo), distribui a duração total por igual.
+    """
+    legs = result.get('leg_seconds') or []
+    if len(legs) != node_count - 1:
+        step = result['duration_seconds'] / max(1, node_count - 1)
+        legs = [step] * (node_count - 1)
+    offsets, total = [0], 0.0
+    for leg in legs:
+        total += leg
+        offsets.append(round(total))
+    return offsets
 
 
 def calculate_frozen(frozen):
@@ -40,13 +58,17 @@ def calculate_frozen(frozen):
     )
     side = route_coordinates(side_points) if side_points[0] != side_points[1] else None
     ordered = [positions[index - 1] for index in main['order'][1:-1]]
+    offsets = stop_offsets(main, len(nodes))
     rows = []
     all_ids = [entry['eligibility_id'] for entry in participants]
     if not outbound:
-        rows.append({'point': common, 'eligibilities': all_ids, 'operation': 'board'})
-    rows.extend({**stop, 'operation': 'board' if outbound else 'drop'} for stop in ordered)
+        rows.append({'point': common, 'eligibilities': all_ids, 'operation': 'board', 'offset_seconds': 0})
+    rows.extend(
+        {**stop, 'operation': 'board' if outbound else 'drop', 'offset_seconds': offsets[position]}
+        for position, stop in enumerate(ordered, start=1)
+    )
     if outbound:
-        rows.append({'point': common, 'eligibilities': all_ids, 'operation': 'drop'})
+        rows.append({'point': common, 'eligibilities': all_ids, 'operation': 'drop', 'offset_seconds': offsets[-1]})
     geometry = main['geometry']
     if side:
         first, second = (main, side) if outbound else (side, main)
@@ -85,8 +107,15 @@ def materialize_stops(snapshot):
         RouteStopParticipant.objects.bulk_create(to_create, ignore_conflicts=True)
 
 
-def persist_stops(snapshot, rows):
+def persist_stops(snapshot, rows, base_time=None):
+    """Grava as paradas; com base_time, cada uma guarda o horário previsto (_planned_at)."""
     require(transaction.get_connection().in_atomic_block, 'transaction_required', 'É necessária uma transação.')
+
+    def planned(row):
+        if base_time is None or row.get('offset_seconds') is None:
+            return {}
+        return {'_planned_at': (base_time + timedelta(seconds=row['offset_seconds'])).isoformat()}
+
     if rows:
         RouteStop.objects.bulk_create([
             RouteStop(
@@ -94,6 +123,7 @@ def persist_stops(snapshot, rows):
                 position=position,
                 point_snapshot={
                     **row['point'],
+                    **planned(row),
                     '_operations': [
                         {'eligibility_id': pk, 'operation': row['operation']} for pk in row['eligibilities']
                     ],

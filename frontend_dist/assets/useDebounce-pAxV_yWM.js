@@ -1,0 +1,1 @@
+import{s,w as a,X as i}from"./vendor-vue-Dgj71T2q.js";function c(u,t=150){const l=s(u.value);let e=null;function o(){e!==null&&(clearTimeout(e),e=null)}return a(u,n=>{if(o(),!n){l.value=n;return}e=setTimeout(()=>{l.value=n,e=null},t)}),i(o),l}export{c as u};

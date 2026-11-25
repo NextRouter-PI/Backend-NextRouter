@@ -36,7 +36,10 @@ class ServiceTestCase(TransactionTestCase):
         self.group = create_route_group(self.company)
         self.group.destination = self.common
         self.group.save(update_fields=['destination'])
-        self.driver = Driver.objects.create(user=create_user('operation-driver@example.com'))
+        # O motorista padrão já autorizou compartilhar a localização (exigido para enviar posições).
+        self.driver = Driver.objects.create(
+            user=create_user('operation-driver@example.com'), location_consent_at=self.now
+        )
         self.driver_membership = CompanyMembership.objects.create(
             company=self.company,
             driver=self.driver,
