@@ -32,9 +32,11 @@ from modules.transport.services.configuration import (
     configure_service,
     configure_vehicle,
 )
+from modules.transport.services.demand import answer_day
 from modules.transport.services.governance import review_company
 from modules.uploads.models import Image
 from shared.demo import make_cnpj, make_cpf
+from shared.exceptions import DomainError
 
 DOMAIN = 'vitrine.nextrouter.invalid'
 
@@ -186,6 +188,32 @@ class Command(BaseCommand):
             longitude=lng,
         )
 
+    def _answer_day(self, group, date, outbound_service, return_service):
+        """Passageiros da vitrine já confirmam ida e volta enquanto a janela de resposta está aberta.
+
+        Assim, no prazo o worker fecha o dia, calcula as rotas e a empresa só publica para o motorista iniciar.
+        Resposta já dada ou janela fechada: segue sem mexer.
+        """
+        from modules.transport.models import DailyResponse, ServiceDay
+
+        day = ServiceDay.objects.filter(route_group=group, date=date).first()
+        if day is None:
+            return
+        for eligibility in day.eligibilities.select_related('passenger'):
+            if DailyResponse.objects.filter(eligibility=eligibility).exists():
+                continue
+            try:
+                with transaction.atomic():
+                    answer_day(
+                        actor_id=eligibility.passenger.user_id,
+                        eligibility_id=eligibility.pk,
+                        outbound_service_id=outbound_service.pk,
+                        return_service_id=return_service.pk,
+                        expected_revision=0,
+                    )
+            except DomainError:
+                continue
+
     def _member(self, company, profile, field):
         member = company.memberships.filter(**{field: profile.pk}, status='active').first()
         if member:
@@ -328,11 +356,12 @@ class Command(BaseCommand):
                 )
 
         today = timezone.localdate()
-        for group, _outbound, _back in groups:
+        for (group, _out, _back), (outbound_service, return_service) in zip(groups, services_by_group, strict=True):
             for days in range(1, 4):
                 day = today + timedelta(days=days)
                 if day.weekday() < 5:
                     generate_day(actor_id=company.user_id, group_id=group.pk, date=day)
+                    self._answer_day(group, day, outbound_service, return_service)
 
         return (
             f'Vitrine pronta: 1 empresa, {len(DRIVERS)} motoristas, {len(PASSENGERS)} passageiros, '
