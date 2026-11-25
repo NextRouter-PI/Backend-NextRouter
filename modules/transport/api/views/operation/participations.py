@@ -1,11 +1,15 @@
+from rest_framework.response import Response
+
 from modules.transport.api.serializers.operation import (
     CorrectionInput,
     EventSerializer,
     ParticipantSerializer,
+    PassengerRouteSerializer,
     PresenceInput,
 )
 from modules.transport.models import ParticipationEvent, TravelParticipation
 from modules.transport.services.execution import correct_participation, record_participation
+from modules.transport.services.tracking import passenger_route
 from shared.domain_api import DomainViewSet, domain_action, domain_resource
 
 
@@ -35,6 +39,16 @@ class ParticipantViewSet(DomainViewSet):
             ),
             EventSerializer,
         )
+
+    @domain_action(
+        'Caminho do motorista até você e até o destino',
+        methods=('get',),
+        response=PassengerRouteSerializer,
+        url_path='route',
+        description='Somente o próprio passageiro, com a viagem em andamento. Traz só o traçado.',
+    )
+    def route(self, request, pk=None):
+        return Response(passenger_route(actor_id=request.user.pk, participation_id=self.get_object().pk))
 
     @domain_action('Corrija presença com motivo e referência', request=CorrectionInput, response=EventSerializer)
     def correct(self, request, pk=None):

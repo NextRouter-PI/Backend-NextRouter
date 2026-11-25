@@ -2,7 +2,7 @@
 
 from modules.organizations.models import Company
 from modules.transport.models import Travel
-from modules.transport.services.eta import expected_at, travel_delay_seconds
+from modules.transport.services.eta import stop_expectations
 
 
 def live_travels_for_company_owner(user):
@@ -28,7 +28,7 @@ def live_travels_for_company_owner(user):
 def _row(travel):
     snapshot = travel.published_snapshot or travel.current_snapshot
     stops = list(snapshot.stops.order_by('position')) if snapshot else []
-    delay = travel_delay_seconds(snapshot, stops) if snapshot else 0
+    expected, delay = stop_expectations(snapshot, stops) if snapshot else ({}, 0)
     pending = [stop for stop in stops if not stop.handled_at]
     nxt = pending[0] if pending else None
     participations = [p for p in travel.participations.all() if p.status in ('allocated', 'on_board', 'dropped_off')]
@@ -52,5 +52,5 @@ def _row(travel):
         'stops_total': len(stops),
         'delay_seconds': delay,
         'next_stop_name': (nxt.point_snapshot or {}).get('name', '') if nxt else '',
-        'next_stop_expected_at': expected_at(nxt, delay) if nxt else None,
+        'next_stop_expected_at': expected.get(nxt.pk) if nxt else None,
     }

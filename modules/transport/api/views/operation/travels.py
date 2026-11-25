@@ -2,6 +2,7 @@ from rest_framework.response import Response
 
 from modules.transport.access import travels_for
 from modules.transport.api.serializers.operation import (
+    ApproachSerializer,
     InvitationSerializer,
     InviteInput,
     LiveTravelSerializer,
@@ -16,7 +17,7 @@ from modules.transport.services.execution import cancel_travel, finish_travel, s
 from modules.transport.services.invitations import invite_driver, report_unavailability
 from modules.transport.services.live import live_travels_for_company_owner
 from modules.transport.services.planning import assign_vehicle, calculate_travel, publish_travel
-from modules.transport.services.tracking import read_location
+from modules.transport.services.tracking import approach_route, read_location
 from shared.api import EmptyInput, OperationInput, RevisionInput
 from shared.domain_api import DomainViewSet, domain_action, domain_resource
 
@@ -118,3 +119,12 @@ class TravelViewSet(DomainViewSet):
     )
     def location(self, request, pk=None):
         return Response(read_location(actor_id=request.user.pk, travel_id=self.get_object().pk))
+
+    @domain_action(
+        'Trajeto da sua posição por todas as paradas abertas até o fim',
+        methods=('get',),
+        response=ApproachSerializer,
+        description='Somente o motorista designado, com a viagem em andamento e posição já enviada.',
+    )
+    def approach(self, request, pk=None):
+        return Response(approach_route(actor_id=request.user.pk, travel_id=self.get_object().pk))

@@ -77,3 +77,8 @@ class CorrectionInput(OperationInput):
     corrects_event_id = serializers.IntegerField(min_value=1)
     target_status = serializers.ChoiceField(choices=TravelParticipation.Status.values)
     reason = serializers.CharField(max_length=500)
+
+
+class PassengerRouteSerializer(serializers.Serializer):
+    to_me = serializers.JSONField(allow_null=True)
+    to_destination = serializers.JSONField(allow_null=True)

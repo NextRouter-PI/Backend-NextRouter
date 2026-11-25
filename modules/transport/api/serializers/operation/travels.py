@@ -75,3 +75,14 @@ class PositionSerializer(serializers.Serializer):
 class LocationSerializer(serializers.Serializer):
     position = PositionSerializer(allow_null=True)
     stale = serializers.BooleanField()
+
+
+class ApproachLegSerializer(serializers.Serializer):
+    stop_id = serializers.IntegerField()
+    geometry = serializers.JSONField(allow_null=True)
+    distance_meters = serializers.FloatField()
+    duration_seconds = serializers.FloatField()
+
+
+class ApproachSerializer(serializers.Serializer):
+    legs = ApproachLegSerializer(many=True)
