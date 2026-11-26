@@ -86,3 +86,7 @@ class ApproachLegSerializer(serializers.Serializer):
 
 class ApproachSerializer(serializers.Serializer):
     legs = ApproachLegSerializer(many=True)
+
+
+class DropAllSerializer(serializers.Serializer):
+    dropped = serializers.IntegerField()

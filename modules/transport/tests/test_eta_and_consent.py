@@ -194,3 +194,38 @@ class PassengerRouteTests(ServiceTestCase):
             route = passenger_route(actor_id=user_id, participation_id=participation.pk)
         self.assertIsNone(route['to_me'])
         self.assertEqual(route['to_destination']['coordinates'][0], [-48.8, -26.3])
+
+
+class DriverStartAndDropAllTests(ServiceTestCase):
+    def test_driver_starts_in_time_without_company_publishing_then_drops_all_and_finishes(self):
+        from django.test import override_settings
+
+        from modules.transport.services.execution import drop_off_all, finish_travel, record_participation
+
+        travel = self.ready_travel()
+        travel.refresh_from_db()
+        self.assertFalse(travel.is_published_current)
+        with override_settings(TRAVEL_START_EARLY_MINUTES=60):
+            self.now = travel.planned_start - timedelta(minutes=61)
+            self.assert_domain(
+                'too_early_to_start',
+                start_travel,
+                actor_id=self.driver.user_id,
+                travel_id=travel.pk,
+                expected_revision=travel.revision,
+            )
+            self.now = travel.planned_start - timedelta(minutes=59)
+            travel = start_travel(actor_id=self.driver.user_id, travel_id=travel.pk, expected_revision=travel.revision)
+        self.assertEqual(travel.status, 'in_progress')
+        self.assertTrue(travel.is_published_current)
+
+        participation = travel.participations.get()
+        record_participation(
+            actor_id=self.driver.user_id,
+            participation_id=participation.pk,
+            kind='boarded',
+            operation_id='00000000-0000-4000-8000-000000000003',
+        )
+        self.assert_domain('passengers_on_board', finish_travel, actor_id=self.driver.user_id, travel_id=travel.pk)
+        self.assertEqual(drop_off_all(actor_id=self.driver.user_id, travel_id=travel.pk), 1)
+        self.assertEqual(finish_travel(actor_id=self.driver.user_id, travel_id=travel.pk).status, 'finished')

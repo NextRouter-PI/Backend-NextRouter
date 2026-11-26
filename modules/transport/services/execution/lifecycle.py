@@ -1,7 +1,9 @@
 """Ciclo de vida de execução da viagem: início e finalização pelo motorista."""
 
 import logging
+from datetime import timedelta
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
@@ -11,7 +13,7 @@ from modules.transport.models import Travel
 from modules.transport.services.actors import driver_actor
 from modules.transport.services.locking import lock_travel
 from modules.transport.services.notifications import notify, travel_recipients
-from modules.transport.services.planning import ready_requirements
+from modules.transport.services.planning import publish_travel, ready_requirements
 from modules.transport.services.tracking import location_cache_key
 from shared.exceptions import require
 
@@ -26,16 +28,22 @@ def start_travel(*, actor_id, travel_id, expected_revision):
     if travel.status == Travel.Status.IN_PROGRESS:
         return travel
     require(
-        travel.is_published_current,
-        'publication_outdated',
-        'A revisão atual precisa estar publicada.',
-    )
-    require(
         travel.planning_status == Travel.PlanningStatus.READY,
         'planning_not_ready',
         'O planejamento não está pronto.',
     )
     ready_requirements(travel)
+    now = timezone.now()
+    early = timedelta(minutes=settings.TRAVEL_START_EARLY_MINUTES)
+    require(
+        travel.planned_start is None or now >= travel.planned_start - early,
+        'too_early_to_start',
+        f'A viagem só pode ser iniciada a partir de {settings.TRAVEL_START_EARLY_MINUTES} min antes da saída.',
+    )
+    if not travel.is_published_current:
+        # Rota pronta e no horário: o início publica a revisão atual; a empresa não precisa validar antes.
+        publish_travel(actor_id=travel.company.user_id, travel_id=travel.pk, expected_revision=travel.revision)
+        travel.refresh_from_db()
     require(
         not Travel.objects
         .active()
@@ -44,7 +52,7 @@ def start_travel(*, actor_id, travel_id, expected_revision):
         'active_resource',
         'Motorista/veículo já está em viagem.',
     )
-    travel.mark_started(now=timezone.now())
+    travel.mark_started(now=now)
     notify(
         recipients=travel_recipients(travel),
         kind='operation',

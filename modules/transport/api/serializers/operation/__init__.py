@@ -17,6 +17,7 @@ from .routes import (
 )
 from .travels import (
     ApproachSerializer,
+    DropAllSerializer,
     LiveTravelSerializer,
     LocationSerializer,
     PositionSerializer,
@@ -26,6 +27,7 @@ from .travels import (
 
 __all__ = [
     'ApproachSerializer',
+    'DropAllSerializer',
     'CorrectionInput',
     'EventSerializer',
     'InvitationSerializer',

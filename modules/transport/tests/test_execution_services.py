@@ -36,10 +36,9 @@ class ExecutionServiceTests(ServiceTestCase):
         self.publish(travel)
         return self.start(travel)
 
-    def test_start_requires_current_publication_and_designated_driver(self):
+    def test_start_requires_designated_driver_and_publishes_ready_revision(self):
+        # A empresa não precisa publicar antes: o início do motorista publica a revisão pronta.
         travel = self.ready_travel()
-        self.assert_domain('publication_outdated', self.start, travel=travel)
-        self.publish(travel)
         self.assert_domain(
             'permission_denied',
             start_travel,

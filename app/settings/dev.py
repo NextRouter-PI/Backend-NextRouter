@@ -104,3 +104,7 @@ CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 SECURE_SSL_REDIRECT = False
 SECURE_HSTS_SECONDS = 0
+
+# Os testes montam viagens com horários fixos; a janela de início é testada à parte (override_settings).
+if 'test' in __import__('sys').argv:
+    TRAVEL_START_EARLY_MINUTES = 10**6

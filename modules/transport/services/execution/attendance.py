@@ -166,3 +166,21 @@ def correct_participation(*, actor_id, participation_id, corrects_event_id, targ
         status=travel.status,
     )
     return correction
+
+
+def drop_off_all(*, actor_id, travel_id):
+    """Desembarca de uma vez todos que estão a bordo (fim do percurso). Devolve quantos desembarcaram."""
+    from uuid import uuid4
+
+    travel = get(Travel.objects.all(), pk=travel_id)
+    driver_actor(travel, actor_id)
+    require(travel.status == Travel.Status.IN_PROGRESS, 'travel_not_active', 'A viagem não está em andamento.')
+    ids = list(travel.participations.filter(status='on_board').values_list('pk', flat=True))
+    for participation_id in ids:
+        record_participation(
+            actor_id=actor_id,
+            participation_id=participation_id,
+            kind=ParticipationEvent.Kind.DROPPED_OFF,
+            operation_id=uuid4(),
+        )
+    return len(ids)

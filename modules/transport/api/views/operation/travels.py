@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from modules.transport.access import travels_for
 from modules.transport.api.serializers.operation import (
     ApproachSerializer,
+    DropAllSerializer,
     InvitationSerializer,
     InviteInput,
     LiveTravelSerializer,
@@ -13,7 +14,7 @@ from modules.transport.api.serializers.operation import (
     VehicleAssignmentInput,
 )
 from modules.transport.models import Travel
-from modules.transport.services.execution import cancel_travel, finish_travel, start_travel
+from modules.transport.services.execution import cancel_travel, drop_off_all, finish_travel, start_travel
 from modules.transport.services.invitations import invite_driver, report_unavailability
 from modules.transport.services.live import live_travels_for_company_owner
 from modules.transport.services.planning import assign_vehicle, calculate_travel, publish_travel
@@ -62,6 +63,11 @@ class TravelViewSet(DomainViewSet):
         return self.respond(
             start_travel(actor_id=request.user.pk, travel_id=self.get_object().pk, **self.input(RevisionInput))
         )
+
+    @domain_action('Desembarque de uma vez todos que estão a bordo', response=DropAllSerializer, url_path='drop-all')
+    def drop_all(self, request, pk=None):
+        self.input(EmptyInput)
+        return Response({'dropped': drop_off_all(actor_id=request.user.pk, travel_id=self.get_object().pk)})
 
     @domain_action('Finalize a viagem sem presenças pendentes', response=TravelSerializer)
     def finish(self, request, pk=None):
