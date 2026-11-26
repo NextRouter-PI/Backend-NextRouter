@@ -48,6 +48,9 @@ def main():
             # Vitrine fictícia opcional: roda na release (a saída aparece no log do deploy).
             if optional_boolean('SHOWCASE_SEED', default='false'):
                 call_command('seed_showcase', confirm_fictitious=True)
+            # Empresa Teste para apresentação (viagens diárias até 10/12); senhas só no ambiente.
+            if optional_boolean('PRESENTATION_SEED', default='false'):
+                call_command('seed_presentation', confirm_fictitious=True)
             return
         if role == 'web':
             command = [
