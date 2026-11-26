@@ -1,0 +1,1 @@
+import{u as r}from"./index-C-GTbhIr.js";const s=new Proxy({},{get(n,e){return r()[e]},set(n,e,t){return r()[e]=t,!0},has(n,e){return e in r()},ownKeys(){return Reflect.ownKeys(r())},getOwnPropertyDescriptor(n,e){const t=r();if(e in t)return{enumerable:!0,configurable:!0,value:t[e]}}});export{s};
